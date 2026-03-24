@@ -41,6 +41,9 @@ fastlane/test_output
 .Spotlight-V100
 .Trashes
 
+# Built app
+*.app
+
 # Archives
 *.xcarchive
 
