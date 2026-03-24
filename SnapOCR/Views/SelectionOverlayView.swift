@@ -1,0 +1,141 @@
+//
+//  SelectionOverlayView.swift
+//  SnapOCR
+//
+//  Created by 森田悟史 on 2026/03/24.
+//
+
+import AppKit
+
+final class SelectionOverlayView: NSView {
+    var onSelectionCompleted: ((CGRect) -> Void)?
+    var onSelectionCancelled: (() -> Void)?
+
+    private var startPoint: NSPoint?
+    private var currentRect: CGRect = .zero
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        // Draw semi-transparent black overlay over the entire view
+        NSColor.black.withAlphaComponent(0.3).setFill()
+        NSBezierPath.fill(bounds)
+
+        guard !currentRect.isEmpty else { return }
+
+        // Use evenOddRule to cut out the selection region (making it brighter)
+        let overlayPath = NSBezierPath()
+        overlayPath.windingRule = .evenOdd
+        overlayPath.append(NSBezierPath(rect: bounds))
+        overlayPath.append(NSBezierPath(rect: currentRect))
+        NSColor.black.withAlphaComponent(0.3).setFill()
+        overlayPath.fill()
+
+        // Draw selection border in white
+        NSColor.white.setStroke()
+        let borderPath = NSBezierPath(rect: currentRect)
+        borderPath.lineWidth = 1.0
+        borderPath.stroke()
+
+        // Draw size label badge near the bottom-right of the selection
+        drawSizeLabel(for: currentRect)
+    }
+
+    private func drawSizeLabel(for rect: CGRect) {
+        let width = Int(rect.width)
+        let height = Int(rect.height)
+        let labelText = "\(width) × \(height)"
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.white
+        ]
+        let attributedString = NSAttributedString(string: labelText, attributes: attributes)
+        let textSize = attributedString.size()
+
+        let padding: CGFloat = 4
+        let badgeWidth = textSize.width + padding * 2
+        let badgeHeight = textSize.height + padding * 2
+        let badgeOffset: CGFloat = 6
+
+        var badgeX = rect.maxX - badgeWidth - badgeOffset
+        var badgeY = rect.minY - badgeHeight - badgeOffset
+
+        // Keep badge within view bounds
+        if badgeX < bounds.minX {
+            badgeX = bounds.minX + badgeOffset
+        }
+        if badgeY < bounds.minY {
+            badgeY = rect.minY + badgeOffset
+        }
+
+        let badgeRect = CGRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight)
+
+        // Draw black background badge
+        NSColor.black.withAlphaComponent(0.7).setFill()
+        let badgePath = NSBezierPath(roundedRect: badgeRect, xRadius: 3, yRadius: 3)
+        badgePath.fill()
+
+        // Draw label text
+        let textRect = CGRect(
+            x: badgeX + padding,
+            y: badgeY + padding,
+            width: textSize.width,
+            height: textSize.height
+        )
+        attributedString.draw(in: textRect)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        startPoint = convert(event.locationInWindow, from: nil)
+        currentRect = .zero
+        needsDisplay = true
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let start = startPoint else { return }
+        let current = convert(event.locationInWindow, from: nil)
+        currentRect = makeRect(from: start, to: current)
+        needsDisplay = true
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard let start = startPoint else { return }
+        let end = convert(event.locationInWindow, from: nil)
+        let selectionRect = makeRect(from: start, to: end)
+
+        startPoint = nil
+        currentRect = .zero
+
+        // Only complete if the selection has meaningful size
+        if selectionRect.width > 2 && selectionRect.height > 2 {
+            onSelectionCompleted?(selectionRect)
+        } else {
+            onSelectionCancelled?()
+        }
+    }
+
+    override func keyDown(with event: NSEvent) {
+        // keyCode 53 is Escape
+        if event.keyCode == 53 {
+            startPoint = nil
+            currentRect = .zero
+            needsDisplay = true
+            onSelectionCancelled?()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    private func makeRect(from pointA: NSPoint, to pointB: NSPoint) -> CGRect {
+        let minX = min(pointA.x, pointB.x)
+        let minY = min(pointA.y, pointB.y)
+        let width = abs(pointB.x - pointA.x)
+        let height = abs(pointB.y - pointA.y)
+        return CGRect(x: minX, y: minY, width: width, height: height)
+    }
+}
