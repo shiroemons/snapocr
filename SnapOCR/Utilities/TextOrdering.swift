@@ -19,6 +19,22 @@ enum TextOrdering {
         }.joined(separator: "\n")
     }
 
+    /// Detect dominant text direction from raw bounding boxes (for testing)
+    static func detectDirection(from boundingBoxes: [CGRect]) -> TextDirection {
+        var horizontalCount = 0
+        var verticalCount = 0
+
+        for box in boundingBoxes {
+            if box.height > box.width * 1.5 {
+                verticalCount += 1
+            } else {
+                horizontalCount += 1
+            }
+        }
+
+        return verticalCount > horizontalCount ? .vertical : .horizontal
+    }
+
     /// Detect dominant text direction from bounding boxes
     static func detectDirection(_ observations: [VNRecognizedTextObservation]) -> TextDirection {
         var horizontalCount = 0

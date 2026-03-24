@@ -1,17 +1,14 @@
-//
-//  SnapOCRTests.swift
-//  SnapOCRTests
-//
-//  Created by 森田悟史 on 2026/03/24.
-//
-
 import Testing
 @testable import SnapOCR
 
+@Suite("SnapOCR App Tests")
 struct SnapOCRTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func appViewModelInitialState() async {
+        await MainActor.run {
+            let viewModel = AppViewModel()
+            #expect(viewModel.isCapturing == false)
+            #expect(viewModel.lastError == nil)
+        }
     }
-
 }
