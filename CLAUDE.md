@@ -72,6 +72,10 @@ swift package plugin lint
 4. **OCR text ordering** — `VNRecognizedTextObservation` returns unordered results. Must sort by bounding box: horizontal (top→bottom, left→right), vertical (right→left, top→bottom).
 5. **No image persistence** — Captured images must stay in memory only. Release after OCR completes.
 
+## Workflow
+
+- Run `/simplify` after each implementation task to review code for reuse, quality, and efficiency, and fix any issues found
+
 ## Documentation
 
 - [Requirements (要求定義書)](docs/requirements.md) — Full specification including UI mockups, CI/CD pipeline, and technical decisions
