@@ -16,11 +16,12 @@ final class HotkeyService {
     var modifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
 
     func register() {
+        unregister()
+
         // 1. Set up global callback
-        let callback = onHotkeyPressed
-        globalHotkeyCallback = {
+        globalHotkeyCallback = { [weak self] in
             Task { @MainActor in
-                callback?()
+                self?.onHotkeyPressed?()
             }
         }
 
@@ -42,7 +43,6 @@ final class HotkeyService {
         )
 
         // 3. Register hotkey
-        // "SOCR" as FourCharCode: 0x534F4352
         let hotkeyID = EventHotKeyID(
             signature: 0x534F_4352,
             id: 1

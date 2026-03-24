@@ -7,7 +7,6 @@ enum TextOrdering {
         case vertical
     }
 
-    /// Sort observations by reading order and return combined text
     static func sortedText(from observations: [VNRecognizedTextObservation]) -> String {
         guard !observations.isEmpty else { return "" }
 
@@ -19,7 +18,6 @@ enum TextOrdering {
         }.joined(separator: "\n")
     }
 
-    /// Detect dominant text direction from raw bounding boxes (for testing)
     static func detectDirection(from boundingBoxes: [CGRect]) -> TextDirection {
         var horizontalCount = 0
         var verticalCount = 0
@@ -35,21 +33,8 @@ enum TextOrdering {
         return verticalCount > horizontalCount ? .vertical : .horizontal
     }
 
-    /// Detect dominant text direction from bounding boxes
     static func detectDirection(_ observations: [VNRecognizedTextObservation]) -> TextDirection {
-        var horizontalCount = 0
-        var verticalCount = 0
-
-        for obs in observations {
-            let box = obs.boundingBox
-            if box.height > box.width * 1.5 {
-                verticalCount += 1
-            } else {
-                horizontalCount += 1
-            }
-        }
-
-        return verticalCount > horizontalCount ? .vertical : .horizontal
+        detectDirection(from: observations.map(\.boundingBox))
     }
 
     /// Sort observations by reading order
@@ -67,7 +52,6 @@ enum TextOrdering {
         }
     }
 
-    /// Sort horizontal text: top→bottom, then left→right
     /// Vision boundingBox origin is bottom-left, Y increases upward
     private static func sortHorizontal(
         _ observations: [VNRecognizedTextObservation]
@@ -84,7 +68,6 @@ enum TextOrdering {
         }
     }
 
-    /// Sort vertical text: right→left, then top→bottom
     private static func sortVertical(
         _ observations: [VNRecognizedTextObservation]
     ) -> [VNRecognizedTextObservation] {

@@ -39,6 +39,7 @@ final class AppViewModel {
 
     func startCapture() {
         guard !isCapturing else { return }
+        isCapturing = true
 
         Task {
             await performCapture()
@@ -46,28 +47,24 @@ final class AppViewModel {
     }
 
     private func performCapture() async {
-        // 1. Check permission
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             lastError = String(localized: "Screen recording permission is required.")
             permissionService.openSystemSettings()
+            isCapturing = false
             return
         }
 
-        isCapturing = true
         lastError = nil
         defer { isCapturing = false }
 
         do {
-            // 2. Select region
             guard let region = await SelectionOverlayWindow.selectRegion() else {
                 return // User cancelled
             }
 
-            // 3. Capture screenshot
             let image = try await CaptureService.captureRegion(region)
 
-            // 4. OCR
             let text = try await OCRService.recognizeText(from: image)
 
             guard !text.isEmpty else {
@@ -75,7 +72,6 @@ final class AppViewModel {
                 return
             }
 
-            // 5. Copy to clipboard
             _ = ClipboardService.copy(text)
         } catch {
             lastError = error.localizedDescription

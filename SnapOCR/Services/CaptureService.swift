@@ -2,7 +2,6 @@ import AppKit
 @preconcurrency import ScreenCaptureKit
 
 enum CaptureService {
-    /// Capture a rectangular region of the screen
     @MainActor
     static func captureRegion(_ rect: CGRect) async throws -> CGImage {
         let content = try await SCShareableContent.current
@@ -24,7 +23,6 @@ enum CaptureService {
         )
     }
 
-    /// Build SCStreamConfiguration for the given region
     private static func buildConfiguration(for rect: CGRect) -> SCStreamConfiguration {
         let scaleFactor = NSScreen.main?.backingScaleFactor ?? 2.0
         let config = SCStreamConfiguration()

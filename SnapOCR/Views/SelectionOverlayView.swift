@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Carbon.HIToolbox
 
 final class SelectionOverlayView: NSView {
     var onSelectionCompleted: ((CGRect) -> Void)?
@@ -19,13 +20,14 @@ final class SelectionOverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        // Draw semi-transparent black overlay over the entire view
-        NSColor.black.withAlphaComponent(0.3).setFill()
-        NSBezierPath.fill(bounds)
+        guard !currentRect.isEmpty else {
+            // No selection yet — draw full overlay
+            NSColor.black.withAlphaComponent(0.3).setFill()
+            NSBezierPath.fill(bounds)
+            return
+        }
 
-        guard !currentRect.isEmpty else { return }
-
-        // Use evenOddRule to cut out the selection region (making it brighter)
+        // Use evenOddRule to draw overlay with selection cut-out
         let overlayPath = NSBezierPath()
         overlayPath.windingRule = .evenOdd
         overlayPath.append(NSBezierPath(rect: bounds))
@@ -33,13 +35,12 @@ final class SelectionOverlayView: NSView {
         NSColor.black.withAlphaComponent(0.3).setFill()
         overlayPath.fill()
 
-        // Draw selection border in white
+        // Draw selection border
         NSColor.white.setStroke()
         let borderPath = NSBezierPath(rect: currentRect)
         borderPath.lineWidth = 1.0
         borderPath.stroke()
 
-        // Draw size label badge near the bottom-right of the selection
         drawSizeLabel(for: currentRect)
     }
 
@@ -118,8 +119,7 @@ final class SelectionOverlayView: NSView {
     }
 
     override func keyDown(with event: NSEvent) {
-        // keyCode 53 is Escape
-        if event.keyCode == 53 {
+        if event.keyCode == UInt16(kVK_Escape) {
             startPoint = nil
             currentRect = .zero
             needsDisplay = true

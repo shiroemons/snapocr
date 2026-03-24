@@ -52,15 +52,15 @@ extension SelectionOverlayWindow {
             window.overlayView.onSelectionCompleted = { rect in
                 guard !resumed else { return }
                 resumed = true
+                window.orderOut(nil)
                 continuation.resume(returning: rect)
-                window.close()
             }
 
             window.overlayView.onSelectionCancelled = {
                 guard !resumed else { return }
                 resumed = true
+                window.orderOut(nil)
                 continuation.resume(returning: nil)
-                window.close()
             }
 
             window.show()

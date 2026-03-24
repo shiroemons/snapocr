@@ -1,7 +1,6 @@
 import Vision
 
 enum OCRService {
-    /// Recognize text from a CGImage
     static func recognizeText(
         from image: CGImage,
         languages: [String] = ["ja", "en"]
@@ -17,7 +16,6 @@ enum OCRService {
         return TextOrdering.sortedText(from: observations)
     }
 
-    /// Build a configured VNRecognizeTextRequest
     private static func buildRequest(languages: [String]) -> VNRecognizeTextRequest {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
