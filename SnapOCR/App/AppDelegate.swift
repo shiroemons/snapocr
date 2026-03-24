@@ -10,13 +10,21 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private let viewModel = AppViewModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
+        viewModel.setup()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        viewModel.teardown()
     }
 
     private func setupMenuBar() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem = NSStatusBar.system.statusItem(
+            withLength: NSStatusItem.squareLength
+        )
 
         if let button = statusItem?.button {
             button.image = NSImage(
@@ -45,6 +53,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureText() {
-        // TODO: Phase 1 - Connect to AppViewModel.performCapture()
+        viewModel.startCapture()
     }
 }
