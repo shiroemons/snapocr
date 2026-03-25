@@ -56,6 +56,14 @@ final class HotkeyService {
         )
     }
 
+    func updateHotkey(keyCode: UInt32, modifiers: UInt32) {
+        self.keyCode = keyCode
+        self.modifiers = modifiers
+        register()
+    }
+
+    /// Unregisters the hotkey and removes the event handler.
+    /// Must be called explicitly before deallocation (deinit cannot run on MainActor).
     func unregister() {
         if let ref = hotkeyRef {
             UnregisterEventHotKey(ref)
@@ -66,10 +74,5 @@ final class HotkeyService {
             eventHandlerRef = nil
         }
         globalHotkeyCallback = nil
-    }
-
-    deinit {
-        // Note: deinit runs on arbitrary thread, but unregister needs MainActor.
-        // The app should call unregister() explicitly before deallocation.
     }
 }
