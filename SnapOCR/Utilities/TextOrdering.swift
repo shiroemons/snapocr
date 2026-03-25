@@ -12,10 +12,7 @@ enum TextOrdering {
 
         let direction = detectDirection(observations)
         let sorted = sort(observations, direction: direction)
-
-        return sorted.compactMap { observation in
-            observation.topCandidates(1).first?.string
-        }.joined(separator: "\n")
+        return sorted.compactMap { $0.topCandidates(1).first?.string }.joined(separator: "\n")
     }
 
     static func detectDirection(from boundingBoxes: [CGRect]) -> TextDirection {

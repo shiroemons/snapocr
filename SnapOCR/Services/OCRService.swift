@@ -1,27 +1,25 @@
-import Vision
+import AppKit
+import os
+import VisionKit
 
 enum OCRService {
-    static func recognizeText(
-        from image: CGImage,
-        languages: [String] = ["ja", "en"]
-    ) async throws -> String {
-        let request = buildRequest(languages: languages)
-        let handler = VNImageRequestHandler(cgImage: image, options: [:])
-        try handler.perform([request])
+    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "OCRService")
+    private static let analyzer = ImageAnalyzer()
 
-        guard let observations = request.results else {
-            return ""
-        }
+    static func recognizeText(from image: CGImage) async throws -> String {
+        logger.info("Image size: \(image.width, privacy: .public)x\(image.height, privacy: .public)")
 
-        return TextOrdering.sortedText(from: observations)
-    }
+        let nsImage = NSImage(
+            cgImage: image,
+            size: NSSize(width: image.width, height: image.height)
+        )
+        let configuration = ImageAnalyzer.Configuration([.text])
 
-    private static func buildRequest(languages: [String]) -> VNRecognizeTextRequest {
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.recognitionLanguages = languages
-        request.automaticallyDetectsLanguage = true
-        request.usesLanguageCorrection = true
-        return request
+        let analysis = try await analyzer.analyze(nsImage, orientation: .up, configuration: configuration)
+        let transcript = analysis.transcript
+
+        logger.info("Recognized text (\(transcript.count, privacy: .public) chars): '\(transcript, privacy: .public)'")
+
+        return transcript
     }
 }

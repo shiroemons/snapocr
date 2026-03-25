@@ -16,18 +16,18 @@ final class SelectionOverlayView: NSView {
     private var currentRect: CGRect = .zero
 
     override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
         guard !currentRect.isEmpty else {
-            // No selection yet — draw full overlay
-            NSColor.black.withAlphaComponent(0.3).setFill()
+            // Draw nearly invisible background to ensure mouse event delivery
+            NSColor.black.withAlphaComponent(0.01).setFill()
             NSBezierPath.fill(bounds)
             return
         }
 
-        // Use evenOddRule to draw overlay with selection cut-out
         let overlayPath = NSBezierPath()
         overlayPath.windingRule = .evenOdd
         overlayPath.append(NSBezierPath(rect: bounds))
@@ -35,7 +35,6 @@ final class SelectionOverlayView: NSView {
         NSColor.black.withAlphaComponent(0.3).setFill()
         overlayPath.fill()
 
-        // Draw selection border
         NSColor.white.setStroke()
         let borderPath = NSBezierPath(rect: currentRect)
         borderPath.lineWidth = 1.0
@@ -74,12 +73,10 @@ final class SelectionOverlayView: NSView {
 
         let badgeRect = CGRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight)
 
-        // Draw black background badge
         NSColor.black.withAlphaComponent(0.7).setFill()
         let badgePath = NSBezierPath(roundedRect: badgeRect, xRadius: 3, yRadius: 3)
         badgePath.fill()
 
-        // Draw label text
         let textRect = CGRect(
             x: badgeX + padding,
             y: badgeY + padding,
@@ -110,7 +107,6 @@ final class SelectionOverlayView: NSView {
         startPoint = nil
         currentRect = .zero
 
-        // Only complete if the selection has meaningful size
         if selectionRect.width > 2 && selectionRect.height > 2 {
             onSelectionCompleted?(selectionRect)
         } else {
@@ -127,6 +123,26 @@ final class SelectionOverlayView: NSView {
         } else {
             super.keyDown(with: event)
         }
+    }
+
+    // MARK: - Cursor
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.cursorUpdate, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.crosshair.set()
     }
 
     // MARK: - Private Helpers

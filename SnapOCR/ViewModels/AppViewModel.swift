@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import os
 import Observation
 
 @Observable
 @MainActor
 final class AppViewModel {
+    private let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppViewModel")
     private let permissionService: PermissionService
     private let hotkeyService: HotkeyService
 
@@ -49,6 +51,7 @@ final class AppViewModel {
     private func performCapture() async {
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
+            logger.warning("Screen capture permission not granted")
             lastError = String(localized: "Screen recording permission is required.")
             permissionService.openSystemSettings()
             isCapturing = false
@@ -59,21 +62,34 @@ final class AppViewModel {
         defer { isCapturing = false }
 
         do {
-            guard let region = await SelectionOverlayWindow.selectRegion() else {
+            logger.info("Starting region selection")
+            guard let selection = await SelectionOverlayWindow.selectRegion() else {
+                logger.info("Region selection cancelled by user")
                 return // User cancelled
             }
+            logger.info("Region selected: \(String(describing: selection.rect), privacy: .public)")
 
-            let image = try await CaptureService.captureRegion(region)
+            let image = try await CaptureService.captureRegion(
+                selection.rect,
+                displayID: selection.displayID,
+                screenSize: selection.screenSize,
+                scaleFactor: selection.scaleFactor
+            )
+            logger.info("Screen capture completed")
 
             let text = try await OCRService.recognizeText(from: image)
+            logger.info("OCR completed: \(text.count) characters recognized")
 
             guard !text.isEmpty else {
+                logger.warning("OCR result is empty")
                 lastError = String(localized: "No text was recognized.")
                 return
             }
 
             _ = ClipboardService.copy(text)
+            logger.info("Text copied to clipboard successfully")
         } catch {
+            logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
             lastError = error.localizedDescription
         }
     }
