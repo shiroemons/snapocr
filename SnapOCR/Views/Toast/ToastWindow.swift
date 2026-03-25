@@ -9,11 +9,12 @@ import AppKit
 import SwiftUI
 
 private enum Constants {
-    static let windowWidth: CGFloat = 300
-    static let windowHeight: CGFloat = 50
+    static let windowWidth: CGFloat = 360
+    static let maxWindowHeight: CGFloat = 200
+    static let maxTextLines: Int = 5
+    static let maxTextLength: Int = 500
     static let margin: CGFloat = 20
     static let dismissDelay: Duration = .seconds(2.5)
-    static let maxTextLength: Int = 50
 }
 
 // MARK: - SwiftUI Content View
@@ -22,20 +23,28 @@ private struct ToastContentView: View {
     let text: String
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-                .font(.system(size: 16, weight: .medium))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 16, weight: .medium))
+
+                Text(String(localized: "Copied to Clipboard", comment: "Toast notification title when OCR text is copied to clipboard"))
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             Text(text)
-                .font(.system(size: 13))
-                .lineLimit(1)
+                .font(.system(size: 12))
+                .lineLimit(Constants.maxTextLines)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(width: Constants.windowWidth, height: Constants.windowHeight)
+        .padding(.vertical, 10)
+        .frame(width: Constants.windowWidth)
+        .frame(maxHeight: Constants.maxWindowHeight)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -63,23 +72,15 @@ final class ToastWindow {
     // MARK: - Private
 
     private func present(text: String) {
-        let preview = String(text.prefix(Constants.maxTextLength))
-        let contentView = ToastContentView(text: preview)
+        let displayText = String(text.prefix(Constants.maxTextLength))
+        let contentView = ToastContentView(text: displayText)
         let hosting = NSHostingView(rootView: contentView)
-        hosting.frame = CGRect(
-            x: 0,
-            y: 0,
-            width: Constants.windowWidth,
-            height: Constants.windowHeight
-        )
+        let fittedSize = hosting.fittingSize
+        let clampedSize = CGSize(width: fittedSize.width, height: min(fittedSize.height, Constants.maxWindowHeight))
+        hosting.frame = CGRect(origin: .zero, size: clampedSize)
 
         let win = NSWindow(
-            contentRect: CGRect(
-                x: 0,
-                y: 0,
-                width: Constants.windowWidth,
-                height: Constants.windowHeight
-            ),
+            contentRect: CGRect(origin: .zero, size: clampedSize),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -94,8 +95,8 @@ final class ToastWindow {
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let originX = screenFrame.maxX - Constants.windowWidth - Constants.margin
-            let originY = screenFrame.maxY - Constants.windowHeight - Constants.margin
+            let originX = screenFrame.maxX - clampedSize.width - Constants.margin
+            let originY = screenFrame.maxY - clampedSize.height - Constants.margin
             win.setFrameOrigin(NSPoint(x: originX, y: originY))
         }
 
