@@ -13,11 +13,14 @@ import SwiftUI
 @MainActor
 struct RecentCapturesView: View {
     private static let textLineLimit = 5
+    private static let hoverBackgroundColor = Color.primary.opacity(0.08)
 
     let historyService: HistoryService
     let onShowHistory: () -> Void
 
     @State private var copiedRecordID: PersistentIdentifier?
+    @State private var hoveredRecordID: PersistentIdentifier?
+    @State private var isHoveringShowAll = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -41,6 +44,7 @@ struct RecentCapturesView: View {
             showAllButton
         }
         .padding(.vertical, 4)
+        .onDisappear { hoveredRecordID = nil; isHoveringShowAll = false }
     }
 
     // MARK: - Empty State
@@ -106,6 +110,15 @@ struct RecentCapturesView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { hovering in
+                    hoveredRecordID = hovering ? record.persistentModelID : nil
+                }
+                .background(
+                    hoveredRecordID == record.persistentModelID
+                        ? Self.hoverBackgroundColor
+                        : Color.clear
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 4))
                 .help(record.text)
             }
         }
@@ -123,12 +136,14 @@ struct RecentCapturesView: View {
                     comment: "Button to open full history window"
                 )
             )
+            .underline(isHoveringShowAll)
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
         .foregroundStyle(.blue)
+        .onHover { isHoveringShowAll = $0 }
     }
 
     // MARK: - Actions
