@@ -12,6 +12,7 @@ struct SettingsView: View {
     let permissionService: PermissionService
     let settingsService: SettingsService
     let loginItemService: LoginItemService
+    let historyService: HistoryService
 
     var body: some View {
         TabView {
@@ -35,7 +36,7 @@ struct SettingsView: View {
                     )
                 }
 
-            NotificationSettingsView()
+            NotificationSettingsView(settingsService: settingsService)
                 .tabItem {
                     Label(
                         String(localized: "Notifications", comment: "Notifications settings tab title"),
@@ -43,7 +44,7 @@ struct SettingsView: View {
                     )
                 }
 
-            HistorySettingsView()
+            HistorySettingsView(settingsService: settingsService, historyService: historyService)
                 .tabItem {
                     Label(
                         String(localized: "History", comment: "History settings tab title"),

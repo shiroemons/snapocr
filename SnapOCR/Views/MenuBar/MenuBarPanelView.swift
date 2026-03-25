@@ -5,6 +5,7 @@
 //  Created by 森田悟史 on 2026/03/25.
 //
 
+import SwiftData
 import SwiftUI
 
 private enum Constants {
@@ -19,21 +20,27 @@ private enum Constants {
 struct MenuBarPanelView: View {
     private let permissionService: PermissionService
     private let settingsService: SettingsService
+    let historyService: HistoryService
     let onCapture: () -> Void
     let onOpenSettings: () -> Void
+    let onShowHistory: () -> Void
     let onQuit: () -> Void
 
     init(
         permissionService: PermissionService,
         settingsService: SettingsService,
+        historyService: HistoryService,
         onCapture: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
+        onShowHistory: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.permissionService = permissionService
         self.settingsService = settingsService
+        self.historyService = historyService
         self.onCapture = onCapture
         self.onOpenSettings = onOpenSettings
+        self.onShowHistory = onShowHistory
         self.onQuit = onQuit
     }
 
@@ -64,7 +71,7 @@ struct MenuBarPanelView: View {
             Divider()
                 .opacity(Constants.dividerOpacity)
 
-            RecentCapturesView()
+            RecentCapturesView(historyService: historyService, onShowHistory: onShowHistory)
 
             Divider()
                 .opacity(Constants.dividerOpacity)
@@ -81,13 +88,23 @@ struct MenuBarPanelView: View {
 
 #if DEBUG
 #Preview {
+    let container = try! ModelContainer(
+        for: CaptureRecord.self,
+        configurations: .init(isStoredInMemoryOnly: true)
+    )
+    let historyService = HistoryService(
+        modelContext: container.mainContext
+    )
     MenuBarPanelView(
         permissionService: PermissionService(),
-        settingsService: SettingsService()
+        settingsService: SettingsService(),
+        historyService: historyService
     ) {
         // capture
     } onOpenSettings: {
         // settings
+    } onShowHistory: {
+        // history
     } onQuit: {
         // quit
     }

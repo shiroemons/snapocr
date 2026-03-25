@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import SwiftData
 import SwiftUI
 
 @MainActor
@@ -14,16 +15,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
-    private lazy var viewModel = AppViewModel(
+    private(set) lazy var historyService: HistoryService = {
+        // ModelContainer creation is expected to succeed for a simple schema.
+        // A failure here indicates a critical system issue (e.g., disk full).
+        let container = try! ModelContainer(for: CaptureRecord.self)
+        return HistoryService(modelContext: container.mainContext)
+    }()
+    private lazy var viewModel: AppViewModel = AppViewModel(
         permissionService: permissionService,
-        settingsService: settingsService
+        settingsService: settingsService,
+        historyService: historyService
     )
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
+    private var historyWindow: HistoryWindow?
     private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NotificationService.requestPermission()
         setupMenuBar()
         viewModel.setup()
         updateStatusItemIcon()
@@ -57,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panelView = MenuBarPanelView(
             permissionService: permissionService,
             settingsService: settingsService,
+            historyService: historyService,
             onCapture: { [weak self] in
                 self?.statusItem?.menu?.cancelTracking()
                 self?.viewModel.startCapture()
@@ -64,6 +75,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onOpenSettings: { [weak self] in
                 self?.statusItem?.menu?.cancelTracking()
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            },
+            onShowHistory: { [weak self] in
+                self?.statusItem?.menu?.cancelTracking()
+                self?.showHistoryWindow()
             },
             onQuit: {
                 NSApp.terminate(nil)
@@ -82,6 +97,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelItem = item
         hostingView = view
         statusItem?.menu = menu
+    }
+
+    // MARK: - History Window
+
+    private func showHistoryWindow() {
+        if let existing = historyWindow {
+            existing.bringToFront()
+            return
+        }
+        let window = HistoryWindow()
+        window.onDismiss = { [weak self] in
+            self?.historyWindow = nil
+        }
+        window.present(historyService: historyService)
+        historyWindow = window
     }
 
     // MARK: - Status Item Icon

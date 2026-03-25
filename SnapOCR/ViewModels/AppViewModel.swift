@@ -16,6 +16,7 @@ final class AppViewModel {
     private let permissionService: PermissionService
     private let hotkeyService: HotkeyService
     private let settingsService: SettingsService
+    private let historyService: HistoryService?
 
     private(set) var isCapturing = false
     private(set) var lastError: String?
@@ -23,11 +24,13 @@ final class AppViewModel {
     init(
         permissionService: PermissionService = PermissionService(),
         hotkeyService: HotkeyService = HotkeyService(),
-        settingsService: SettingsService = SettingsService()
+        settingsService: SettingsService = SettingsService(),
+        historyService: HistoryService? = nil
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
         self.settingsService = settingsService
+        self.historyService = historyService
     }
 
     func setup() {
@@ -113,6 +116,17 @@ final class AppViewModel {
 
             if ClipboardService.copy(text) {
                 Self.logger.info("Text copied to clipboard successfully")
+                NotificationService.notifySuccess(
+                    text: text,
+                    settings: settingsService
+                )
+                if settingsService.isHistoryEnabled {
+                    historyService?.addRecord(
+                        text: text,
+                        languages: settingsService.ocrLanguages,
+                        maxCount: settingsService.maxHistoryCount
+                    )
+                }
             } else {
                 Self.logger.warning("Failed to copy text to clipboard")
             }

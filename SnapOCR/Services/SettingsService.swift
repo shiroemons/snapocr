@@ -17,6 +17,12 @@ final class SettingsService {
         static let hotkeyModifiers = "hotkeyModifiers"
         static let ocrLanguages = "ocrLanguages"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let isNotificationCenterEnabled = "isNotificationCenterEnabled"
+        static let isCompletionSoundEnabled = "isCompletionSoundEnabled"
+        static let completionSoundName = "completionSoundName"
+        static let isToastEnabled = "isToastEnabled"
+        static let isHistoryEnabled = "isHistoryEnabled"
+        static let maxHistoryCount = "maxHistoryCount"
     }
 
     static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
@@ -49,6 +55,43 @@ final class SettingsService {
         !hasCompletedOnboarding
     }
 
+    // MARK: - Notification Settings
+
+    var isNotificationCenterEnabled: Bool {
+        get { bool(forKey: Keys.isNotificationCenterEnabled, default: true) }
+        set { defaults.set(newValue, forKey: Keys.isNotificationCenterEnabled) }
+    }
+
+    var isCompletionSoundEnabled: Bool {
+        get { bool(forKey: Keys.isCompletionSoundEnabled, default: true) }
+        set { defaults.set(newValue, forKey: Keys.isCompletionSoundEnabled) }
+    }
+
+    var completionSoundName: String {
+        get { defaults.string(forKey: Keys.completionSoundName) ?? "Tink" }
+        set { defaults.set(newValue, forKey: Keys.completionSoundName) }
+    }
+
+    var isToastEnabled: Bool {
+        get { bool(forKey: Keys.isToastEnabled, default: false) }
+        set { defaults.set(newValue, forKey: Keys.isToastEnabled) }
+    }
+
+    // MARK: - History Settings
+
+    var isHistoryEnabled: Bool {
+        get { bool(forKey: Keys.isHistoryEnabled, default: true) }
+        set { defaults.set(newValue, forKey: Keys.isHistoryEnabled) }
+    }
+
+    var maxHistoryCount: Int {
+        get {
+            let value = defaults.integer(forKey: Keys.maxHistoryCount)
+            return value > 0 ? value : 100
+        }
+        set { defaults.set(newValue, forKey: Keys.maxHistoryCount) }
+    }
+
     init(userDefaults: UserDefaults = .standard) {
         self.defaults = userDefaults
     }
@@ -59,5 +102,9 @@ final class SettingsService {
     private func uint32(forKey key: String, default defaultValue: UInt32) -> UInt32 {
         guard let intValue = defaults.object(forKey: key) as? Int else { return defaultValue }
         return UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
+    }
+
+    private func bool(forKey key: String, default defaultValue: Bool) -> Bool {
+        defaults.object(forKey: key) as? Bool ?? defaultValue
     }
 }

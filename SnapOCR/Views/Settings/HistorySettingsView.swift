@@ -7,12 +7,114 @@
 
 import SwiftUI
 
+/// 履歴設定タブ。履歴保存の有効化・保持件数・一括削除を管理する。
 @MainActor
 struct HistorySettingsView: View {
+    let settingsService: SettingsService
+    let historyService: HistoryService
+
+    @State private var showingDeleteConfirmation = false
+
+    private let maxCountOptions = [50, 100, 200, 500]
+
     var body: some View {
-        PlaceholderSettingsView(
-            systemImage: "clock.arrow.circlepath",
-            message: String(localized: "History settings will be available in Phase 4.", comment: "Placeholder message for history settings not yet implemented")
-        )
+        Form {
+            storageSection
+            managementSection
+        }
+        .formStyle(.grouped)
+    }
+
+    // MARK: - Storage
+
+    private var storageSection: some View {
+        Section {
+            Toggle(
+                String(
+                    localized: "Save OCR History",
+                    comment: "Toggle for history saving"
+                ),
+                isOn: Binding(
+                    get: { settingsService.isHistoryEnabled },
+                    set: { settingsService.isHistoryEnabled = $0 }
+                )
+            )
+
+            if settingsService.isHistoryEnabled {
+                Picker(
+                    String(
+                        localized: "Maximum History Count",
+                        comment: "Picker for max history count"
+                    ),
+                    selection: Binding(
+                        get: { settingsService.maxHistoryCount },
+                        set: {
+                            settingsService.maxHistoryCount = $0
+                            historyService.trimToLimit($0)
+                        }
+                    )
+                ) {
+                    ForEach(maxCountOptions, id: \.self) { count in
+                        Text("\(count)")
+                            .tag(count)
+                    }
+                }
+            }
+        } header: {
+            Text(
+                String(
+                    localized: "Storage",
+                    comment: "History storage section header"
+                )
+            )
+        }
+    }
+
+    // MARK: - Management
+
+    private var managementSection: some View {
+        Section {
+            Button(role: .destructive) {
+                showingDeleteConfirmation = true
+            } label: {
+                Text(
+                    String(
+                        localized: "Delete All History",
+                        comment: "Button to delete all history"
+                    )
+                )
+            }
+            .confirmationDialog(
+                String(
+                    localized: "Delete All History?",
+                    comment: "Delete confirmation title"
+                ),
+                isPresented: $showingDeleteConfirmation
+            ) {
+                Button(
+                    String(
+                        localized: "Delete All",
+                        comment: "Confirm delete all button"
+                    ),
+                    role: .destructive
+                ) {
+                    historyService.deleteAll()
+                }
+            } message: {
+                Text(
+                    String(
+                        localized: "This action cannot be undone.",
+                        comment: "Delete confirmation message"
+                    )
+                )
+            }
+        } header: {
+            Text(
+                String(
+                    localized: "Management",
+                    comment: "History management section header"
+                )
+            )
+        }
     }
 }
