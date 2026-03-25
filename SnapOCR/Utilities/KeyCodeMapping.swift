@@ -1,3 +1,4 @@
+import AppKit
 import Carbon.HIToolbox
 
 enum KeyCodeMapping {
@@ -89,5 +90,18 @@ enum KeyCodeMapping {
     /// keyCode + modifiers を完全な表示文字列に変換（例: "⌃⇧O"）
     nonisolated static func displayString(keyCode: UInt32, modifiers: UInt32) -> String {
         modifierString(for: modifiers) + string(for: keyCode)
+    }
+
+    // MARK: - NSEvent → Carbon Modifier Conversion
+
+    /// `NSEvent.ModifierFlags` を Carbon modifier flags (UInt32) に変換する。
+    /// ホットキー登録（Carbon API）と表示（`modifierString`）の両方で使える共通変換。
+    nonisolated static func carbonModifiers(from flags: NSEvent.ModifierFlags) -> UInt32 {
+        var result: UInt32 = 0
+        if flags.contains(.control) { result |= UInt32(controlKey) }
+        if flags.contains(.option)  { result |= UInt32(optionKey) }
+        if flags.contains(.shift)   { result |= UInt32(shiftKey) }
+        if flags.contains(.command) { result |= UInt32(cmdKey) }
+        return result
     }
 }

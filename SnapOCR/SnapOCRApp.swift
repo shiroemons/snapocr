@@ -13,7 +13,11 @@ struct SnapOCRApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView(
+                permissionService: appDelegate.permissionService,
+                settingsService: appDelegate.settingsService,
+                loginItemService: appDelegate.loginItemService
+            )
         }
     }
 }

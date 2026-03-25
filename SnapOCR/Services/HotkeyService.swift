@@ -11,8 +11,8 @@ final class HotkeyService {
     private var hotkeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
 
-    var keyCode: UInt32 = UInt32(kVK_ANSI_O)
-    var modifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
+    var keyCode: UInt32 = SettingsService.defaultHotkeyKeyCode
+    var modifiers: UInt32 = SettingsService.defaultHotkeyModifiers
 
     func register() {
         unregister()

@@ -19,17 +19,19 @@ final class SettingsService {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
     }
 
+    static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
+    static let defaultHotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
     private static let defaultLanguages: [String] = ["ja", "en"]
 
     private let defaults: UserDefaults
 
     var hotkeyKeyCode: UInt32 {
-        get { uint32(forKey: Keys.hotkeyKeyCode, default: UInt32(kVK_ANSI_O)) }
+        get { uint32(forKey: Keys.hotkeyKeyCode, default: Self.defaultHotkeyKeyCode) }
         set { defaults.set(Int(newValue), forKey: Keys.hotkeyKeyCode) }
     }
 
     var hotkeyModifiers: UInt32 {
-        get { uint32(forKey: Keys.hotkeyModifiers, default: UInt32(controlKey) | UInt32(shiftKey)) }
+        get { uint32(forKey: Keys.hotkeyModifiers, default: Self.defaultHotkeyModifiers) }
         set { defaults.set(Int(newValue), forKey: Keys.hotkeyModifiers) }
     }
 

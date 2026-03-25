@@ -11,8 +11,9 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
-    private let permissionService = PermissionService()
-    private let settingsService = SettingsService()
+    let permissionService = PermissionService()
+    let settingsService = SettingsService()
+    let loginItemService = LoginItemService()
     private lazy var viewModel = AppViewModel(permissionService: permissionService)
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
