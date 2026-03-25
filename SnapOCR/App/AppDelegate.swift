@@ -80,9 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.statusItem?.menu?.cancelTracking()
                 self?.viewModel.startCapture()
             },
-            onOpenSettings: { [weak self] in
+            onDismissMenu: { [weak self] in
                 self?.statusItem?.menu?.cancelTracking()
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             },
             onShowHistory: { [weak self] in
                 self?.statusItem?.menu?.cancelTracking()

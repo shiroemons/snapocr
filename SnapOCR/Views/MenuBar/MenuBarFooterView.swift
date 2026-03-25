@@ -9,7 +9,8 @@ import SwiftUI
 
 @MainActor
 struct MenuBarFooterView: View {
-    let onOpenSettings: () -> Void
+    @Environment(\.openSettings) private var openSettings
+    let onDismissMenu: () -> Void
     let onQuit: () -> Void
 
     private static let versionString: String = {
@@ -21,7 +22,8 @@ struct MenuBarFooterView: View {
     var body: some View {
         HStack(spacing: 4) {
             Button {
-                onOpenSettings()
+                onDismissMenu()
+                openSettings()
             } label: {
                 Image(systemName: "gear")
                     .font(.body)
@@ -55,7 +57,7 @@ struct MenuBarFooterView: View {
 #if DEBUG
 #Preview {
     MenuBarFooterView {
-        // settings
+        // dismiss menu
     } onQuit: {
         // quit
     }

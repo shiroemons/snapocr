@@ -61,6 +61,6 @@ struct SettingsView: View {
                 }
         }
         .tabViewStyle(.automatic)
-        .frame(minWidth: 450)
+        .frame(width: 800, height: 600)
     }
 }

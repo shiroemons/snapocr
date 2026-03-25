@@ -22,7 +22,7 @@ struct MenuBarPanelView: View {
     private let settingsService: SettingsService
     let historyService: HistoryService
     let onCapture: () -> Void
-    let onOpenSettings: () -> Void
+    let onDismissMenu: () -> Void
     let onShowHistory: () -> Void
     let onQuit: () -> Void
 
@@ -31,7 +31,7 @@ struct MenuBarPanelView: View {
         settingsService: SettingsService,
         historyService: HistoryService,
         onCapture: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void,
+        onDismissMenu: @escaping () -> Void,
         onShowHistory: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
@@ -39,7 +39,7 @@ struct MenuBarPanelView: View {
         self.settingsService = settingsService
         self.historyService = historyService
         self.onCapture = onCapture
-        self.onOpenSettings = onOpenSettings
+        self.onDismissMenu = onDismissMenu
         self.onShowHistory = onShowHistory
         self.onQuit = onQuit
     }
@@ -77,7 +77,7 @@ struct MenuBarPanelView: View {
                 .opacity(Constants.dividerOpacity)
 
             MenuBarFooterView(
-                onOpenSettings: onOpenSettings,
+                onDismissMenu: onDismissMenu,
                 onQuit: onQuit
             )
         }
@@ -101,7 +101,7 @@ struct MenuBarPanelView: View {
         historyService: historyService
     ) {
         // capture
-    } onOpenSettings: {
+    } onDismissMenu: {
         // settings
     } onShowHistory: {
         // history
