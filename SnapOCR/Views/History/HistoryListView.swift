@@ -21,7 +21,9 @@ struct HistoryListView: View {
     @State private var showDeleteAllConfirmation = false
 
     private var records: [CaptureRecord] {
-        historyService.fetchAll(searchText: searchText)
+        // Access tracked property to trigger re-evaluation on data changes
+        _ = historyService.recentRecords
+        return historyService.fetchAll(searchText: searchText)
     }
 
     var body: some View {
@@ -283,6 +285,8 @@ private struct HistoryRowView: View {
     let onCopy: () -> Void
     let onDelete: () -> Void
 
+    @State private var isHoveringDelete = false
+
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             if isEditing {
@@ -351,9 +355,10 @@ private struct HistoryRowView: View {
             if !isEditing {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isHoveringDelete ? .red : .secondary)
                 }
                 .buttonStyle(.plain)
+                .onHover { isHoveringDelete = $0 }
             }
         }
     }
