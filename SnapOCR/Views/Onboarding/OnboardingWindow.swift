@@ -19,34 +19,15 @@ private enum Constants {
 final class OnboardingWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let settingsService: SettingsService
+    var onDismiss: (() -> Void)?
 
-    private init(settingsService: SettingsService) {
+    init(settingsService: SettingsService) {
         self.settingsService = settingsService
     }
 
-    // MARK: - Public API
+    // MARK: - Presentation
 
-    /// オンボーディングウィンドウを生成し、画面中央に表示する。
-    static func show(
-        settingsService: SettingsService,
-        permissionService: PermissionService
-    ) {
-        let controller = OnboardingWindow(settingsService: settingsService)
-        controller.present(permissionService: permissionService)
-        // ライフタイムをウィンドウ自身に持たせる（delegate 経由で解放）
-        objc_setAssociatedObject(
-            controller.window as AnyObject,
-            &OnboardingWindow.associationKey,
-            controller,
-            .OBJC_ASSOCIATION_RETAIN_NONATOMIC
-        )
-    }
-
-    // MARK: - Private
-
-    private static var associationKey: UInt8 = 0
-
-    private func present(permissionService: PermissionService) {
+    func present(permissionService: PermissionService) {
         let contentView = OnboardingContainerView(
             settingsService: settingsService,
             permissionService: permissionService
@@ -54,7 +35,9 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
             self?.window?.close()
         }
 
-        let hosting = NSHostingView(rootView: contentView)
+        let sizedView = contentView
+            .frame(width: Constants.windowWidth, height: Constants.windowHeight)
+        let hosting = NSHostingView(rootView: sizedView)
         hosting.frame = CGRect(x: 0, y: 0, width: Constants.windowWidth, height: Constants.windowHeight)
 
         let win = NSWindow(
@@ -63,6 +46,8 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+        win.contentMinSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
+        win.contentMaxSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
         win.title = String(localized: "Welcome to SnapOCR", comment: "Onboarding window title")
         win.isReleasedWhenClosed = false
         win.contentView = hosting
@@ -78,15 +63,7 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         settingsService.hasCompletedOnboarding = true
-        // 循環参照を解消してメモリを解放する
-        if let win = window {
-            objc_setAssociatedObject(
-                win as AnyObject,
-                &OnboardingWindow.associationKey,
-                nil,
-                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
-            )
-        }
         window = nil
+        onDismiss?()
     }
 }

@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
+    private var onboardingWindow: OnboardingWindow?
     private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -29,10 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         trackPermissionChanges()
 
         if settingsService.shouldShowOnboarding {
-            OnboardingWindow.show(
-                settingsService: settingsService,
-                permissionService: permissionService
-            )
+            let window = OnboardingWindow(settingsService: settingsService)
+            window.onDismiss = { [weak self] in
+                self?.onboardingWindow = nil
+            }
+            window.present(permissionService: permissionService)
+            onboardingWindow = window
         }
     }
 
