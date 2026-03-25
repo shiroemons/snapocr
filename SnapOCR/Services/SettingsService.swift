@@ -27,28 +27,22 @@ final class SettingsService {
 
     static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
     static let defaultHotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
-    private static let defaultLanguages: [String] = ["ja", "en"]
-
     private let defaults: UserDefaults
 
-    var hotkeyKeyCode: UInt32 {
-        get { uint32(forKey: Keys.hotkeyKeyCode, default: Self.defaultHotkeyKeyCode) }
-        set { defaults.set(Int(newValue), forKey: Keys.hotkeyKeyCode) }
+    var hotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O) {
+        didSet { defaults.set(Int(hotkeyKeyCode), forKey: Keys.hotkeyKeyCode) }
     }
 
-    var hotkeyModifiers: UInt32 {
-        get { uint32(forKey: Keys.hotkeyModifiers, default: Self.defaultHotkeyModifiers) }
-        set { defaults.set(Int(newValue), forKey: Keys.hotkeyModifiers) }
+    var hotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey) {
+        didSet { defaults.set(Int(hotkeyModifiers), forKey: Keys.hotkeyModifiers) }
     }
 
-    var ocrLanguages: [String] {
-        get { defaults.stringArray(forKey: Keys.ocrLanguages) ?? Self.defaultLanguages }
-        set { defaults.set(newValue, forKey: Keys.ocrLanguages) }
+    var ocrLanguages: [String] = ["ja", "en"] {
+        didSet { defaults.set(ocrLanguages, forKey: Keys.ocrLanguages) }
     }
 
-    var hasCompletedOnboarding: Bool {
-        get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
-        set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
+    var hasCompletedOnboarding: Bool = false {
+        didSet { defaults.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding) }
     }
 
     var shouldShowOnboarding: Bool {
@@ -57,54 +51,65 @@ final class SettingsService {
 
     // MARK: - Notification Settings
 
-    var isNotificationCenterEnabled: Bool {
-        get { bool(forKey: Keys.isNotificationCenterEnabled, default: true) }
-        set { defaults.set(newValue, forKey: Keys.isNotificationCenterEnabled) }
+    var isNotificationCenterEnabled: Bool = true {
+        didSet { defaults.set(isNotificationCenterEnabled, forKey: Keys.isNotificationCenterEnabled) }
     }
 
-    var isCompletionSoundEnabled: Bool {
-        get { bool(forKey: Keys.isCompletionSoundEnabled, default: true) }
-        set { defaults.set(newValue, forKey: Keys.isCompletionSoundEnabled) }
+    var isCompletionSoundEnabled: Bool = true {
+        didSet { defaults.set(isCompletionSoundEnabled, forKey: Keys.isCompletionSoundEnabled) }
     }
 
-    var completionSoundName: String {
-        get { defaults.string(forKey: Keys.completionSoundName) ?? "Tink" }
-        set { defaults.set(newValue, forKey: Keys.completionSoundName) }
+    var completionSoundName: String = "Tink" {
+        didSet { defaults.set(completionSoundName, forKey: Keys.completionSoundName) }
     }
 
-    var isToastEnabled: Bool {
-        get { bool(forKey: Keys.isToastEnabled, default: false) }
-        set { defaults.set(newValue, forKey: Keys.isToastEnabled) }
+    var isToastEnabled: Bool = false {
+        didSet { defaults.set(isToastEnabled, forKey: Keys.isToastEnabled) }
     }
 
     // MARK: - History Settings
 
-    var isHistoryEnabled: Bool {
-        get { bool(forKey: Keys.isHistoryEnabled, default: true) }
-        set { defaults.set(newValue, forKey: Keys.isHistoryEnabled) }
+    var isHistoryEnabled: Bool = true {
+        didSet { defaults.set(isHistoryEnabled, forKey: Keys.isHistoryEnabled) }
     }
 
-    var maxHistoryCount: Int {
-        get {
-            let value = defaults.integer(forKey: Keys.maxHistoryCount)
-            return value > 0 ? value : 100
-        }
-        set { defaults.set(newValue, forKey: Keys.maxHistoryCount) }
+    var maxHistoryCount: Int = 100 {
+        didSet { defaults.set(maxHistoryCount, forKey: Keys.maxHistoryCount) }
     }
 
     init(userDefaults: UserDefaults = .standard) {
         self.defaults = userDefaults
-    }
 
-    // MARK: - Private Helpers
-
-    /// Reads a UInt32 value stored as Int (signed) to support the full UInt32 range via bitPattern round-trip.
-    private func uint32(forKey key: String, default defaultValue: UInt32) -> UInt32 {
-        guard let intValue = defaults.object(forKey: key) as? Int else { return defaultValue }
-        return UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
-    }
-
-    private func bool(forKey key: String, default defaultValue: Bool) -> Bool {
-        defaults.object(forKey: key) as? Bool ?? defaultValue
+        // didSet is not triggered during init, so restoring here won't re-persist.
+        if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int {
+            hotkeyKeyCode = UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
+        }
+        if let intValue = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int {
+            hotkeyModifiers = UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
+        }
+        if let languages = userDefaults.stringArray(forKey: Keys.ocrLanguages) {
+            ocrLanguages = languages
+        }
+        if let value = userDefaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool {
+            hasCompletedOnboarding = value
+        }
+        if let value = userDefaults.object(forKey: Keys.isNotificationCenterEnabled) as? Bool {
+            isNotificationCenterEnabled = value
+        }
+        if let value = userDefaults.object(forKey: Keys.isCompletionSoundEnabled) as? Bool {
+            isCompletionSoundEnabled = value
+        }
+        if let value = userDefaults.string(forKey: Keys.completionSoundName) {
+            completionSoundName = value
+        }
+        if let value = userDefaults.object(forKey: Keys.isToastEnabled) as? Bool {
+            isToastEnabled = value
+        }
+        if let value = userDefaults.object(forKey: Keys.isHistoryEnabled) as? Bool {
+            isHistoryEnabled = value
+        }
+        if let value = userDefaults.object(forKey: Keys.maxHistoryCount) as? Int {
+            maxHistoryCount = value
+        }
     }
 }
