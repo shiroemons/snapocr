@@ -12,6 +12,8 @@ import SwiftUI
 /// 直近5件のOCR結果を表示し、クリックで再コピーできる。
 @MainActor
 struct RecentCapturesView: View {
+    private static let textLineLimit = 5
+
     let historyService: HistoryService
     let onShowHistory: () -> Void
 
@@ -81,8 +83,8 @@ struct RecentCapturesView: View {
                         .frame(width: 14)
                         .font(.caption)
 
-                        Text(record.text.prefix(30))
-                            .lineLimit(1)
+                        Text(record.text)
+                            .lineLimit(Self.textLineLimit)
                             .truncationMode(.tail)
                             .font(.caption)
                             .frame(

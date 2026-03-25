@@ -82,6 +82,17 @@ final class HistoryService {
         refreshRecentRecords()
     }
 
+    func delete(ids: Set<PersistentIdentifier>) {
+        guard !ids.isEmpty else { return }
+        for id in ids {
+            if let record = modelContext.model(for: id) as? CaptureRecord {
+                modelContext.delete(record)
+            }
+        }
+        saveContext()
+        refreshRecentRecords()
+    }
+
     func deleteAll() {
         let descriptor = FetchDescriptor<CaptureRecord>()
         let all: [CaptureRecord]

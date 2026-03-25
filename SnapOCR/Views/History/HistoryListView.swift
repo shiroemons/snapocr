@@ -16,6 +16,9 @@ struct HistoryListView: View {
 
     @State private var searchText = ""
     @State private var copiedRecordID: PersistentIdentifier?
+    @State private var isEditing = false
+    @State private var selectedIDs: Set<PersistentIdentifier> = []
+    @State private var showDeleteAllConfirmation = false
 
     private var records: [CaptureRecord] {
         historyService.fetchAll(searchText: searchText)
@@ -30,33 +33,88 @@ struct HistoryListView: View {
                 recordsList
             }
         }
+        .confirmationDialog(
+            String(
+                localized: "Delete All History",
+                comment: "Confirmation dialog title for delete all"
+            ),
+            isPresented: $showDeleteAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(
+                String(
+                    localized: "Delete All",
+                    comment: "Confirmation button to delete all history"
+                ),
+                role: .destructive
+            ) {
+                historyService.deleteAll()
+            }
+        } message: {
+            Text(
+                String(
+                    localized: "This will permanently delete all OCR history.",
+                    comment: "Confirmation dialog message for delete all"
+                )
+            )
+        }
     }
 
     // MARK: - Search
 
     private var searchField: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField(
-                String(
-                    localized: "Search history...",
-                    comment: "History search placeholder"
-                ),
-                text: $searchText
-            )
-            .textFieldStyle(.plain)
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 0) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(
+                    String(
+                        localized: "Search history...",
+                        comment: "History search placeholder"
+                    ),
+                    text: $searchText
+                )
+                .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(8)
+
+            Divider()
+                .frame(height: 20)
+
+            Button {
+                isEditing.toggle()
+                if !isEditing { selectedIDs = [] }
+            } label: {
+                if isEditing {
+                    Text(
+                        String(
+                            localized: "Done",
+                            comment: "Exit edit mode button"
+                        )
+                    )
+                } else {
+                    Text(
+                        String(
+                            localized: "Select",
+                            comment: "Enter edit mode button"
+                        )
+                    )
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+            .disabled(records.isEmpty)
+            .frame(width: 60)
         }
-        .padding(8)
         .background(.bar)
     }
 
@@ -94,42 +152,98 @@ struct HistoryListView: View {
     // MARK: - Records List
 
     private var recordsList: some View {
-        List {
-            ForEach(records) { record in
-                HistoryRowView(
-                    record: record,
-                    isCopied: copiedRecordID == record.persistentModelID
-                ) {
-                    copyRecord(record)
-                }
-                .contextMenu {
-                    Button(
-                        String(
-                            localized: "Copy",
-                            comment: "Context menu copy"
-                        )
-                    ) {
-                        copyRecord(record)
+        VStack(spacing: 0) {
+            List {
+                ForEach(records) { record in
+                    let recordID = record.persistentModelID
+                    HistoryRowView(
+                        record: record,
+                        isCopied: copiedRecordID == recordID,
+                        isEditing: isEditing,
+                        isSelected: selectedIDs.contains(recordID),
+                        onCopy: {
+                            if isEditing {
+                                toggleSelection(recordID)
+                            } else {
+                                copyRecord(record)
+                            }
+                        },
+                        onDelete: {
+                            historyService.delete(record)
+                        }
+                    )
+                    .contextMenu {
+                        Button(
+                            String(
+                                localized: "Copy",
+                                comment: "Context menu copy"
+                            )
+                        ) {
+                            copyRecord(record)
+                        }
+                        Divider()
+                        Button(
+                            String(
+                                localized: "Delete",
+                                comment: "Context menu delete"
+                            ),
+                            role: .destructive
+                        ) {
+                            historyService.delete(record)
+                        }
                     }
-                    Divider()
-                    Button(
-                        String(
-                            localized: "Delete",
-                            comment: "Context menu delete"
-                        ),
-                        role: .destructive
-                    ) {
-                        historyService.delete(record)
+                }
+                .onDelete { offsets in
+                    for index in offsets {
+                        historyService.delete(records[index])
                     }
                 }
             }
-            .onDelete { offsets in
-                for index in offsets {
-                    historyService.delete(records[index])
-                }
+            .listStyle(.inset)
+
+            if isEditing {
+                editingToolbar
             }
         }
-        .listStyle(.inset)
+    }
+
+    // MARK: - Editing Toolbar
+
+    private var editingToolbar: some View {
+        HStack {
+            Button(
+                role: .destructive
+            ) {
+                deleteSelected()
+            } label: {
+                Text(
+                    String(
+                        localized: "Delete \(selectedIDs.count) Selected",
+                        comment: "Delete selected items button"
+                    )
+                )
+            }
+            .disabled(selectedIDs.isEmpty)
+
+            Spacer()
+
+            Button(
+                role: .destructive
+            ) {
+                showDeleteAllConfirmation = true
+            } label: {
+                Text(
+                    String(
+                        localized: "Delete All",
+                        comment: "Delete all history button"
+                    )
+                )
+            }
+            .disabled(records.isEmpty)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     // MARK: - Actions
@@ -144,6 +258,19 @@ struct HistoryListView: View {
             }
         }
     }
+
+    private func toggleSelection(_ id: PersistentIdentifier) {
+        if selectedIDs.contains(id) {
+            selectedIDs.remove(id)
+        } else {
+            selectedIDs.insert(id)
+        }
+    }
+
+    private func deleteSelected() {
+        historyService.delete(ids: selectedIDs)
+        selectedIDs = []
+    }
 }
 
 // MARK: - History Row
@@ -151,58 +278,83 @@ struct HistoryListView: View {
 private struct HistoryRowView: View {
     let record: CaptureRecord
     let isCopied: Bool
+    let isEditing: Bool
+    let isSelected: Bool
     let onCopy: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
-        Button(action: onCopy) {
-            HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
+            if isEditing {
                 Image(
-                    systemName: isCopied
+                    systemName: isSelected
                         ? "checkmark.circle.fill"
-                        : "doc.on.clipboard"
+                        : "circle"
                 )
-                .foregroundStyle(isCopied ? .green : .secondary)
+                .foregroundStyle(isSelected ? .blue : .secondary)
                 .frame(width: 16)
+            }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(record.text)
-                        .lineLimit(3)
-                        .font(.body)
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .leading
+            Button(action: onCopy) {
+                HStack(alignment: .top, spacing: 8) {
+                    if !isEditing {
+                        Image(
+                            systemName: isCopied
+                                ? "checkmark.circle.fill"
+                                : "doc.on.clipboard"
                         )
+                        .foregroundStyle(isCopied ? .green : .secondary)
+                        .frame(width: 16)
+                    }
 
-                    HStack(spacing: 8) {
-                        Text(
-                            record.timestamp,
-                            format: .relative(
-                                presentation: .named
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(record.text)
+                            .lineLimit(3)
+                            .font(.body)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
                             )
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
 
-                        if !record.recognizedLanguages.isEmpty {
+                        HStack(spacing: 8) {
                             Text(
-                                record.recognizedLanguages
-                                    .joined(separator: ", ")
-                            )
-                            .font(.caption2)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(
-                                .quaternary,
-                                in: RoundedRectangle(
-                                    cornerRadius: 3
+                                record.timestamp,
+                                format: .relative(
+                                    presentation: .named
                                 )
                             )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                            if !record.recognizedLanguages.isEmpty {
+                                Text(
+                                    record.recognizedLanguages
+                                        .joined(separator: ", ")
+                                )
+                                .font(.caption2)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(
+                                    .quaternary,
+                                    in: RoundedRectangle(
+                                        cornerRadius: 3
+                                    )
+                                )
+                            }
                         }
                     }
                 }
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+
+            if !isEditing {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
     }
 }
