@@ -68,8 +68,11 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                Button(String(localized: "Show Onboarding Again", comment: "Button to reset and re-show the onboarding wizard")) {
-                    onShowOnboarding()
+                HStack {
+                    Spacer()
+                    Button(String(localized: "Show Onboarding Again", comment: "Button to reset and re-show the onboarding wizard")) {
+                        onShowOnboarding()
+                    }
                 }
             } header: {
                 Text(String(localized: "Onboarding", comment: "Onboarding section header in General settings"))

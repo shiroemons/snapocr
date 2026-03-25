@@ -23,6 +23,7 @@ struct HistorySettingsView: View {
             managementSection
         }
         .formStyle(.grouped)
+        .padding()
     }
 
     // MARK: - Storage
@@ -74,39 +75,42 @@ struct HistorySettingsView: View {
 
     private var managementSection: some View {
         Section {
-            Button(role: .destructive) {
-                showingDeleteConfirmation = true
-            } label: {
-                Text(
-                    String(
-                        localized: "Delete All History",
-                        comment: "Button to delete all history"
+            HStack {
+                Spacer()
+                Button(role: .destructive) {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Text(
+                        String(
+                            localized: "Delete All History",
+                            comment: "Button to delete all history"
+                        )
                     )
-                )
-            }
-            .confirmationDialog(
-                String(
-                    localized: "Delete All History?",
-                    comment: "Delete confirmation title"
-                ),
-                isPresented: $showingDeleteConfirmation
-            ) {
-                Button(
-                    String(
-                        localized: "Delete All",
-                        comment: "Confirm delete all button"
-                    ),
-                    role: .destructive
-                ) {
-                    historyService.deleteAll()
                 }
-            } message: {
-                Text(
+                .confirmationDialog(
                     String(
-                        localized: "This action cannot be undone.",
-                        comment: "Delete confirmation message"
+                        localized: "Delete All History?",
+                        comment: "Delete confirmation title"
+                    ),
+                    isPresented: $showingDeleteConfirmation
+                ) {
+                    Button(
+                        String(
+                            localized: "Delete All",
+                            comment: "Confirm delete all button"
+                        ),
+                        role: .destructive
+                    ) {
+                        historyService.deleteAll()
+                    }
+                } message: {
+                    Text(
+                        String(
+                            localized: "This action cannot be undone.",
+                            comment: "Delete confirmation message"
+                        )
                     )
-                )
+                }
             }
         } header: {
             Text(

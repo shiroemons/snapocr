@@ -21,6 +21,7 @@ struct NotificationSettingsView: View {
             toastSection
         }
         .formStyle(.grouped)
+        .padding()
     }
 
     // MARK: - Notification Center
@@ -45,6 +46,13 @@ struct NotificationSettingsView: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+        } header: {
+            Text(
+                String(
+                    localized: "Notification Center",
+                    comment: "Notification center section header in Notification settings"
+                )
+            )
         }
     }
 
@@ -79,15 +87,25 @@ struct NotificationSettingsView: View {
                     }
                 }
 
-                Button(
-                    String(
-                        localized: "Test Sound",
-                        comment: "Button to test the selected sound"
-                    )
-                ) {
-                    NotificationService.playSound(named: settingsService.completionSoundName)
+                HStack {
+                    Spacer()
+                    Button(
+                        String(
+                            localized: "Test Sound",
+                            comment: "Button to test the selected sound"
+                        )
+                    ) {
+                        NotificationService.playSound(named: settingsService.completionSoundName)
+                    }
                 }
             }
+        } header: {
+            Text(
+                String(
+                    localized: "Sound",
+                    comment: "Sound section header in Notification settings"
+                )
+            )
         }
     }
 
@@ -113,6 +131,13 @@ struct NotificationSettingsView: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+        } header: {
+            Text(
+                String(
+                    localized: "Toast",
+                    comment: "Toast section header in Notification settings"
+                )
+            )
         }
     }
 }
