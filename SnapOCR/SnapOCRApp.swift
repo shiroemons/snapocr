@@ -17,7 +17,8 @@ struct SnapOCRApp: App {
                 permissionService: appDelegate.permissionService,
                 settingsService: appDelegate.settingsService,
                 loginItemService: appDelegate.loginItemService,
-                historyService: appDelegate.historyService
+                historyService: appDelegate.historyService,
+                onShowOnboarding: { appDelegate.showOnboarding() }
             )
         }
     }

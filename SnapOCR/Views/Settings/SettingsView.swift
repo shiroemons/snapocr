@@ -13,13 +13,15 @@ struct SettingsView: View {
     let settingsService: SettingsService
     let loginItemService: LoginItemService
     let historyService: HistoryService
+    let onShowOnboarding: () -> Void
 
     var body: some View {
         TabView {
             GeneralSettingsView(
                 permissionService: permissionService,
                 settingsService: settingsService,
-                loginItemService: loginItemService
+                loginItemService: loginItemService,
+                onShowOnboarding: onShowOnboarding
             )
             .tabItem {
                 Label(

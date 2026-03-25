@@ -48,13 +48,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         trackPermissionChanges()
 
         if settingsService.shouldShowOnboarding {
-            let window = OnboardingWindow(settingsService: settingsService)
-            window.onDismiss = { [weak self] in
-                self?.onboardingWindow = nil
-            }
-            window.present(permissionService: permissionService)
-            onboardingWindow = window
+            showOnboarding()
         }
+    }
+
+    // MARK: - Onboarding Window
+
+    func showOnboarding() {
+        if let existing = onboardingWindow, existing.isVisible {
+            existing.bringToFront()
+            return
+        }
+        let window = OnboardingWindow(settingsService: settingsService)
+        window.onDismiss = { [weak self] in
+            self?.onboardingWindow = nil
+        }
+        window.present(permissionService: permissionService)
+        onboardingWindow = window
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -59,6 +59,15 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
         self.window = win
     }
 
+    var isVisible: Bool {
+        window?.isVisible ?? false
+    }
+
+    func bringToFront() {
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {

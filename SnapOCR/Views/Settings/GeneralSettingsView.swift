@@ -12,6 +12,7 @@ struct GeneralSettingsView: View {
     let permissionService: PermissionService
     let settingsService: SettingsService
     let loginItemService: LoginItemService
+    let onShowOnboarding: () -> Void
 
     var body: some View {
         Form {
@@ -68,7 +69,7 @@ struct GeneralSettingsView: View {
 
             Section {
                 Button(String(localized: "Show Onboarding Again", comment: "Button to reset and re-show the onboarding wizard")) {
-                    settingsService.hasCompletedOnboarding = false
+                    onShowOnboarding()
                 }
             } header: {
                 Text(String(localized: "Onboarding", comment: "Onboarding section header in General settings"))
