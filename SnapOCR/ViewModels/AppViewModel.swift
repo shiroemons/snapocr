@@ -15,16 +15,19 @@ final class AppViewModel {
     private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppViewModel")
     private let permissionService: PermissionService
     private let hotkeyService: HotkeyService
+    private let settingsService: SettingsService
 
     private(set) var isCapturing = false
     private(set) var lastError: String?
 
     init(
         permissionService: PermissionService = PermissionService(),
-        hotkeyService: HotkeyService = HotkeyService()
+        hotkeyService: HotkeyService = HotkeyService(),
+        settingsService: SettingsService = SettingsService()
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
+        self.settingsService = settingsService
     }
 
     func setup() {
@@ -32,7 +35,29 @@ final class AppViewModel {
         hotkeyService.onHotkeyPressed = { [weak self] in
             self?.startCapture()
         }
-        hotkeyService.register()
+        hotkeyService.updateHotkey(
+            keyCode: settingsService.hotkeyKeyCode,
+            modifiers: settingsService.hotkeyModifiers
+        )
+        trackHotkeySettingsChanges()
+    }
+
+    // MARK: - Settings Observation
+
+    private func trackHotkeySettingsChanges() {
+        withObservationTracking {
+            _ = settingsService.hotkeyKeyCode
+            _ = settingsService.hotkeyModifiers
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.hotkeyService.updateHotkey(
+                    keyCode: self.settingsService.hotkeyKeyCode,
+                    modifiers: self.settingsService.hotkeyModifiers
+                )
+                self.trackHotkeySettingsChanges()
+            }
+        }
     }
 
     func teardown() {

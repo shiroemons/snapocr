@@ -14,7 +14,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
-    private lazy var viewModel = AppViewModel(permissionService: permissionService)
+    private lazy var viewModel = AppViewModel(
+        permissionService: permissionService,
+        settingsService: settingsService
+    )
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
@@ -24,6 +27,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         viewModel.setup()
         updateStatusItemIcon()
         trackPermissionChanges()
+
+        if settingsService.shouldShowOnboarding {
+            OnboardingWindow.show(
+                settingsService: settingsService,
+                permissionService: permissionService
+            )
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

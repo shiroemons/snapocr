@@ -1,3 +1,4 @@
+import AppKit
 import Carbon.HIToolbox
 import Testing
 @testable import SnapOCR
@@ -143,5 +144,37 @@ struct KeyCodeMappingTests {
         let keyCode = UInt32(kVK_ANSI_Z)
         let mods = UInt32(controlKey) | UInt32(optionKey) | UInt32(shiftKey) | UInt32(cmdKey)
         #expect(KeyCodeMapping.displayString(keyCode: keyCode, modifiers: mods) == "⌃⌥⇧⌘Z")
+    }
+
+    // MARK: - carbonModifiers(from:)
+
+    @Test func carbonModifiersControl() {
+        let result = KeyCodeMapping.carbonModifiers(from: .control)
+        #expect(result == UInt32(controlKey))
+    }
+
+    @Test func carbonModifiersShift() {
+        let result = KeyCodeMapping.carbonModifiers(from: .shift)
+        #expect(result == UInt32(shiftKey))
+    }
+
+    @Test func carbonModifiersOption() {
+        let result = KeyCodeMapping.carbonModifiers(from: .option)
+        #expect(result == UInt32(optionKey))
+    }
+
+    @Test func carbonModifiersCommand() {
+        let result = KeyCodeMapping.carbonModifiers(from: .command)
+        #expect(result == UInt32(cmdKey))
+    }
+
+    @Test func carbonModifiersControlShift() {
+        let result = KeyCodeMapping.carbonModifiers(from: [.control, .shift])
+        #expect(result == UInt32(controlKey) | UInt32(shiftKey))
+    }
+
+    @Test func carbonModifiersEmpty() {
+        let result = KeyCodeMapping.carbonModifiers(from: [])
+        #expect(result == 0)
     }
 }
