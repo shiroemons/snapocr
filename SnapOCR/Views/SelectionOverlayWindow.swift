@@ -44,11 +44,6 @@ final class SelectionOverlayWindow: NSWindow {
         NSApp.activate()
         makeKeyAndOrderFront(nil)
         overlayView.window?.makeFirstResponder(overlayView)
-        NSCursor.crosshair.push()
-        // Set again on next run loop: macOS may reset cursor during window activation
-        DispatchQueue.main.async {
-            NSCursor.crosshair.set()
-        }
     }
 }
 
@@ -73,11 +68,14 @@ extension SelectionOverlayWindow {
             let window = SelectionOverlayWindow(screen: screen)
             var resumed = false
 
-            window.overlayView.onSelectionCompleted = { rect in
+            let dismiss: () -> Void = {
                 guard !resumed else { return }
                 resumed = true
-                NSCursor.pop()
                 window.orderOut(nil)
+            }
+
+            window.overlayView.onSelectionCompleted = { rect in
+                dismiss()
                 let result = SelectionResult(
                     rect: rect,
                     displayID: screenNumber,
@@ -88,10 +86,7 @@ extension SelectionOverlayWindow {
             }
 
             window.overlayView.onSelectionCancelled = {
-                guard !resumed else { return }
-                resumed = true
-                NSCursor.pop()
-                window.orderOut(nil)
+                dismiss()
                 continuation.resume(returning: nil)
             }
 

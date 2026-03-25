@@ -4,7 +4,6 @@ import Foundation
 // Global callback storage for Carbon API interop
 nonisolated(unsafe) private var globalHotkeyCallback: (() -> Void)?
 
-@Observable
 @MainActor
 final class HotkeyService {
     var onHotkeyPressed: (@MainActor @Sendable () -> Void)?
@@ -42,7 +41,7 @@ final class HotkeyService {
             &eventHandlerRef
         )
 
-        // 3. Register hotkey
+        // 3. Register hotkey ("SOCR" in ASCII — unique app signature)
         let hotkeyID = EventHotKeyID(
             signature: 0x534F_4352,
             id: 1

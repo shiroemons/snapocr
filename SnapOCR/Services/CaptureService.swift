@@ -40,6 +40,7 @@ enum CaptureService {
         )
 
         guard let croppedImage = fullImage.cropping(to: cropRect) else {
+            logger.error("Cropping failed. cropRect: \(String(describing: cropRect), privacy: .public), image: \(fullImage.width, privacy: .public)x\(fullImage.height, privacy: .public)")
             throw CaptureError.captureFailure
         }
 

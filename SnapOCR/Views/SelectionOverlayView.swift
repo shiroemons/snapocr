@@ -8,6 +8,18 @@
 import AppKit
 import Carbon.HIToolbox
 
+private enum Constants {
+    static let backgroundAlpha: CGFloat = 0.01
+    static let overlayAlpha: CGFloat = 0.3
+    static let borderWidth: CGFloat = 1.0
+    static let minimumSelectionSize: CGFloat = 2
+    static let badgeFontSize: CGFloat = 11
+    static let badgePadding: CGFloat = 4
+    static let badgeOffset: CGFloat = 6
+    static let badgeAlpha: CGFloat = 0.7
+    static let badgeCornerRadius: CGFloat = 3
+}
+
 final class SelectionOverlayView: NSView {
     var onSelectionCompleted: ((CGRect) -> Void)?
     var onSelectionCancelled: (() -> Void)?
@@ -23,7 +35,7 @@ final class SelectionOverlayView: NSView {
 
         guard !currentRect.isEmpty else {
             // Draw nearly invisible background to ensure mouse event delivery
-            NSColor.black.withAlphaComponent(0.01).setFill()
+            NSColor.black.withAlphaComponent(Constants.backgroundAlpha).setFill()
             NSBezierPath.fill(bounds)
             return
         }
@@ -32,12 +44,12 @@ final class SelectionOverlayView: NSView {
         overlayPath.windingRule = .evenOdd
         overlayPath.append(NSBezierPath(rect: bounds))
         overlayPath.append(NSBezierPath(rect: currentRect))
-        NSColor.black.withAlphaComponent(0.3).setFill()
+        NSColor.black.withAlphaComponent(Constants.overlayAlpha).setFill()
         overlayPath.fill()
 
         NSColor.white.setStroke()
         let borderPath = NSBezierPath(rect: currentRect)
-        borderPath.lineWidth = 1.0
+        borderPath.lineWidth = Constants.borderWidth
         borderPath.stroke()
 
         drawSizeLabel(for: currentRect)
@@ -49,16 +61,16 @@ final class SelectionOverlayView: NSView {
         let labelText = "\(width) × \(height)"
 
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .font: NSFont.systemFont(ofSize: Constants.badgeFontSize, weight: .medium),
             .foregroundColor: NSColor.white
         ]
         let attributedString = NSAttributedString(string: labelText, attributes: attributes)
         let textSize = attributedString.size()
 
-        let padding: CGFloat = 4
+        let padding = Constants.badgePadding
         let badgeWidth = textSize.width + padding * 2
         let badgeHeight = textSize.height + padding * 2
-        let badgeOffset: CGFloat = 6
+        let badgeOffset = Constants.badgeOffset
 
         var badgeX = rect.maxX - badgeWidth - badgeOffset
         var badgeY = rect.minY - badgeHeight - badgeOffset
@@ -73,8 +85,8 @@ final class SelectionOverlayView: NSView {
 
         let badgeRect = CGRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight)
 
-        NSColor.black.withAlphaComponent(0.7).setFill()
-        let badgePath = NSBezierPath(roundedRect: badgeRect, xRadius: 3, yRadius: 3)
+        NSColor.black.withAlphaComponent(Constants.badgeAlpha).setFill()
+        let badgePath = NSBezierPath(roundedRect: badgeRect, xRadius: Constants.badgeCornerRadius, yRadius: Constants.badgeCornerRadius)
         badgePath.fill()
 
         let textRect = CGRect(
@@ -107,7 +119,7 @@ final class SelectionOverlayView: NSView {
         startPoint = nil
         currentRect = .zero
 
-        if selectionRect.width > 2 && selectionRect.height > 2 {
+        if selectionRect.width > Constants.minimumSelectionSize && selectionRect.height > Constants.minimumSelectionSize {
             onSelectionCompleted?(selectionRect)
         } else {
             onSelectionCancelled?()
