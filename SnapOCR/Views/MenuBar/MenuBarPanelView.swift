@@ -20,7 +20,7 @@ private enum Constants {
 struct MenuBarPanelView: View {
     private let permissionService: PermissionService
     private let settingsService: SettingsService
-    let historyService: HistoryService
+    private let historyService: HistoryService
     let onCapture: () -> Void
     let onDismissMenu: () -> Void
     let onShowHistory: () -> Void
@@ -82,7 +82,6 @@ struct MenuBarPanelView: View {
             )
         }
         .frame(width: Constants.panelWidth)
-        .background(Color(NSColor.windowBackgroundColor))
     }
 }
 
@@ -102,7 +101,7 @@ struct MenuBarPanelView: View {
     ) {
         // capture
     } onDismissMenu: {
-        // settings
+        // dismiss menu
     } onShowHistory: {
         // history
     } onQuit: {
