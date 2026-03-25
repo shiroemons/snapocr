@@ -118,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - History Window
 
-    private func showHistoryWindow() {
+    func showHistoryWindow() {
         if let existing = historyWindow {
             existing.bringToFront()
             return

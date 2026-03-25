@@ -14,6 +14,7 @@ struct SettingsView: View {
     let loginItemService: LoginItemService
     let historyService: HistoryService
     let onShowOnboarding: () -> Void
+    let onShowHistory: () -> Void
 
     var body: some View {
         TabView {
@@ -46,7 +47,7 @@ struct SettingsView: View {
                     )
                 }
 
-            HistorySettingsView(settingsService: settingsService, historyService: historyService)
+            HistorySettingsView(settingsService: settingsService, historyService: historyService, onShowHistory: onShowHistory)
                 .tabItem {
                     Label(
                         String(localized: "History", comment: "History settings tab title"),

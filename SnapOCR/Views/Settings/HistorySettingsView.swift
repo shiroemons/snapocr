@@ -12,6 +12,7 @@ import SwiftUI
 struct HistorySettingsView: View {
     let settingsService: SettingsService
     let historyService: HistoryService
+    let onShowHistory: () -> Void
 
     @State private var showingDeleteConfirmation = false
 
@@ -40,6 +41,15 @@ struct HistorySettingsView: View {
                     set: { settingsService.isHistoryEnabled = $0 }
                 )
             )
+
+            Text(
+                String(
+                    localized: "Save recognized text from screen captures for later reference.",
+                    comment: "History storage description"
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
             if settingsService.isHistoryEnabled {
                 Picker(
@@ -75,6 +85,19 @@ struct HistorySettingsView: View {
 
     private var managementSection: some View {
         Section {
+            HStack {
+                Spacer()
+                Button {
+                    onShowHistory()
+                } label: {
+                    Text(
+                        String(
+                            localized: "Show All History",
+                            comment: "Button to open history window from settings"
+                        )
+                    )
+                }
+            }
             HStack {
                 Spacer()
                 Button(role: .destructive) {
