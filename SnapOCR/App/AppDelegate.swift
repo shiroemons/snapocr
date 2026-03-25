@@ -6,20 +6,28 @@
 //
 
 import AppKit
+import os
 import SwiftData
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppDelegate")
     private var statusItem: NSStatusItem?
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
     private(set) lazy var historyService: HistoryService = {
-        // ModelContainer creation is expected to succeed for a simple schema.
-        // A failure here indicates a critical system issue (e.g., disk full).
-        let container = try! ModelContainer(for: CaptureRecord.self)
-        return HistoryService(modelContext: container.mainContext)
+        do {
+            let container = try ModelContainer(for: CaptureRecord.self)
+            return HistoryService(modelContainer: container)
+        } catch {
+            Self.logger.error("ModelContainer failed, falling back to in-memory store: \(error.localizedDescription, privacy: .public)")
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            // In-memory ModelContainer creation should not fail for a simple schema
+            let container = try! ModelContainer(for: CaptureRecord.self, configurations: config)
+            return HistoryService(modelContainer: container)
+        }
     }()
     private lazy var viewModel: AppViewModel = AppViewModel(
         permissionService: permissionService,

@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import os
 import SwiftData
 
 /// OCR履歴のCRUD操作を提供するサービス。
@@ -14,14 +15,18 @@ import SwiftData
 @Observable
 @MainActor
 final class HistoryService {
+    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "HistoryService")
     static let recentRecordsLimit = 5
 
+    /// Retained to prevent deallocation; ModelContext does not strongly reference its container.
+    private let modelContainer: ModelContainer
     private let modelContext: ModelContext
 
     private(set) var recentRecords: [CaptureRecord] = []
 
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+        self.modelContext = ModelContext(modelContainer)
         refreshRecentRecords()
     }
 
@@ -39,7 +44,11 @@ final class HistoryService {
             recognizedLanguages: languages
         )
         modelContext.insert(record)
-        saveContext()
+        guard saveContext() else {
+            Self.logger.error("Failed to save new record, rolling back")
+            modelContext.delete(record)
+            return
+        }
         if let maxCount {
             trimToLimit(maxCount)
         }
@@ -57,7 +66,12 @@ final class HistoryService {
                 $0.text.localizedStandardContains(searchText)
             }
         }
-        return (try? modelContext.fetch(descriptor)) ?? []
+        do {
+            return try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch records: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
     }
 
     // MARK: - Delete
@@ -70,7 +84,13 @@ final class HistoryService {
 
     func deleteAll() {
         let descriptor = FetchDescriptor<CaptureRecord>()
-        guard let all = try? modelContext.fetch(descriptor) else { return }
+        let all: [CaptureRecord]
+        do {
+            all = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch records for deletion: \(error.localizedDescription, privacy: .public)")
+            return
+        }
         for record in all {
             modelContext.delete(record)
         }
@@ -85,8 +105,14 @@ final class HistoryService {
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         descriptor.fetchOffset = limit
-        guard let overflow = try? modelContext.fetch(descriptor),
-              !overflow.isEmpty else { return }
+        let overflow: [CaptureRecord]
+        do {
+            overflow = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch overflow records: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        guard !overflow.isEmpty else { return }
         for record in overflow {
             modelContext.delete(record)
         }
@@ -100,10 +126,22 @@ final class HistoryService {
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         descriptor.fetchLimit = Self.recentRecordsLimit
-        recentRecords = (try? modelContext.fetch(descriptor)) ?? []
+        do {
+            recentRecords = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to refresh recent records: \(error.localizedDescription, privacy: .public)")
+            recentRecords = []
+        }
     }
 
-    private func saveContext() {
-        try? modelContext.save()
+    @discardableResult
+    private func saveContext() -> Bool {
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            Self.logger.error("ModelContext save failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
     }
 }

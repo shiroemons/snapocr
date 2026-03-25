@@ -93,7 +93,7 @@ struct MenuBarPanelView: View {
         configurations: .init(isStoredInMemoryOnly: true)
     )
     let historyService = HistoryService(
-        modelContext: container.mainContext
+        modelContainer: container
     )
     MenuBarPanelView(
         permissionService: PermissionService(),

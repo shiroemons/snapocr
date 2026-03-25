@@ -22,8 +22,7 @@ struct HistoryServiceTests {
             for: CaptureRecord.self,
             configurations: config
         )
-        let context = ModelContext(container)
-        return HistoryService(modelContext: context)
+        return HistoryService(modelContainer: container)
     }
 
     @Test @MainActor func addRecord() throws {
