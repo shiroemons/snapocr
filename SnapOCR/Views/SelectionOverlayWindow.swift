@@ -68,26 +68,39 @@ extension SelectionOverlayWindow {
             let window = SelectionOverlayWindow(screen: screen)
             var resumed = false
 
-            let dismiss: () -> Void = {
+            let resume: (SelectionResult?) -> Void = { result in
                 guard !resumed else { return }
                 resumed = true
                 window.orderOut(nil)
+                continuation.resume(returning: result)
+            }
+
+            // Guard against system-initiated window close (e.g., screen lock, Exposé) that
+            // bypasses the selection callbacks, which would otherwise leave the continuation
+            // permanently suspended.
+            var observer: NSObjectProtocol?
+            observer = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { _ in
+                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
+                resume(nil)
             }
 
             window.overlayView.onSelectionCompleted = { rect in
-                dismiss()
-                let result = SelectionResult(
+                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
+                resume(SelectionResult(
                     rect: rect,
                     displayID: screenNumber,
                     screenSize: screen.frame.size,
                     scaleFactor: screen.backingScaleFactor
-                )
-                continuation.resume(returning: result)
+                ))
             }
 
             window.overlayView.onSelectionCancelled = {
-                dismiss()
-                continuation.resume(returning: nil)
+                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
+                resume(nil)
             }
 
             window.show()

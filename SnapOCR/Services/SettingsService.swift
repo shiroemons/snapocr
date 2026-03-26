@@ -38,7 +38,10 @@ final class SettingsService {
     }
 
     var ocrLanguages: [String] = ["ja", "en"] {
-        didSet { defaults.set(ocrLanguages, forKey: Keys.ocrLanguages) }
+        didSet {
+            guard !ocrLanguages.isEmpty else { ocrLanguages = ["ja", "en"]; return }
+            defaults.set(ocrLanguages, forKey: Keys.ocrLanguages)
+        }
     }
 
     var hasCompletedOnboarding: Bool = false {

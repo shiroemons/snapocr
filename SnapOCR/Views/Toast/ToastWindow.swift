@@ -124,6 +124,8 @@ final class ToastWindow {
             context.duration = 0.3
             win.animator().alphaValue = 0
         } completionHandler: { [weak self, weak win] in
+            // Task is intentionally not stored: it performs only trivial cleanup
+            // (close window, nil two weak references) and is self-cleaning.
             Task { @MainActor in
                 win?.close()
                 self?.window = nil

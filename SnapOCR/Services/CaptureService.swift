@@ -29,8 +29,14 @@ enum CaptureService {
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
-        config.width = Int(CGFloat(display.width) * scaleFactor)
-        config.height = Int(CGFloat(display.height) * scaleFactor)
+        let captureWidth = Int(CGFloat(display.width) * scaleFactor)
+        let captureHeight = Int(CGFloat(display.height) * scaleFactor)
+        guard captureWidth < 100_000, captureHeight < 100_000 else {
+            logger.error("Computed capture dimensions are unreasonable: \(captureWidth)x\(captureHeight)")
+            throw CaptureError.captureFailure
+        }
+        config.width = captureWidth
+        config.height = captureHeight
         config.showsCursor = false
 
         let fullImage = try await SCScreenshotManager.captureImage(

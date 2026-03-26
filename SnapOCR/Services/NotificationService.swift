@@ -49,7 +49,7 @@ enum NotificationService {
     private static func sendNotification(text: String) {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Text Copied", comment: "Notification title when OCR text is copied")
-        content.body = String(text.prefix(100))
+        content.body = text.count > 100 ? String(text.prefix(100)) + "…" : text
         content.sound = nil // Sound is handled separately
 
         let request = UNNotificationRequest(

@@ -17,23 +17,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
-    private(set) lazy var historyService: HistoryService = {
+    private(set) lazy var historyService: HistoryService = HistoryService(
+        modelContainer: Self.makeModelContainer(logger: Self.logger)
+    )
+
+    private static func makeModelContainer(logger: Logger) -> ModelContainer {
         do {
-            let container = try ModelContainer(for: CaptureRecord.self)
-            return HistoryService(modelContainer: container)
+            return try ModelContainer(for: CaptureRecord.self)
         } catch {
-            Self.logger.error("ModelContainer failed, falling back to in-memory store: \(error.localizedDescription, privacy: .public)")
-            let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            let container: ModelContainer
-            do {
-                container = try ModelContainer(for: CaptureRecord.self, configurations: config)
-            } catch {
-                Self.logger.fault("In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)")
-                fatalError("In-memory ModelContainer creation failed: \(error.localizedDescription)")
-            }
-            return HistoryService(modelContainer: container)
+            logger.error("ModelContainer failed, falling back to in-memory store: \(error.localizedDescription, privacy: .public)")
         }
-    }()
+        do {
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            return try ModelContainer(for: CaptureRecord.self, configurations: config)
+        } catch {
+            logger.critical("In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)")
+            // This path is not reachable in practice: an in-memory store with no
+            // migration or file I/O cannot fail. If it somehow does, the process
+            // cannot run without a persistence layer, so we surface a clear message.
+            preconditionFailure("In-memory ModelContainer creation failed: \(error.localizedDescription)")
+        }
+    }
     private lazy var viewModel: AppViewModel = AppViewModel(
         permissionService: permissionService,
         settingsService: settingsService,

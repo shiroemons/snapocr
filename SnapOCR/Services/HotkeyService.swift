@@ -68,6 +68,10 @@ final class HotkeyService {
     }
 
     func updateHotkey(keyCode: UInt32, modifiers: UInt32) {
+        guard keyCode <= 127 else {
+            Self.logger.warning("Ignoring invalid keyCode \(keyCode) — must be in range 0...127")
+            return
+        }
         self.keyCode = keyCode
         self.modifiers = modifiers
         register()
