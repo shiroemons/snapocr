@@ -82,6 +82,15 @@ struct MenuBarPanelView: View {
             )
         }
         .frame(width: Constants.panelWidth)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            Text(
+                String(
+                    localized: "SnapOCR Menu Bar Panel",
+                    comment: "Accessibility label for the menu bar panel"
+                )
+            )
+        )
     }
 }
 

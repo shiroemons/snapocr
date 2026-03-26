@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import SnapOCR
 
@@ -5,9 +6,55 @@ import Testing
 @MainActor
 struct SnapOCRTests {
 
+    private func makeSettingsService() -> SettingsService {
+        let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
+        let testDefaults = UserDefaults(suiteName: suiteName)!
+        return SettingsService(userDefaults: testDefaults)
+    }
+
     @Test func appViewModelInitialState() {
         let viewModel = AppViewModel()
         #expect(viewModel.isCapturing == false)
         #expect(viewModel.lastError == nil)
+    }
+
+    @Test func setupRegistersHotkeyCallback() {
+        let hotkeyService = HotkeyService()
+        let viewModel = AppViewModel(
+            hotkeyService: hotkeyService,
+            settingsService: makeSettingsService()
+        )
+        #expect(hotkeyService.onHotkeyPressed == nil)
+        viewModel.setup()
+        #expect(hotkeyService.onHotkeyPressed != nil)
+        viewModel.teardown()
+    }
+
+    @Test func teardownUnregistersHotkey() {
+        let hotkeyService = HotkeyService()
+        let viewModel = AppViewModel(
+            hotkeyService: hotkeyService,
+            settingsService: makeSettingsService()
+        )
+        viewModel.setup()
+        viewModel.teardown()
+        // teardown unregisters the Carbon hotkey but does not clear onHotkeyPressed
+        #expect(hotkeyService.onHotkeyPressed != nil)
+    }
+
+    @Test func startCaptureSetsCapturePermissionError() async throws {
+        let permissionService = PermissionService()
+        permissionService.checkPermission()
+        // This test only applies when Screen Recording permission is not granted
+        guard !permissionService.isScreenCapturePermitted else { return }
+
+        let viewModel = AppViewModel(
+            permissionService: permissionService,
+            settingsService: makeSettingsService()
+        )
+        viewModel.startCapture()
+        // Wait long enough for the async performCapture task to set lastError
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(viewModel.lastError != nil)
     }
 }

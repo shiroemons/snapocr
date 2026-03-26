@@ -34,7 +34,7 @@ final class PermissionService {
 
     func startMonitoring() {
         guard monitorTimer == nil else { return }
-        monitorTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        monitorTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkPermission()
             }

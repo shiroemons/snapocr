@@ -21,6 +21,7 @@ struct RecentCapturesView: View {
     @State private var copiedRecordID: PersistentIdentifier?
     @State private var hoveredRecordID: PersistentIdentifier?
     @State private var isHoveringShowAll = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -44,7 +45,7 @@ struct RecentCapturesView: View {
             showAllButton
         }
         .padding(.vertical, 4)
-        .onDisappear { hoveredRecordID = nil; isHoveringShowAll = false }
+        .onDisappear { hoveredRecordID = nil; isHoveringShowAll = false; copyResetTask?.cancel() }
     }
 
     // MARK: - Empty State
@@ -151,7 +152,8 @@ struct RecentCapturesView: View {
     private func copyRecord(_ record: CaptureRecord) {
         _ = ClipboardService.copy(record.text)
         copiedRecordID = record.persistentModelID
-        Task {
+        copyResetTask?.cancel()
+        copyResetTask = Task {
             try? await Task.sleep(for: .seconds(1.5))
             if copiedRecordID == record.persistentModelID {
                 copiedRecordID = nil

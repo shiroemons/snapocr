@@ -31,12 +31,10 @@ enum CaptureService {
         )
 
         // AppKit uses bottom-left origin; CG/ScreenCaptureKit uses top-left
-        let screenHeight = screenSize.height
-        let cropRect = CGRect(
-            x: rect.origin.x * scaleFactor,
-            y: (screenHeight - rect.origin.y - rect.height) * scaleFactor,
-            width: rect.width * scaleFactor,
-            height: rect.height * scaleFactor
+        let cropRect = convertToCGCoordinates(
+            rect: rect,
+            screenHeight: screenSize.height,
+            scaleFactor: scaleFactor
         )
 
         guard let croppedImage = fullImage.cropping(to: cropRect) else {
@@ -47,6 +45,21 @@ enum CaptureService {
         logger.info("Captured image size: \(croppedImage.width, privacy: .public)x\(croppedImage.height, privacy: .public)")
 
         return croppedImage
+    }
+
+    /// Converts an AppKit coordinate rect (bottom-left origin) to a CG coordinate rect (top-left origin),
+    /// applying the display scale factor.
+    nonisolated static func convertToCGCoordinates(
+        rect: CGRect,
+        screenHeight: CGFloat,
+        scaleFactor: CGFloat
+    ) -> CGRect {
+        CGRect(
+            x: rect.origin.x * scaleFactor,
+            y: (screenHeight - rect.origin.y - rect.height) * scaleFactor,
+            width: rect.width * scaleFactor,
+            height: rect.height * scaleFactor
+        )
     }
 }
 

@@ -24,8 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Self.logger.error("ModelContainer failed, falling back to in-memory store: \(error.localizedDescription, privacy: .public)")
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
-            // In-memory ModelContainer creation should not fail for a simple schema
-            let container = try! ModelContainer(for: CaptureRecord.self, configurations: config)
+            let container: ModelContainer
+            do {
+                container = try ModelContainer(for: CaptureRecord.self, configurations: config)
+            } catch {
+                Self.logger.fault("In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)")
+                fatalError("In-memory ModelContainer creation failed: \(error.localizedDescription)")
+            }
             return HistoryService(modelContainer: container)
         }
     }()
@@ -180,8 +185,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = permissionService.isScreenCapturePermitted
         } onChange: { [weak self] in
             Task { @MainActor in
-                self?.updateStatusItemIcon()
-                self?.trackPermissionChanges()
+                guard let self else { return }
+                self.updateStatusItemIcon()
+                self.trackPermissionChanges()
             }
         }
     }

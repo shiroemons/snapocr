@@ -16,7 +16,6 @@ excluded:
 # Rules
 disabled_rules:
   - trailing_comma
-  - todo
 
 opt_in_rules:
   - sorted_imports
