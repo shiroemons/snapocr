@@ -2,7 +2,7 @@ import Carbon.HIToolbox
 import Testing
 @testable import SnapOCR
 
-@Suite("SettingsService Tests", .serialized)
+@Suite("SettingsService Tests")
 @MainActor
 struct SettingsServiceTests {
     private func makeService() -> SettingsService {
