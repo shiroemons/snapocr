@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsService: settingsService,
         historyService: historyService
     )
-    private var isPermissionTrackingActive = true
+    private var isTrackingActive = true
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
@@ -55,6 +55,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         viewModel.setup()
         updateStatusItemIcon()
+        applyAppearance()
+        trackAppearanceChanges()
         trackPermissionChanges()
 
         if settingsService.shouldShowOnboarding {
@@ -78,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        isPermissionTrackingActive = false
+        isTrackingActive = false
         permissionService.stopMonitoring()
         viewModel.teardown()
     }
@@ -185,6 +187,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return composited
     }
 
+    // MARK: - Appearance
+
+    private func applyAppearance() {
+        NSApplication.shared.appearance = switch settingsService.appearanceMode {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+
+    private func trackAppearanceChanges() {
+        withObservationTracking {
+            _ = settingsService.appearanceMode
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isTrackingActive else { return }
+                self.applyAppearance()
+                self.trackAppearanceChanges()
+            }
+        }
+    }
+
     // MARK: - Permission Observation
 
     private func trackPermissionChanges() {
@@ -192,7 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = permissionService.isScreenCapturePermitted
         } onChange: { [weak self] in
             Task { @MainActor in
-                guard let self, self.isPermissionTrackingActive else { return }
+                guard let self, self.isTrackingActive else { return }
                 self.updateStatusItemIcon()
                 self.trackPermissionChanges()
             }

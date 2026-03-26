@@ -9,10 +9,28 @@ import Carbon.HIToolbox
 import Foundation
 import Observation
 
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .system: String(localized: "System", comment: "Appearance mode that follows system setting")
+        case .light: String(localized: "Light", comment: "Light appearance mode")
+        case .dark: String(localized: "Dark", comment: "Dark appearance mode")
+        }
+    }
+
+}
+
 @Observable
 @MainActor
 final class SettingsService {
     private enum Keys {
+        static let appearanceMode = "appearanceMode"
         static let hotkeyKeyCode = "hotkeyKeyCode"
         static let hotkeyModifiers = "hotkeyModifiers"
         static let ocrLanguages = "ocrLanguages"
@@ -28,6 +46,12 @@ final class SettingsService {
     static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
     static let defaultHotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
     private let defaults: UserDefaults
+
+    // MARK: - Appearance Settings
+
+    var appearanceMode: AppearanceMode = .system {
+        didSet { defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode) }
+    }
 
     var hotkeyKeyCode: UInt32 = SettingsService.defaultHotkeyKeyCode {
         didSet { defaults.set(Int(hotkeyKeyCode), forKey: Keys.hotkeyKeyCode) }
@@ -91,6 +115,10 @@ final class SettingsService {
         self.defaults = userDefaults
 
         // didSet is not triggered during init, so restoring here won't re-persist.
+        if let rawValue = userDefaults.string(forKey: Keys.appearanceMode),
+           let mode = AppearanceMode(rawValue: rawValue) {
+            appearanceMode = mode
+        }
         if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int,
            (0...0xFFFF).contains(intValue) {
             hotkeyKeyCode = UInt32(intValue)

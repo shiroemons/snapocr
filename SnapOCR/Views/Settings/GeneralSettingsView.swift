@@ -84,6 +84,23 @@ struct GeneralSettingsView: View {
             } header: {
                 Text(String(localized: "Onboarding", comment: "Onboarding section header in General settings"))
             }
+
+            Section {
+                Picker(
+                    String(localized: "Appearance", comment: "Appearance picker label in General settings"),
+                    selection: Binding(
+                        get: { settingsService.appearanceMode },
+                        set: { settingsService.appearanceMode = $0 }
+                    )
+                ) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text(String(localized: "Appearance", comment: "Appearance section header in General settings"))
+            }
         }
         .formStyle(.grouped)
         .padding()
