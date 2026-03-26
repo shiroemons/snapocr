@@ -255,7 +255,7 @@ struct HistoryListView: View {
     // MARK: - Actions
 
     private func copyRecord(_ record: CaptureRecord) {
-        _ = ClipboardService.copy(record.text)
+        guard ClipboardService.copy(record.text) else { return }
         copiedRecordID = record.persistentModelID
         copyResetTask?.cancel()
         copyResetTask = Task {

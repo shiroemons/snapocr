@@ -147,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permissionService.isScreenCapturePermitted {
             button.image = NSImage(
                 systemSymbolName: "text.viewfinder",
-                accessibilityDescription: String(localized: "SnapOCR")
+                accessibilityDescription: String(localized: "SnapOCR", comment: "Accessibility description for menu bar icon")
             )
         } else {
             button.image = warningBadgedIcon
@@ -157,7 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeWarningBadgedIcon() -> NSImage? {
         guard let base = NSImage(
             systemSymbolName: "text.viewfinder",
-            accessibilityDescription: String(localized: "SnapOCR")
+            accessibilityDescription: String(localized: "SnapOCR", comment: "Accessibility description for menu bar icon")
         ) else { return nil }
 
         let size = base.size

@@ -35,6 +35,7 @@ struct MenuBarFooterView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringSettings = $0 }
             .help(String(localized: "Settings", comment: "Tooltip for settings button in footer"))
+            .accessibilityLabel(String(localized: "Settings", comment: "Accessibility label for settings button"))
 
             Spacer()
 
@@ -55,6 +56,7 @@ struct MenuBarFooterView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringQuit = $0 }
             .help(String(localized: "Quit SnapOCR", comment: "Tooltip for quit button in footer"))
+            .accessibilityLabel(String(localized: "Quit SnapOCR", comment: "Accessibility label for quit button"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -87,7 +87,7 @@ final class AppViewModel {
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             Self.logger.warning("Screen capture permission not granted")
-            lastError = String(localized: "Screen recording permission is required.")
+            lastError = String(localized: "Screen recording permission is required.", comment: "Error message when screen recording permission is not granted")
             permissionService.openSystemSettings()
             isCapturing = false
             return
@@ -117,7 +117,7 @@ final class AppViewModel {
 
             guard !text.isEmpty else {
                 Self.logger.warning("OCR result is empty")
-                lastError = String(localized: "No text was recognized.")
+                lastError = String(localized: "No text was recognized.", comment: "Error message when OCR produces empty result")
                 return
             }
 

@@ -16,6 +16,7 @@ struct PermissionWarningBanner: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.yellow)
                 .font(.title3)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "Screen recording permission required", comment: "Permission warning title"))
