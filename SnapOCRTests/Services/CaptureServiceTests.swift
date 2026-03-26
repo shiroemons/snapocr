@@ -81,4 +81,42 @@ struct CaptureServiceTests {
         #expect(result.width == 1920)
         #expect(result.height == 1080)
     }
+
+    // MARK: - Invalid Region Errors
+
+    @Test func invalidRegionWithZeroWidth() async throws {
+        let rect = CGRect(x: 0, y: 0, width: 0, height: 100)
+        await #expect(throws: CaptureError.self) {
+            try await CaptureService.captureRegion(
+                rect,
+                displayID: CGMainDisplayID(),
+                screenSize: CGSize(width: 1920, height: 1080),
+                scaleFactor: 2.0
+            )
+        }
+    }
+
+    @Test func invalidRegionWithZeroHeight() async throws {
+        let rect = CGRect(x: 0, y: 0, width: 100, height: 0)
+        await #expect(throws: CaptureError.self) {
+            try await CaptureService.captureRegion(
+                rect,
+                displayID: CGMainDisplayID(),
+                screenSize: CGSize(width: 1920, height: 1080),
+                scaleFactor: 2.0
+            )
+        }
+    }
+
+    @Test func invalidRegionWithNegativeScaleFactor() async throws {
+        let rect = CGRect(x: 0, y: 0, width: 100, height: 100)
+        await #expect(throws: CaptureError.self) {
+            try await CaptureService.captureRegion(
+                rect,
+                displayID: CGMainDisplayID(),
+                screenSize: CGSize(width: 1920, height: 1080),
+                scaleFactor: -1.0
+            )
+        }
+    }
 }

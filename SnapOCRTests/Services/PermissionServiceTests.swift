@@ -28,4 +28,12 @@ struct PermissionServiceTests {
         service.startMonitoring()
         service.stopMonitoring()
     }
+
+    @Test func isScreenCapturePermittedIsConsistent() {
+        let service = PermissionService()
+        // Property must be readable and return a stable Bool without triggering any state change.
+        let first: Bool = service.isScreenCapturePermitted
+        let second: Bool = service.isScreenCapturePermitted
+        #expect(first == second, "isScreenCapturePermitted must return a consistent value across successive reads")
+    }
 }

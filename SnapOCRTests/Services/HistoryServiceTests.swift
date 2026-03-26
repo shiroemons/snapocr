@@ -66,7 +66,10 @@ struct HistoryServiceTests {
         let service = try makeService()
         service.addRecord(text: "To delete", languages: [])
         #expect(service.recentRecords.count == 1)
-        let record = service.recentRecords.first!
+        guard let record = service.recentRecords.first else {
+            Issue.record("Expected at least one recent record")
+            return
+        }
         service.delete(record)
         #expect(service.recentRecords.isEmpty)
     }

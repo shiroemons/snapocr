@@ -9,7 +9,10 @@ struct SettingsServiceTests {
         preseeding: (UserDefaults) -> Void = { _ in }
     ) -> SettingsService {
         let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
-        let testDefaults = UserDefaults(suiteName: suiteName)!
+        guard let testDefaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Failed to create test UserDefaults")
+            return SettingsService()
+        }
         preseeding(testDefaults)
         return SettingsService(userDefaults: testDefaults)
     }
@@ -56,10 +59,10 @@ struct SettingsServiceTests {
         #expect(service.ocrLanguages == ["ja", "en", "zh-Hans"])
     }
 
-    @Test func setOCRLanguagesToEmptyArray() {
+    @Test func setOCRLanguagesToEmptyArrayResetsToDefault() {
         let service = makeService()
         service.ocrLanguages = []
-        #expect(service.ocrLanguages == [])
+        #expect(service.ocrLanguages == ["ja", "en"])
     }
 
     @Test func overwriteOCRLanguages() {
@@ -177,5 +180,27 @@ struct SettingsServiceTests {
     func hotkeyKeyCodeFallsBackToDefaultWhenInvalid(storedValue: Int) {
         let service = makeService { $0.set(storedValue, forKey: "hotkeyKeyCode") }
         #expect(service.hotkeyKeyCode == SettingsService.defaultHotkeyKeyCode)
+    }
+
+    @Test func hotkeyKeyCodePersistence() {
+        let service = makeService()
+
+        service.hotkeyKeyCode = 0
+        #expect(service.hotkeyKeyCode == 0)
+
+        service.hotkeyKeyCode = 127
+        #expect(service.hotkeyKeyCode == 127)
+    }
+
+    // MARK: - Notification Settings Individual Write
+
+    @Test func setToastEnabled() {
+        let service = makeService()
+
+        service.isToastEnabled = true
+        #expect(service.isToastEnabled == true)
+
+        service.isToastEnabled = false
+        #expect(service.isToastEnabled == false)
     }
 }

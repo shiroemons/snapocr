@@ -8,7 +8,10 @@ struct SnapOCRTests {
 
     private func makeSettingsService() -> SettingsService {
         let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
-        let testDefaults = UserDefaults(suiteName: suiteName)!
+        guard let testDefaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Failed to create test UserDefaults")
+            return SettingsService()
+        }
         return SettingsService(userDefaults: testDefaults)
     }
 

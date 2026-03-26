@@ -10,6 +10,13 @@ struct LoginItemServiceTests {
         let _ = service.isEnabled
     }
 
+    @Test func isEnabledIsConsistentWithoutSideEffects() {
+        let service = LoginItemService()
+        let first = service.isEnabled
+        let second = service.isEnabled
+        #expect(first == second, "isEnabled must return a consistent value when called without intervening mutations")
+    }
+
     @Test func enableDoesNotThrow() {
         let service = LoginItemService()
         service.enable()
