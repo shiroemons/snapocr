@@ -54,6 +54,24 @@ struct SnapOCRTests {
         viewModel.teardown()
     }
 
+    @Test func isCapturingIsFalseAfterSetup() {
+        let viewModel = AppViewModel(settingsService: makeSettingsService())
+        viewModel.setup()
+        #expect(viewModel.isCapturing == false)
+        viewModel.teardown()
+    }
+
+    @Test func teardownBeforeSetupDoesNotCrash() {
+        let hotkeyService = HotkeyService()
+        let viewModel = AppViewModel(
+            hotkeyService: hotkeyService,
+            settingsService: makeSettingsService()
+        )
+        viewModel.teardown()
+        viewModel.setup()
+        viewModel.teardown()
+    }
+
     @Test func startCaptureSetsCapturePermissionError() async throws {
         let permissionService = PermissionService()
         permissionService.checkPermission()
@@ -65,8 +83,11 @@ struct SnapOCRTests {
             settingsService: makeSettingsService()
         )
         viewModel.startCapture()
-        // Wait long enough for the async performCapture task to set lastError
-        try await Task.sleep(for: .milliseconds(100))
+        // Poll until lastError is set or timeout (max 1s)
+        for _ in 0..<100 {
+            if viewModel.lastError != nil { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(viewModel.lastError != nil)
     }
 }
