@@ -16,6 +16,7 @@ struct MenuBarFooterView: View {
     @State private var isHoveringSettings = false
     @State private var isHoveringQuit = false
 
+    // Version strings are technical identifiers and are intentionally not localized.
     private static let versionString: String = {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "–"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "–"

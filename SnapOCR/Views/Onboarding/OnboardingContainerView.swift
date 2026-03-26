@@ -106,6 +106,12 @@ struct OnboardingContainerView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .accessibilityLabel(
+                    String(
+                        localized: "Skip this step",
+                        comment: "Accessibility label for the button that skips the current onboarding step"
+                    )
+                )
                 nextButton
                     .disabled(!canProceedFromStep2)
             }
@@ -123,6 +129,12 @@ struct OnboardingContainerView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .accessibilityLabel(
+                    String(
+                        localized: "Finish setup and start using SnapOCR",
+                        comment: "Accessibility label for the button that completes onboarding"
+                    )
+                )
             }
         default:
             EmptyView()
@@ -135,6 +147,12 @@ struct OnboardingContainerView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.regular)
+        .accessibilityLabel(
+            String(
+                localized: "Next step",
+                comment: "Accessibility label for the button that advances to the next onboarding step"
+            )
+        )
     }
 
     private var backButton: some View {
@@ -143,6 +161,12 @@ struct OnboardingContainerView: View {
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
+        .accessibilityLabel(
+            String(
+                localized: "Previous step",
+                comment: "Accessibility label for the button that returns to the previous onboarding step"
+            )
+        )
     }
 
     // MARK: - Navigation Helpers

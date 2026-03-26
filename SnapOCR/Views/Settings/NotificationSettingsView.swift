@@ -86,6 +86,12 @@ struct NotificationSettingsView: View {
                         Text(sound).tag(sound)
                     }
                 }
+                .accessibilityLabel(
+                    String(
+                        localized: "Completion sound selection",
+                        comment: "Accessibility label for the sound picker in notification settings"
+                    )
+                )
 
                 HStack {
                     Spacer()
@@ -97,6 +103,12 @@ struct NotificationSettingsView: View {
                     ) {
                         NotificationService.playSound(named: settingsService.completionSoundName)
                     }
+                    .accessibilityLabel(
+                        String(
+                            localized: "Preview the selected completion sound",
+                            comment: "Accessibility label for the button that plays a preview of the selected sound"
+                        )
+                    )
                 }
             }
         } header: {

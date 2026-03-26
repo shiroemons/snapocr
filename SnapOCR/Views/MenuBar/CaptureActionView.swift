@@ -31,6 +31,9 @@ struct CaptureActionView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(!isPermissionGranted)
+            .accessibilityLabel(
+                String(localized: "Capture screen text", comment: "Accessibility label for capture button")
+            )
             .accessibilityHint(
                 isPermissionGranted
                     ? String(localized: "Double-click to start text capture", comment: "Accessibility hint for capture button when enabled")
@@ -40,9 +43,11 @@ struct CaptureActionView: View {
             Text(String(localized: "Hotkey: \(hotkeyLabel)", comment: "Hotkey label shown below capture button"))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 }
 

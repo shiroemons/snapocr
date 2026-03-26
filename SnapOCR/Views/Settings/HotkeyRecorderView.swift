@@ -12,6 +12,7 @@ struct HotkeyRecorderView: View {
 
     @State private var isRecording = false
     @State private var pendingModifiers: UInt32 = 0
+    // NSEvent.addLocalMonitorForEvents returns an opaque Any? token managed by AppKit.
     @State private var eventMonitor: Any?
 
     // MARK: - Body
@@ -67,6 +68,12 @@ struct HotkeyRecorderView: View {
         .buttonStyle(.plain)
         .font(.system(size: 12))
         .foregroundStyle(.secondary)
+        .accessibilityLabel(
+            String(
+                localized: "Reset shortcut to default",
+                comment: "Accessibility label for the button that resets the hotkey to its default value"
+            )
+        )
     }
 
     // MARK: - Computed properties

@@ -60,6 +60,7 @@ struct MenuBarPanelView: View {
 
                 Divider()
                     .opacity(Constants.dividerOpacity)
+                    .accessibilityHidden(true)
             }
 
             CaptureActionView(
@@ -70,11 +71,13 @@ struct MenuBarPanelView: View {
 
             Divider()
                 .opacity(Constants.dividerOpacity)
+                .accessibilityHidden(true)
 
             RecentCapturesView(historyService: historyService, onShowHistory: onShowHistory)
 
             Divider()
                 .opacity(Constants.dividerOpacity)
+                .accessibilityHidden(true)
 
             MenuBarFooterView(
                 onDismissMenu: onDismissMenu,
@@ -95,13 +98,20 @@ struct MenuBarPanelView: View {
 }
 
 #if DEBUG
+private func makePreviewContainer() -> ModelContainer {
+    do {
+        return try ModelContainer(
+            for: CaptureRecord.self,
+            configurations: .init(isStoredInMemoryOnly: true)
+        )
+    } catch {
+        fatalError("Preview ModelContainer failed: \(error)")
+    }
+}
+
 #Preview {
-    let container = try! ModelContainer(
-        for: CaptureRecord.self,
-        configurations: .init(isStoredInMemoryOnly: true)
-    )
     let historyService = HistoryService(
-        modelContainer: container
+        modelContainer: makePreviewContainer()
     )
     MenuBarPanelView(
         permissionService: PermissionService(),

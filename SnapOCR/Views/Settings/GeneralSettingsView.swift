@@ -20,6 +20,7 @@ struct GeneralSettingsView: View {
                 HStack {
                     Image(systemName: permissionService.isScreenCapturePermitted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(permissionService.isScreenCapturePermitted ? .green : .yellow)
+                        .accessibilityHidden(true)
                     Text(
                         permissionService.isScreenCapturePermitted
                             ? String(localized: "Screen Recording: Allowed", comment: "Screen recording permission granted status")
@@ -30,6 +31,12 @@ struct GeneralSettingsView: View {
                         Button(String(localized: "Open System Settings", comment: "Button to open System Settings for screen recording permission")) {
                             permissionService.openSystemSettings()
                         }
+                        .accessibilityLabel(
+                            String(
+                                localized: "Open System Settings to grant screen recording permission",
+                                comment: "Accessibility label for the button that opens System Settings for screen recording"
+                            )
+                        )
                     }
                 }
             } header: {

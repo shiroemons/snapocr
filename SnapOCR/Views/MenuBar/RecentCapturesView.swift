@@ -87,6 +87,7 @@ struct RecentCapturesView: View {
                         )
                         .frame(width: 14)
                         .font(.caption)
+                        .accessibilityHidden(true)
 
                         Text(record.text)
                             .lineLimit(Self.textLineLimit)
@@ -111,6 +112,10 @@ struct RecentCapturesView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(record.text)
+                .accessibilityHint(
+                    String(localized: "Copies this text to the clipboard", comment: "Accessibility hint for recent capture item button")
+                )
                 .onHover { hovering in
                     hoveredRecordID = hovering ? record.persistentModelID : nil
                 }

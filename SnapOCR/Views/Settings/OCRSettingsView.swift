@@ -41,6 +41,12 @@ struct OCRSettingsView: View {
                             }
                         )
                     )
+                    .accessibilityHint(
+                        String(
+                            localized: "Enable or disable \(language.displayName) text recognition. At least one language must remain enabled.",
+                            comment: "Accessibility hint for OCR language toggle describing its effect"
+                        )
+                    )
                 }
             } header: {
                 Text(String(localized: "Recognition Languages", comment: "OCR language selection section header"))

@@ -83,6 +83,18 @@ struct HistoryRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(
+                String(
+                    localized: "Copy text",
+                    comment: "Accessibility label for copy button in history row"
+                )
+            )
+            .accessibilityHint(
+                String(
+                    localized: "Copies the recognized text to the clipboard",
+                    comment: "Accessibility hint for copy button in history row"
+                )
+            )
 
             if !isEditing {
                 Button(action: onDelete) {
@@ -91,6 +103,18 @@ struct HistoryRowView: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { isHoveringDelete = $0 }
+                .accessibilityLabel(
+                    String(
+                        localized: "Delete record",
+                        comment: "Accessibility label for delete button in history row"
+                    )
+                )
+                .accessibilityHint(
+                    String(
+                        localized: "Permanently deletes this history record",
+                        comment: "Accessibility hint for delete button in history row"
+                    )
+                )
             }
         }
         .accessibilityElement(children: .combine)

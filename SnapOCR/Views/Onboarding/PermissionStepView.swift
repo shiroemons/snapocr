@@ -50,6 +50,7 @@ struct PermissionStepView: View {
                       : "exclamationmark.triangle.fill")
                     .font(.title3)
                     .foregroundStyle(permissionService.isScreenCapturePermitted ? .green : .orange)
+                    .accessibilityHidden(true)
 
                 Text(
                     permissionService.isScreenCapturePermitted
@@ -78,6 +79,7 @@ struct PermissionStepView: View {
                                 lineWidth: 1
                             )
                     )
+                    .accessibilityHidden(true)
             )
 
             if !permissionService.isScreenCapturePermitted {
@@ -86,6 +88,7 @@ struct PermissionStepView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "gear")
+                            .accessibilityHidden(true)
                         Text(
                             String(
                                 localized: "Open System Settings",
@@ -96,6 +99,12 @@ struct PermissionStepView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .accessibilityLabel(
+                    String(
+                        localized: "Open System Settings to grant screen recording permission",
+                        comment: "Accessibility label for the button that opens System Settings during onboarding"
+                    )
+                )
             }
         }
         .padding(.horizontal, 32)

@@ -97,6 +97,12 @@ struct HistorySettingsView: View {
                         )
                     )
                 }
+                .accessibilityLabel(
+                    String(
+                        localized: "Show all OCR history in a separate window",
+                        comment: "Accessibility label for the button that opens the full history window"
+                    )
+                )
             }
             HStack {
                 Spacer()
@@ -110,6 +116,12 @@ struct HistorySettingsView: View {
                         )
                     )
                 }
+                .accessibilityLabel(
+                    String(
+                        localized: "Delete all OCR history permanently",
+                        comment: "Accessibility label for the destructive button that deletes all history"
+                    )
+                )
                 .confirmationDialog(
                     String(
                         localized: "Delete All History?",

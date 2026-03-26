@@ -88,12 +88,19 @@ struct HistoryListView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        String(
+                            localized: "Clear search",
+                            comment: "Accessibility label for clear search button"
+                        )
+                    )
                 }
             }
             .padding(8)
 
             Divider()
                 .frame(height: 20)
+                .accessibilityHidden(true)
 
             Button {
                 isEditing.toggle()
@@ -119,6 +126,17 @@ struct HistoryListView: View {
             .foregroundStyle(.blue)
             .disabled(records.isEmpty)
             .frame(width: 60)
+            .accessibilityLabel(
+                isEditing
+                    ? String(
+                        localized: "Done selecting",
+                        comment: "Accessibility label for done button in edit mode"
+                    )
+                    : String(
+                        localized: "Select items",
+                        comment: "Accessibility label for select button"
+                    )
+            )
         }
         .background(.bar)
     }
@@ -230,8 +248,49 @@ struct HistoryListView: View {
                 )
             }
             .disabled(selectedIDs.isEmpty)
+            .accessibilityLabel(
+                String(
+                    localized: "Delete \(selectedIDs.count) selected items",
+                    comment: "Accessibility label for delete selected button"
+                )
+            )
 
             Spacer()
+
+            Button {
+                if selectedIDs.count == records.count {
+                    selectedIDs = []
+                } else {
+                    selectedIDs = Set(records.map(\.persistentModelID))
+                }
+            } label: {
+                if selectedIDs.count == records.count {
+                    Text(
+                        String(
+                            localized: "Deselect All",
+                            comment: "Deselect all items button"
+                        )
+                    )
+                } else {
+                    Text(
+                        String(
+                            localized: "Select All",
+                            comment: "Select all items button"
+                        )
+                    )
+                }
+            }
+            .accessibilityLabel(
+                selectedIDs.count == records.count
+                    ? String(
+                        localized: "Deselect all items",
+                        comment: "Accessibility label for deselect all button"
+                    )
+                    : String(
+                        localized: "Select all items",
+                        comment: "Accessibility label for select all button"
+                    )
+            )
 
             Button(
                 role: .destructive

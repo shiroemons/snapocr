@@ -40,6 +40,9 @@ struct PermissionWarningBanner: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+            .accessibilityLabel(
+                String(localized: "Open System Settings to grant screen recording permission", comment: "Accessibility label for open settings button in permission warning")
+            )
         }
         .padding(10)
         .background(
@@ -48,7 +51,9 @@ struct PermissionWarningBanner: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 1)
+                        .accessibilityHidden(true)
                 )
+                .accessibilityHidden(true)
         )
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
