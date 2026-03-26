@@ -23,7 +23,7 @@ final class HotkeyService {
 
         // 1. Set up global callback
         globalHotkeyCallbackStorage.withLock { $0 = { [weak self] in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 self?.onHotkeyPressed?()
             }
         }}

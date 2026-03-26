@@ -16,6 +16,8 @@ struct SelectionResult: Sendable {
 
 final class SelectionOverlayWindow: NSWindow {
     private(set) var overlayView: SelectionOverlayView
+    private nonisolated(unsafe) var spaceChangeObserver: NSObjectProtocol?
+    private(set) var isDismissed = false
 
     init(screen: NSScreen) {
         let screenFrame = screen.frame
@@ -32,18 +34,62 @@ final class SelectionOverlayWindow: NSWindow {
         isOpaque = false
         backgroundColor = .clear
         level = .screenSaver
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         ignoresMouseEvents = false
+        hidesOnDeactivate = false
+        acceptsMouseMovedEvents = true
         contentView = overlayView
+        disableCursorRects()
+
+        // スペース切り替え時に即座にキーウィンドウを再取得（タイマーを待たず即復帰）
+        spaceChangeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, !self.isDismissed else { return }
+            self.activateAndFocus()
+            self.overlayView.refreshCursor()
+        }
+    }
+
+    func activateAndFocus() {
+        NSApp.activate()
+        orderFrontRegardless()
+        makeKey()
+        makeFirstResponder(overlayView)
+    }
+
+    /// オーバーレイ終了時のクリーンアップ（オブザーバー解除）
+    func cleanup() {
+        if let observer = spaceChangeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            spaceChangeObserver = nil
+        }
+    }
+
+    deinit {
+        cleanup()
     }
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
+    override func becomeKey() {
+        super.becomeKey()
+        // キーウィンドウ復帰時に必ず first responder を再設定（Escape が効かなくなる問題の対策）
+        makeFirstResponder(overlayView)
+    }
+
     func show() {
         NSApp.activate()
         makeKeyAndOrderFront(nil)
-        overlayView.window?.makeFirstResponder(overlayView)
+        makeFirstResponder(overlayView)
+        // 初期マウス位置を設定
+        let globalMouse = NSEvent.mouseLocation
+        let windowPoint = convertPoint(fromScreen: globalMouse)
+        overlayView.mouseLocation = overlayView.convert(windowPoint, from: nil)
+        overlayView.needsDisplay = true
     }
 }
 
@@ -67,29 +113,32 @@ extension SelectionOverlayWindow {
         return await withCheckedContinuation { continuation in
             let window = SelectionOverlayWindow(screen: screen)
             var resumed = false
+            var observer: NSObjectProtocol?
 
             let resume: (SelectionResult?) -> Void = { result in
                 guard !resumed else { return }
                 resumed = true
+                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
+                window.isDismissed = true
+                window.overlayView.stopCursorTimer()
+                window.cleanup()
+                window.ignoresMouseEvents = true
+                window.overlayView.onSelectionCompleted = nil
+                window.overlayView.onSelectionCancelled = nil
                 window.orderOut(nil)
+                NSCursor.arrow.set()
                 continuation.resume(returning: result)
             }
 
-            // Guard against system-initiated window close (e.g., screen lock, Exposé) that
-            // bypasses the selection callbacks, which would otherwise leave the continuation
-            // permanently suspended.
-            var observer: NSObjectProtocol?
             observer = NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
                 object: window,
                 queue: .main
             ) { _ in
-                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
                 resume(nil)
             }
 
             window.overlayView.onSelectionCompleted = { rect in
-                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
                 resume(SelectionResult(
                     rect: rect,
                     displayID: screenNumber,
@@ -99,7 +148,6 @@ extension SelectionOverlayWindow {
             }
 
             window.overlayView.onSelectionCancelled = {
-                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
                 resume(nil)
             }
 

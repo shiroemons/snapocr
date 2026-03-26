@@ -13,28 +13,50 @@ private enum Constants {
     static let overlayAlpha: CGFloat = 0.3
     static let borderWidth: CGFloat = 1.0
     static let minimumSelectionSize: CGFloat = 2
-    static let badgeFontSize: CGFloat = 11
-    static let badgePadding: CGFloat = 4
-    static let badgeOffset: CGFloat = 6
-    static let badgeAlpha: CGFloat = 0.7
-    static let badgeCornerRadius: CGFloat = 3
+    static let labelFontSize: CGFloat = 8
+    // カーソル描画
+    static let cursorSize: CGFloat = 30
+    static let cursorLineWidth: CGFloat = 1.0
+    static let cursorOutlineWidth: CGFloat = 3.0
+    static let cursorCircleRadius: CGFloat = 7.0
+    static let cursorDotRadius: CGFloat = 1.0
+    static let cursorLineInset: CGFloat = 1.5
 }
 
 final class SelectionOverlayView: NSView {
+
     var onSelectionCompleted: ((CGRect) -> Void)?
     var onSelectionCancelled: (() -> Void)?
 
     private var startPoint: NSPoint?
     private var currentRect: CGRect = .zero
+    var mouseLocation: NSPoint = .zero
+
+    /// タイマーが停止済みかどうか（DispatchQueue.main.async の残存ブロック対策）
+    private var isStopped = false
+
+    /// 60fps でカーソルを強制設定するタイマー
+    private var cursorTimer: Timer?
+
+    private var cachedCursor: NSCursor?
+    private var cachedMouseLocation: NSPoint = .zero
+    private var cachedCurrentRect: CGRect = .zero
+
+    private static let numberFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter
+    }()
 
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    // MARK: - Drawing
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
         guard !currentRect.isEmpty else {
-            // Draw nearly invisible background to ensure mouse event delivery
             NSColor.black.withAlphaComponent(Constants.backgroundAlpha).setFill()
             NSBezierPath.fill(bounds)
             return
@@ -51,52 +73,120 @@ final class SelectionOverlayView: NSView {
         let borderPath = NSBezierPath(rect: currentRect)
         borderPath.lineWidth = Constants.borderWidth
         borderPath.stroke()
-
-        drawSizeLabel(for: currentRect)
     }
 
-    private func drawSizeLabel(for rect: CGRect) {
-        let width = Int(rect.width)
-        let height = Int(rect.height)
-        let labelText = "\(width) × \(height)"
+    /// クロスヘア + 座標テキストを含む動的カーソルを生成
+    private func makeCursorWithLabel() -> NSCursor {
+        if let cached = cachedCursor,
+           mouseLocation == cachedMouseLocation,
+           currentRect == cachedCurrentRect {
+            return cached
+        }
 
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: Constants.badgeFontSize, weight: .medium),
-            .foregroundColor: NSColor.white
+        let formatter = Self.numberFormatter
+        let line1: String
+        let line2: String
+        if currentRect.isEmpty {
+            let screenX = Int(mouseLocation.x)
+            let screenY = Int(bounds.height - mouseLocation.y)
+            line1 = formatter.string(from: NSNumber(value: screenX)) ?? "\(screenX)"
+            line2 = formatter.string(from: NSNumber(value: screenY)) ?? "\(screenY)"
+        } else {
+            let width = Int(currentRect.width)
+            let height = Int(currentRect.height)
+            line1 = formatter.string(from: NSNumber(value: width)) ?? "\(width)"
+            line2 = formatter.string(from: NSNumber(value: height)) ?? "\(height)"
+        }
+
+        let font = NSFont.monospacedDigitSystemFont(ofSize: Constants.labelFontSize, weight: .bold)
+        let outlineAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.white,
+            .strokeColor: NSColor.white,
+            .strokeWidth: NSNumber(value: -4.0)
         ]
-        let attributedString = NSAttributedString(string: labelText, attributes: attributes)
-        let textSize = attributedString.size()
+        let fillAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.black
+        ]
 
-        let padding = Constants.badgePadding
-        let badgeWidth = textSize.width + padding * 2
-        let badgeHeight = textSize.height + padding * 2
-        let badgeOffset = Constants.badgeOffset
+        let str1 = NSAttributedString(string: line1, attributes: fillAttributes)
+        let str2 = NSAttributedString(string: line2, attributes: fillAttributes)
+        let textHeight = str1.size().height
+        let maxTextWidth = max(str1.size().width, str2.size().width)
 
-        var badgeX = rect.maxX - badgeWidth - badgeOffset
-        var badgeY = rect.minY - badgeHeight - badgeOffset
+        let crossSize = Constants.cursorSize
+        let halfCross = crossSize / 2
+        let textOffset: CGFloat = 2
+        let totalTextHeight = textHeight * 2
+        let imageWidth = crossSize + textOffset + maxTextWidth + 4
+        let imageHeight = crossSize + textOffset + totalTextHeight
 
-        // Keep badge within view bounds
-        if badgeX < bounds.minX {
-            badgeX = bounds.minX + badgeOffset
-        }
-        if badgeY < bounds.minY {
-            badgeY = rect.minY + badgeOffset
-        }
+        let crossCenterX = halfCross
+        let crossCenterY = imageHeight - halfCross
 
-        let badgeRect = CGRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight)
+        let image = NSImage(size: NSSize(width: imageWidth, height: imageHeight))
+        image.lockFocus()
 
-        NSColor.black.withAlphaComponent(Constants.badgeAlpha).setFill()
-        let badgePath = NSBezierPath(roundedRect: badgeRect, xRadius: Constants.badgeCornerRadius, yRadius: Constants.badgeCornerRadius)
-        badgePath.fill()
+        let inset = Constants.cursorLineInset
+        let r = Constants.cursorCircleRadius
 
-        let textRect = CGRect(
-            x: badgeX + padding,
-            y: badgeY + padding,
-            width: textSize.width,
-            height: textSize.height
-        )
-        attributedString.draw(in: textRect)
+        // グレーの枠
+        NSColor.gray.withAlphaComponent(0.5).setStroke()
+        let outlinePath = NSBezierPath()
+        outlinePath.lineWidth = Constants.cursorOutlineWidth
+        outlinePath.lineCapStyle = .round
+        outlinePath.move(to: NSPoint(x: crossCenterX, y: crossCenterY - halfCross))
+        outlinePath.line(to: NSPoint(x: crossCenterX, y: crossCenterY + halfCross))
+        outlinePath.move(to: NSPoint(x: crossCenterX - halfCross, y: crossCenterY))
+        outlinePath.line(to: NSPoint(x: crossCenterX + halfCross, y: crossCenterY))
+        outlinePath.stroke()
+
+        // 黒い十字線
+        NSColor.black.setStroke()
+        let crossPath = NSBezierPath()
+        crossPath.lineWidth = Constants.cursorLineWidth
+        crossPath.move(to: NSPoint(x: crossCenterX, y: crossCenterY - halfCross + inset))
+        crossPath.line(to: NSPoint(x: crossCenterX, y: crossCenterY + halfCross - inset))
+        crossPath.move(to: NSPoint(x: crossCenterX - halfCross + inset, y: crossCenterY))
+        crossPath.line(to: NSPoint(x: crossCenterX + halfCross - inset, y: crossCenterY))
+        crossPath.stroke()
+
+        // グレーの中央円リング
+        NSColor.gray.withAlphaComponent(0.5).setStroke()
+        let circlePath = NSBezierPath(ovalIn: NSRect(
+            x: crossCenterX - r, y: crossCenterY - r, width: r * 2, height: r * 2
+        ))
+        circlePath.lineWidth = Constants.cursorLineWidth
+        circlePath.stroke()
+
+        // 中心の白いドット
+        NSColor.white.setFill()
+        let dr = Constants.cursorDotRadius
+        NSBezierPath(ovalIn: NSRect(
+            x: crossCenterX - dr, y: crossCenterY - dr, width: dr * 2, height: dr * 2
+        )).fill()
+
+        // テキスト描画
+        let textX = crossCenterX + r + 2
+        let text1Y = crossCenterY - textOffset - textHeight
+        let text2Y = text1Y - textHeight
+
+        NSAttributedString(string: line1, attributes: outlineAttributes).draw(at: NSPoint(x: textX, y: text1Y))
+        NSAttributedString(string: line2, attributes: outlineAttributes).draw(at: NSPoint(x: textX, y: text2Y))
+        str1.draw(at: NSPoint(x: textX, y: text1Y))
+        str2.draw(at: NSPoint(x: textX, y: text2Y))
+
+        image.unlockFocus()
+
+        cachedMouseLocation = mouseLocation
+        cachedCurrentRect = currentRect
+        let cursor = NSCursor(image: image, hotSpot: NSPoint(x: crossCenterX, y: imageHeight - crossCenterY))
+        cachedCursor = cursor
+        return cursor
     }
+
+    // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
         startPoint = convert(event.locationInWindow, from: nil)
@@ -107,6 +197,7 @@ final class SelectionOverlayView: NSView {
     override func mouseDragged(with event: NSEvent) {
         guard let start = startPoint else { return }
         let current = convert(event.locationInWindow, from: nil)
+        mouseLocation = current
         currentRect = makeRect(from: start, to: current)
         needsDisplay = true
     }
@@ -137,24 +228,57 @@ final class SelectionOverlayView: NSView {
         }
     }
 
-    // MARK: - Cursor
+    // MARK: - Cursor Management
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        for area in trackingAreas {
-            removeTrackingArea(area)
-        }
+        for area in trackingAreas { removeTrackingArea(area) }
         let area = NSTrackingArea(
             rect: bounds,
-            options: [.cursorUpdate, .activeAlways, .inVisibleRect],
+            options: [.mouseMoved, .activeAlways, .inVisibleRect],
             owner: self,
             userInfo: nil
         )
         addTrackingArea(area)
+
+        // .common モードで登録し、スペース遷移アニメーション中もタイマーが発火するようにする
+        if window != nil, !isStopped {
+            cursorTimer?.invalidate()
+            let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, !self.isStopped,
+                          let win = self.window as? SelectionOverlayWindow,
+                          !win.isDismissed else { return }
+
+                    if !win.isKeyWindow {
+                        win.activateAndFocus()
+                    }
+
+                    let windowPoint = win.convertPoint(fromScreen: NSEvent.mouseLocation)
+                    self.mouseLocation = self.convert(windowPoint, from: nil)
+                    self.makeCursorWithLabel().set()
+                    self.needsDisplay = true
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            cursorTimer = timer
+        }
     }
 
-    override func cursorUpdate(with event: NSEvent) {
-        NSCursor.crosshair.set()
+    override func mouseMoved(with event: NSEvent) {
+        mouseLocation = convert(event.locationInWindow, from: nil)
+        makeCursorWithLabel().set()
+        needsDisplay = true
+    }
+
+    func refreshCursor() {
+        makeCursorWithLabel().set()
+    }
+
+    func stopCursorTimer() {
+        isStopped = true
+        cursorTimer?.invalidate()
+        cursorTimer = nil
     }
 
     // MARK: - Private Helpers

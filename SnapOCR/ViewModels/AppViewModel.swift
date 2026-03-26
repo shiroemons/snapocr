@@ -23,6 +23,7 @@ final class AppViewModel {
     private(set) var isCapturing = false
     private(set) var lastError: String?
     private var captureTask: Task<Void, Never>?
+    private var lastCaptureEndTime: ContinuousClock.Instant = .now - .seconds(10)
 
     init(
         permissionService: PermissionService = PermissionService(),
@@ -75,7 +76,8 @@ final class AppViewModel {
     }
 
     func startCapture() {
-        guard !isCapturing else { return }
+        guard !isCapturing,
+              ContinuousClock.Instant.now - lastCaptureEndTime > .milliseconds(500) else { return }
         isCapturing = true
 
         captureTask = Task {
@@ -84,17 +86,20 @@ final class AppViewModel {
     }
 
     private func performCapture() async {
+        defer {
+            lastCaptureEndTime = .now
+            isCapturing = false
+        }
+
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             Self.logger.warning("Screen capture permission not granted")
             lastError = String(localized: "Screen recording permission is required.", comment: "Error message when screen recording permission is not granted")
             permissionService.openSystemSettings()
-            isCapturing = false
             return
         }
 
         lastError = nil
-        defer { isCapturing = false }
 
         do {
             Self.logger.info("Starting region selection")
