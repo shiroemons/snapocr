@@ -78,7 +78,9 @@ final class HistoryService {
 
     func delete(_ record: CaptureRecord) {
         modelContext.delete(record)
-        saveContext()
+        if !saveContext() {
+            Self.logger.error("Failed to save after deleting record")
+        }
         refreshRecentRecords()
     }
 
@@ -89,7 +91,9 @@ final class HistoryService {
                 modelContext.delete(record)
             }
         }
-        saveContext()
+        if !saveContext() {
+            Self.logger.error("Failed to save after batch delete")
+        }
         refreshRecentRecords()
     }
 
@@ -105,7 +109,9 @@ final class HistoryService {
         for record in all {
             modelContext.delete(record)
         }
-        saveContext()
+        if !saveContext() {
+            Self.logger.error("Failed to save after deleting all records")
+        }
         refreshRecentRecords()
     }
 
@@ -127,7 +133,9 @@ final class HistoryService {
         for record in overflow {
             modelContext.delete(record)
         }
-        saveContext()
+        if !saveContext() {
+            Self.logger.error("Failed to save after trimming records")
+        }
     }
 
     // MARK: - Private

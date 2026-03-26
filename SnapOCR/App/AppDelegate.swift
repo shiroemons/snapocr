@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsService: settingsService,
         historyService: historyService
     )
+    private var permissionTrackingTask: Task<Void, Never>?
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
@@ -73,6 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        permissionTrackingTask?.cancel()
+        permissionTrackingTask = nil
         viewModel.teardown()
     }
 
@@ -184,10 +187,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         withObservationTracking {
             _ = permissionService.isScreenCapturePermitted
         } onChange: { [weak self] in
-            Task { @MainActor in
+            let task = Task { @MainActor in
                 guard let self else { return }
                 self.updateStatusItemIcon()
                 self.trackPermissionChanges()
+            }
+            Task { @MainActor in
+                self?.permissionTrackingTask = task
             }
         }
     }

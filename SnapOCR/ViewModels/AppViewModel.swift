@@ -18,6 +18,8 @@ final class AppViewModel {
     private let settingsService: SettingsService
     private let historyService: HistoryService?
 
+    private var hotkeyTrackingTask: Task<Void, Never>?
+
     private(set) var isCapturing = false
     private(set) var lastError: String?
 
@@ -52,7 +54,7 @@ final class AppViewModel {
             _ = settingsService.hotkeyKeyCode
             _ = settingsService.hotkeyModifiers
         } onChange: { [weak self] in
-            Task { @MainActor in
+            let task = Task { @MainActor in
                 guard let self else { return }
                 self.hotkeyService.updateHotkey(
                     keyCode: self.settingsService.hotkeyKeyCode,
@@ -60,10 +62,15 @@ final class AppViewModel {
                 )
                 self.trackHotkeySettingsChanges()
             }
+            Task { @MainActor in
+                self?.hotkeyTrackingTask = task
+            }
         }
     }
 
     func teardown() {
+        hotkeyTrackingTask?.cancel()
+        hotkeyTrackingTask = nil
         hotkeyService.unregister()
     }
 
