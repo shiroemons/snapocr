@@ -5,9 +5,12 @@ import Testing
 @Suite("SettingsService Tests")
 @MainActor
 struct SettingsServiceTests {
-    private func makeService() -> SettingsService {
+    private func makeService(
+        preseeding: (UserDefaults) -> Void = { _ in }
+    ) -> SettingsService {
         let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
         let testDefaults = UserDefaults(suiteName: suiteName)!
+        preseeding(testDefaults)
         return SettingsService(userDefaults: testDefaults)
     }
 
@@ -157,5 +160,22 @@ struct SettingsServiceTests {
         service.maxHistoryCount = 200
         #expect(service.isHistoryEnabled == false)
         #expect(service.maxHistoryCount == 200)
+    }
+
+    // MARK: - maxHistoryCount Clamping
+
+    @Test(arguments: [(0, 1), (-5, 1), (99999, 10000), (50, 50)])
+    func maxHistoryCountClamping(input: Int, expected: Int) {
+        let service = makeService()
+        service.maxHistoryCount = input
+        #expect(service.maxHistoryCount == expected)
+    }
+
+    // MARK: - hotkeyKeyCode Initialization Validation
+
+    @Test(arguments: [0x10000, -1])
+    func hotkeyKeyCodeFallsBackToDefaultWhenInvalid(storedValue: Int) {
+        let service = makeService { $0.set(storedValue, forKey: "hotkeyKeyCode") }
+        #expect(service.hotkeyKeyCode == SettingsService.defaultHotkeyKeyCode)
     }
 }

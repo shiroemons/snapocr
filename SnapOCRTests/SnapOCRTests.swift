@@ -42,6 +42,18 @@ struct SnapOCRTests {
         #expect(hotkeyService.onHotkeyPressed != nil)
     }
 
+    @Test func teardownFollowedBySetupDoesNotCrash() {
+        let hotkeyService = HotkeyService()
+        let viewModel = AppViewModel(
+            hotkeyService: hotkeyService,
+            settingsService: makeSettingsService()
+        )
+        viewModel.setup()
+        viewModel.teardown()
+        viewModel.setup()
+        viewModel.teardown()
+    }
+
     @Test func startCaptureSetsCapturePermissionError() async throws {
         let permissionService = PermissionService()
         permissionService.checkPermission()

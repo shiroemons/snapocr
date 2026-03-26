@@ -44,4 +44,12 @@ struct HotkeyServiceTests {
         service.register()
         service.unregister()
     }
+
+    @Test func registerUnregisterRegisterCycleDoesNotCrash() {
+        let service = HotkeyService()
+        service.register()
+        service.unregister()
+        service.register()
+        service.unregister()
+    }
 }
