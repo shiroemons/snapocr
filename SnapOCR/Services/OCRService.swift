@@ -4,6 +4,7 @@ import VisionKit
 
 enum OCRService {
     private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "OCRService")
+    /// Shared analyzer instance reused across requests to avoid repeated initialization cost.
     private static let analyzer = ImageAnalyzer()
 
     static func recognizeText(from image: CGImage) async throws -> String {

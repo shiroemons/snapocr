@@ -57,7 +57,11 @@ enum NotificationService {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error {
+                logger.error("Failed to add notification: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     // MARK: - Sound

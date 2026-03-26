@@ -123,9 +123,9 @@ final class ToastWindow {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.3
             win.animator().alphaValue = 0
-        } completionHandler: {
-            Task { @MainActor [weak self] in
-                win.close()
+        } completionHandler: { [weak self, weak win] in
+            Task { @MainActor in
+                win?.close()
                 self?.window = nil
                 if ToastWindow.current === self {
                     ToastWindow.current = nil

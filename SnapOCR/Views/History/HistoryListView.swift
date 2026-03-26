@@ -199,8 +199,9 @@ struct HistoryListView: View {
                     }
                 }
                 .onDelete { offsets in
-                    for index in offsets {
-                        historyService.delete(records[index])
+                    let recordsToDelete = offsets.map { records[$0] }
+                    for record in recordsToDelete {
+                        historyService.delete(record)
                     }
                 }
             }
