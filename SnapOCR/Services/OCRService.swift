@@ -18,7 +18,7 @@ enum OCRService {
         let analysis = try await analyzer.analyze(nsImage, orientation: .up, configuration: configuration)
         let transcript = analysis.transcript
 
-        logger.info("Recognized text (\(transcript.count, privacy: .public) chars): '\(transcript, privacy: .public)'")
+        logger.info("Recognized text (\(transcript.count, privacy: .public) chars): '\(transcript, privacy: .private)'")
 
         return transcript
     }

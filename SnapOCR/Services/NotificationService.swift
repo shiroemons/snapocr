@@ -6,19 +6,27 @@
 //
 
 import AppKit
+import os
 import UserNotifications
 
 /// OCR完了時の通知を配信するサービス。
 /// 設定に応じて通知センター・完了音・トーストの3種類の通知を発火する。
 enum NotificationService {
     private static let notificationCategoryID = "com.shiroemons.snapocr.ocrComplete"
+    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "NotificationService")
 
     // MARK: - Permission
 
     @MainActor
     static func requestPermission() {
         let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error {
+                logger.error("Notification authorization failed: \(error.localizedDescription, privacy: .public)")
+            } else {
+                logger.info("Notification authorization \(granted ? "granted" : "denied", privacy: .public)")
+            }
+        }
     }
 
     // MARK: - Notify

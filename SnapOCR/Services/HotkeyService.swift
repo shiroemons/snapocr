@@ -1,9 +1,10 @@
 import Carbon.HIToolbox
 import Foundation
 import os
+import Synchronization
 
 // Global callback storage for Carbon API interop
-nonisolated(unsafe) private var globalHotkeyCallback: (() -> Void)?
+private let globalHotkeyCallbackStorage = Mutex<(@Sendable () -> Void)?>(nil)
 
 @MainActor
 final class HotkeyService {
@@ -21,11 +22,11 @@ final class HotkeyService {
         unregister()
 
         // 1. Set up global callback
-        globalHotkeyCallback = { [weak self] in
+        globalHotkeyCallbackStorage.withLock { $0 = { [weak self] in
             Task { @MainActor in
                 self?.onHotkeyPressed?()
             }
-        }
+        }}
 
         // 2. Install event handler
         var eventType = EventTypeSpec(
@@ -35,7 +36,7 @@ final class HotkeyService {
         let handlerStatus = InstallEventHandler(
             GetApplicationEventTarget(),
             { _, _, _ -> OSStatus in
-                globalHotkeyCallback?()
+                globalHotkeyCallbackStorage.withLock { $0?() }
                 return noErr
             },
             1,
@@ -89,6 +90,6 @@ final class HotkeyService {
             }
             eventHandlerRef = nil
         }
-        globalHotkeyCallback = nil
+        globalHotkeyCallbackStorage.withLock { $0 = nil }
     }
 }

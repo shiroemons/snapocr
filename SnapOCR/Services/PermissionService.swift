@@ -32,6 +32,10 @@ final class PermissionService {
         NSWorkspace.shared.open(url)
     }
 
+    /// Begins periodic permission checks every 2 seconds.
+    ///
+    /// Callers must ensure `stopMonitoring()` is called when monitoring is no longer needed
+    /// (e.g., on view disappear or app termination) to avoid timer resource leaks.
     func startMonitoring() {
         guard monitorTimer == nil else { return }
         monitorTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -42,6 +46,7 @@ final class PermissionService {
         Self.logger.info("Permission monitoring started")
     }
 
+    /// Stops periodic permission checks and invalidates the timer.
     func stopMonitoring() {
         monitorTimer?.invalidate()
         monitorTimer = nil

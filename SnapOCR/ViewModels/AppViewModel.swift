@@ -95,7 +95,7 @@ final class AppViewModel {
                 Self.logger.info("Region selection cancelled by user")
                 return // User cancelled
             }
-            Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .public)")
+            Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .private)")
 
             let image = try await CaptureService.captureRegion(
                 selection.rect,

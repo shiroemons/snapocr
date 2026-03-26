@@ -29,11 +29,11 @@ final class SettingsService {
     static let defaultHotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
     private let defaults: UserDefaults
 
-    var hotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O) {
+    var hotkeyKeyCode: UInt32 = SettingsService.defaultHotkeyKeyCode {
         didSet { defaults.set(Int(hotkeyKeyCode), forKey: Keys.hotkeyKeyCode) }
     }
 
-    var hotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey) {
+    var hotkeyModifiers: UInt32 = SettingsService.defaultHotkeyModifiers {
         didSet { defaults.set(Int(hotkeyModifiers), forKey: Keys.hotkeyModifiers) }
     }
 
@@ -74,18 +74,27 @@ final class SettingsService {
     }
 
     var maxHistoryCount: Int = 100 {
-        didSet { defaults.set(maxHistoryCount, forKey: Keys.maxHistoryCount) }
+        didSet {
+            let clamped = max(1, min(10000, maxHistoryCount))
+            if clamped != maxHistoryCount {
+                maxHistoryCount = clamped
+                return
+            }
+            defaults.set(maxHistoryCount, forKey: Keys.maxHistoryCount)
+        }
     }
 
     init(userDefaults: UserDefaults = .standard) {
         self.defaults = userDefaults
 
         // didSet is not triggered during init, so restoring here won't re-persist.
-        if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int {
-            hotkeyKeyCode = UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
+        if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int,
+           (0...0xFFFF).contains(intValue) {
+            hotkeyKeyCode = UInt32(intValue)
         }
-        if let intValue = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int {
-            hotkeyModifiers = UInt32(bitPattern: Int32(truncatingIfNeeded: intValue))
+        if let intValue = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int,
+           (0...0xFFFF).contains(intValue) {
+            hotkeyModifiers = UInt32(intValue)
         }
         if let languages = userDefaults.stringArray(forKey: Keys.ocrLanguages) {
             ocrLanguages = languages
