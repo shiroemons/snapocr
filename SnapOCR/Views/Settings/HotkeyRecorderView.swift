@@ -100,6 +100,7 @@ struct HotkeyRecorderView: View {
     }
 
     private func startRecording() {
+        removeMonitor()
         isRecording = true
         pendingModifiers = 0
 

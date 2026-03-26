@@ -84,9 +84,9 @@ struct SnapOCRTests {
         )
         viewModel.startCapture()
         // Poll until lastError is set or timeout (max 1s)
-        for _ in 0..<100 {
+        for _ in 0..<50 {
             if viewModel.lastError != nil { break }
-            try await Task.sleep(for: .milliseconds(10))
+            try await Task.sleep(for: .milliseconds(20))
         }
         #expect(viewModel.lastError != nil)
     }

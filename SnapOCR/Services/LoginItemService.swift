@@ -16,29 +16,36 @@ final class LoginItemService {
         SMAppService.mainApp.status == .enabled
     }
 
-    func enable() {
+    @discardableResult
+    func enable() -> Bool {
         do {
             try SMAppService.mainApp.register()
             Self.logger.info("Login item registered successfully")
+            return true
         } catch {
             Self.logger.error("Failed to register login item: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
-    func disable() {
+    @discardableResult
+    func disable() -> Bool {
         do {
             try SMAppService.mainApp.unregister()
             Self.logger.info("Login item unregistered successfully")
+            return true
         } catch {
             Self.logger.error("Failed to unregister login item: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
-    func toggle() {
+    @discardableResult
+    func toggle() -> Bool {
         if isEnabled {
-            disable()
+            return disable()
         } else {
-            enable()
+            return enable()
         }
     }
 }

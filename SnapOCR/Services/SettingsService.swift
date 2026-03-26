@@ -76,11 +76,11 @@ final class SettingsService {
     var maxHistoryCount: Int = 100 {
         didSet {
             let clamped = max(1, min(10000, maxHistoryCount))
-            if clamped != maxHistoryCount {
+            if maxHistoryCount != clamped {
                 maxHistoryCount = clamped
-                return
+            } else {
+                defaults.set(maxHistoryCount, forKey: Keys.maxHistoryCount)
             }
-            defaults.set(maxHistoryCount, forKey: Keys.maxHistoryCount)
         }
     }
 

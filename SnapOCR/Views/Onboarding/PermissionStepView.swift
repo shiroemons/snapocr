@@ -24,15 +24,19 @@ struct PermissionStepView: View {
 
             VStack(spacing: 8) {
                 Text(
-                    "Screen Recording Permission",
-                    comment: "Permission step title"
+                    String(
+                        localized: "Screen Recording Permission",
+                        comment: "Permission step title"
+                    )
                 )
                 .font(.title2)
                 .fontWeight(.bold)
 
                 Text(
-                    "SnapOCR needs permission to capture your screen in order to recognize text. Your screen contents are processed entirely on-device and never sent anywhere.",
-                    comment: "Permission step description explaining why screen recording access is required"
+                    String(
+                        localized: "SnapOCR needs permission to capture your screen in order to recognize text. Your screen contents are processed entirely on-device and never sent anywhere.",
+                        comment: "Permission step description explaining why screen recording access is required"
+                    )
                 )
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -83,8 +87,10 @@ struct PermissionStepView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "gear")
                         Text(
-                            "Open System Settings",
-                            comment: "Button to open System Settings for granting screen recording permission"
+                            String(
+                                localized: "Open System Settings",
+                                comment: "Button to open System Settings for granting screen recording permission"
+                            )
                         )
                     }
                 }

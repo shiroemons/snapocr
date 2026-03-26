@@ -38,6 +38,10 @@ final class HistoryService {
         timestamp: Date = .now,
         maxCount: Int? = nil
     ) {
+        guard !text.isEmpty else {
+            Self.logger.warning("Attempted to add record with empty text")
+            return
+        }
         let record = CaptureRecord(
             text: text,
             timestamp: timestamp,

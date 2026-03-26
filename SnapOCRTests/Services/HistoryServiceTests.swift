@@ -106,4 +106,10 @@ struct HistoryServiceTests {
         }
         #expect(service.recentRecords.count == 5)
     }
+
+    @Test @MainActor func addRecordWithEmptyTextIsIgnored() throws {
+        let service = try makeService()
+        service.addRecord(text: "", languages: ["en"])
+        #expect(service.recentRecords.isEmpty)
+    }
 }

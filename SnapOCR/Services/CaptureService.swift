@@ -11,6 +11,14 @@ enum CaptureService {
         screenSize: CGSize,
         scaleFactor: CGFloat
     ) async throws -> CGImage {
+        guard rect.width > 0, rect.height > 0 else {
+            logger.error("Invalid capture rect: \(String(describing: rect), privacy: .public)")
+            throw CaptureError.invalidRegion
+        }
+        guard scaleFactor > 0 else {
+            logger.error("Invalid scale factor: \(scaleFactor, privacy: .public)")
+            throw CaptureError.invalidRegion
+        }
         logger.info("Input rect: \(String(describing: rect), privacy: .public)")
 
         let content = try await SCShareableContent.current
@@ -66,6 +74,7 @@ enum CaptureService {
 enum CaptureError: LocalizedError {
     case noDisplay
     case captureFailure
+    case invalidRegion
 
     var errorDescription: String? {
         switch self {
@@ -73,6 +82,8 @@ enum CaptureError: LocalizedError {
             return String(localized: "No display found")
         case .captureFailure:
             return String(localized: "Screen capture failed")
+        case .invalidRegion:
+            return String(localized: "Invalid capture region")
         }
     }
 }

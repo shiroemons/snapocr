@@ -68,6 +68,10 @@ enum NotificationService {
 
     @MainActor
     static func playSound(named name: String) {
-        NSSound(named: NSSound.Name(name))?.play()
+        guard let sound = NSSound(named: NSSound.Name(name)) else {
+            logger.warning("Sound not found: \(name, privacy: .public)")
+            return
+        }
+        sound.play()
     }
 }

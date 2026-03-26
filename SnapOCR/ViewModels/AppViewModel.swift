@@ -22,6 +22,7 @@ final class AppViewModel {
 
     private(set) var isCapturing = false
     private(set) var lastError: String?
+    private var captureTask: Task<Void, Never>?
 
     init(
         permissionService: PermissionService = PermissionService(),
@@ -68,6 +69,8 @@ final class AppViewModel {
 
     func teardown() {
         isTrackingActive = false
+        captureTask?.cancel()
+        captureTask = nil
         hotkeyService.unregister()
     }
 
@@ -75,7 +78,7 @@ final class AppViewModel {
         guard !isCapturing else { return }
         isCapturing = true
 
-        Task {
+        captureTask = Task {
             await performCapture()
         }
     }

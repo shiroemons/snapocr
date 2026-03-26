@@ -13,7 +13,7 @@ SnapOCR is a macOS menu bar utility app that captures screen text via OCR and co
 
 ## Key Technologies
 
-- **OCR**: Apple Vision `VNRecognizeTextRequest` (on-device, supports vertical Japanese text)
+- **OCR**: VisionKit `ImageAnalyzer` (on-device, supports vertical Japanese text)
 - **Screen Capture**: ScreenCaptureKit (`SCContentFilter` + `SCScreenshotManager`)
 - **Global Hotkey**: Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`)
 - **Data**: SwiftData for OCR history
@@ -33,7 +33,7 @@ SnapOCR/
 │   ├── Onboarding/         # First-launch wizard
 │   └── History/            # OCR history window
 ├── Services/               # Business logic services
-│   ├── OCRService.swift    # VNRecognizeTextRequest wrapper
+│   ├── OCRService.swift    # VisionKit ImageAnalyzer wrapper
 │   ├── CaptureService.swift # ScreenCaptureKit wrapper
 │   ├── HotkeyService.swift # Carbon API hotkey management
 │   ├── ClipboardService.swift
@@ -69,7 +69,7 @@ swift package plugin lint
 1. **Menu bar uses NSMenu, NOT NSPopover** — NSPopover has display delays and unnatural dismiss behavior. Use NSMenu + NSMenuItem with NSHostingView for SwiftUI content.
 2. **Carbon API for hotkeys** — No accessibility permission needed. Sign/unsign with `RegisterEventHotKey`/`UnregisterEventHotKey`. Needs C bridge code from Swift.
 3. **Screen Recording permission** — Check with `CGPreflightScreenCaptureAccess()`. Cannot programmatically grant — guide user to System Settings.
-4. **OCR text ordering** — `VNRecognizedTextObservation` returns unordered results. Must sort by bounding box: horizontal (top→bottom, left→right), vertical (right→left, top→bottom).
+4. **OCR text ordering** — `ImageAnalyzer` returns a structured `transcript` with automatic text ordering. For advanced reordering needs, access individual text observations via the analysis result.
 5. **No image persistence** — Captured images must stay in memory only. Release after OCR completes.
 
 ## Workflow

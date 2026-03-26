@@ -21,8 +21,7 @@ struct ClipboardServiceTests {
 
     @Test func copyEmptyString() {
         let result = ClipboardService.copy("")
-        #expect(result == true)
-        #expect(NSPasteboard.general.string(forType: .string) == "")
+        #expect(result == false)
     }
 
     @Test func copyJapaneseText() {

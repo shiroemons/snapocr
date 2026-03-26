@@ -8,6 +8,7 @@
 import SwiftData
 import SwiftUI
 
+@MainActor
 struct HistoryRowView: View {
     let record: CaptureRecord
     let isCopied: Bool
@@ -92,5 +93,7 @@ struct HistoryRowView: View {
                 .onHover { isHoveringDelete = $0 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(record.text)
     }
 }
