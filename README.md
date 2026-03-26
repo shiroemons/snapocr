@@ -8,7 +8,7 @@
   <a href="https://github.com/shiroemons/snapocr/releases/latest"><img src="https://img.shields.io/github/v/release/shiroemons/snapocr?style=flat-square" alt="Latest Release"></a>
   <a href="https://github.com/shiroemons/snapocr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/shiroemons/snapocr?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/platform-macOS%2026%2B-blue?style=flat-square" alt="macOS 26+">
-  <img src="https://img.shields.io/badge/swift-6.2-orange?style=flat-square" alt="Swift 6.2">
+  <img src="https://img.shields.io/badge/swift-6.3-orange?style=flat-square" alt="Swift 6.3">
 </p>
 
 SnapOCR is a lightweight macOS menu bar app that captures any text on your screen and copies it to your clipboard. Press a global hotkey, select a region, and the recognized text is instantly ready to paste.
@@ -57,7 +57,7 @@ The hotkey can be customized in Settings.
 
 | Component | Technology |
 |-----------|-----------|
-| Language | Swift 6.2 |
+| Language | Swift 6.3 |
 | Architecture | MVVM + Service layer |
 | UI | SwiftUI (macOS 26 SDK) + NSMenu/NSHostingView hybrid |
 | OCR | Apple Vision (VNRecognizeTextRequest) |

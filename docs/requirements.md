@@ -50,7 +50,7 @@
 
 | レイヤー | 技術 | 選定理由 |
 |----------|------|----------|
-| 言語 | Swift 6.2 | macOS ネイティブ、最新の concurrency 改善（`@concurrent` 属性等）、Inline Array / Span 対応 |
+| 言語 | Swift 6.3 | macOS ネイティブ、最新の concurrency 改善（`@concurrent` 属性等）、Inline Array / Span 対応 |
 | アーキテクチャ | MVVM + Service 層 | SwiftUI + `@Observable` との親和性が高い。メニューバーユーティリティの規模に適切（TCA はオーバーキル） |
 | UI フレームワーク | SwiftUI (macOS 26 SDK) | Liquid Glass デザイン対応、最新 API を活用可能 |
 | メニューバー | NSMenu + NSHostingView (SwiftUI ハイブリッド) | NSPopover より高速でネイティブな挙動。リッチ UI を NSMenu 内に描画 |
@@ -701,7 +701,7 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
 | 2026-03-23 | 0.1 | 初版作成 |
-| 2026-03-23 | 0.2 | 最新バージョンに更新: Swift 6.2 / Xcode 26.3+ / macOS 26 (Tahoe) / Apple Silicon 専用 / SwiftData / Liquid Glass デザイン対応 |
+| 2026-03-23 | 0.2 | 最新バージョンに更新: Swift 6.3 / Xcode 26.3+ / macOS 26 (Tahoe) / Apple Silicon 専用 / SwiftData / Liquid Glass デザイン対応 |
 | 2026-03-23 | 0.3 | Sparkle 2.9+ による自動アップデート機能を追加。配布形態を直接配布に決定。アップデート設定タブ、メニュー項目、appcast 配信基盤、Phase 5 を追加 |
 | 2026-03-23 | 0.4 | 初回オンボーディング（ステップ形式ウィザード）を追加。権限ステータス管理（メニューバー警告バッジ、ポップオーバー警告バナー、設定画面での権限チェック）を追加 |
 | 2026-03-23 | 0.5 | メニューバーパネルをモダンアプリ参考に全面刷新。NSMenu + NSHostingView 方式を採用。リッチパネルレイアウト（警告バナー・メインアクション・履歴プレビュー・フッターツールバー）、アイコン状態管理、実装方式を詳細化 |

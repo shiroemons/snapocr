@@ -8,7 +8,7 @@ SnapOCR is a macOS menu bar utility app that captures screen text via OCR and co
 
 - **Pattern**: MVVM + Service layer
 - **UI**: SwiftUI (macOS 26 SDK) with NSMenu + NSHostingView hybrid for menu bar panel
-- **Language**: Swift 6.2 with strict concurrency (`@Observable`, `@concurrent`)
+- **Language**: Swift 6.3 with strict concurrency (`@Observable`, `@concurrent`)
 - **Minimum OS**: macOS 26 (Tahoe), Apple Silicon only
 
 ## Key Technologies
