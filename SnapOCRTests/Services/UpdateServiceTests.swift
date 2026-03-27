@@ -16,7 +16,7 @@ struct UpdateServiceTests {
     @Test func appcastURLIsConfigured() {
         let appBundle = Bundle(for: AppDelegate.self)
         let url = appBundle.object(forInfoDictionaryKey: "SUFeedURL") as? String
-        #expect(url == "https://shiroemons.github.io/appcast/snapocr/appcast.xml")
+        #expect(url == "https://xn--xckxf.jp/appcast/snapocr/appcast.xml")
     }
 
     @Test func updaterCanBeCreated() {

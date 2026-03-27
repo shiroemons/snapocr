@@ -174,7 +174,7 @@
 
 #### 3.5.3 appcast 配信
 
-- appcast.xml を GitHub Pages でホスト（`shiroemons/appcast` リポジトリ → GitHub Pages）
+- appcast.xml を GitHub Pages でホスト（`shiroemons/appcast` リポジトリ → GitHub Pages、カスタムドメイン `xn--xckxf.jp` で配信）
 - `generate_appcast` ツールで自動生成（署名・デルタパッチ含む）→ CI/CD で自動化（→ 3.9 参照）
 - ベータチャンネルの提供を将来的に検討
 
@@ -287,7 +287,7 @@ end
 ```
 shiroemons/snapocr          ← メインアプリリポジトリ
 shiroemons/homebrew-tap     ← Homebrew tap リポジトリ（複数アプリ共用）
-shiroemons/appcast          ← appcast.xml ホスティング（GitHub Pages、複数アプリ共用。DMG は各アプリの GitHub Releases に配置）
+shiroemons/appcast          ← appcast.xml ホスティング（GitHub Pages + カスタムドメイン xn--xckxf.jp、複数アプリ共用。DMG は各アプリの GitHub Releases に配置）
 ```
 
 `homebrew-tap` と `appcast` は SnapOCR 専用ではなく、今後の別アプリでも共用する汎用リポジトリとして運用する。
