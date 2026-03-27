@@ -136,6 +136,12 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DMG_PATH="$RUNNER_TEMP/$APP_NAME-$VERSION.dmg"
 
+          # Create staging directory with app and Applications symlink
+          STAGING_DIR="$RUNNER_TEMP/dmg-staging"
+          mkdir -p "$STAGING_DIR"
+          cp -R "$APP_PATH" "$STAGING_DIR/"
+          ln -s /Applications "$STAGING_DIR/Applications"
+
           # create-dmg exits with code 2 for non-fatal icon-positioning issues
           create-dmg \
             --volname "$APP_NAME" \
@@ -143,9 +149,9 @@ jobs:
             --window-size 600 400 \
             --icon-size 100 \
             --icon "$APP_NAME.app" 175 190 \
-            --app-drop-link 425 190 \
+            --icon "Applications" 425 190 \
             "$DMG_PATH" \
-            "$APP_PATH" || test $? -eq 2
+            "$STAGING_DIR" || test $? -eq 2
 
           # Notarize the DMG
           xcrun notarytool submit "$DMG_PATH" \
