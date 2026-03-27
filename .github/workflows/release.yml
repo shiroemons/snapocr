@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
 
 permissions:
   contents: write
@@ -23,15 +23,26 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XCODE_PATH" ]; then
+            sudo xcode-select -s "$XCODE_PATH"
+          fi
+          xcodebuild -version
 
       - name: Install dependencies
         run: brew install create-dmg
 
       - name: Setup Sparkle
-        uses: jozefizso/setup-sparkle@v2
-        with:
-          version: 2.9.0
+        run: |
+          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.9.0/Sparkle-2.9.0.tar.xz \
+            -o "$RUNNER_TEMP/Sparkle.tar.xz"
+          mkdir -p "$RUNNER_TEMP/sparkle-tools"
+          tar xf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle-tools"
+          echo "$RUNNER_TEMP/sparkle-tools/bin" >> $GITHUB_PATH
 
       - name: Extract version
         id: version
@@ -196,12 +207,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${GITHUB_REF_NAME}" "$DMG_PATH" --clobber
-
-          # Upload delta files if any were generated
+          # Re-create release with assets
+          gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag 2>/dev/null || true
+          ASSETS=("$DMG_PATH")
           for delta in "$RELEASES_DIR"/*.delta; do
-            [ -f "$delta" ] && gh release upload "${GITHUB_REF_NAME}" "$delta" --clobber
+            [ -f "$delta" ] && ASSETS+=("$delta")
           done
+          gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" --generate-notes
 
       - name: Deploy appcast
         env:
@@ -268,20 +280,11 @@ cask "snapocr" do
 end
 CASK_EOF
 
-          # Create branch, commit, push, and open a PR
-          BRANCH="update-snapocr-v$VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
           git add Casks/snapocr.rb
           git commit -m "chore: update SnapOCR to v$VERSION"
-          git push origin "$BRANCH"
-
-          GH_TOKEN="$HOMEBREW_TAP_TOKEN" gh pr create \
-            --repo shiroemons/homebrew-tap \
-            --title "Update SnapOCR to v$VERSION" \
-            --body "Automated update of SnapOCR Cask to version $VERSION" \
-            --head "$BRANCH"
+          git push
 
       - name: Cleanup
         if: always()
