@@ -47,9 +47,11 @@ final class SelectionOverlayWindow: NSWindow {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self, !self.isDismissed else { return }
-            self.activateAndFocus()
-            self.overlayView.refreshCursor()
+            MainActor.assumeIsolated {
+                guard let self, !self.isDismissed else { return }
+                self.activateAndFocus()
+                self.overlayView.refreshCursor()
+            }
         }
     }
 
@@ -69,7 +71,9 @@ final class SelectionOverlayWindow: NSWindow {
     }
 
     deinit {
-        cleanup()
+        if let observer = spaceChangeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
     }
 
     override var canBecomeKey: Bool { true }
@@ -115,7 +119,7 @@ extension SelectionOverlayWindow {
             var resumed = false
             var observer: NSObjectProtocol?
 
-            let resume: (SelectionResult?) -> Void = { result in
+            nonisolated(unsafe) let resume: (SelectionResult?) -> Void = { result in
                 guard !resumed else { return }
                 resumed = true
                 if let obs = observer { NotificationCenter.default.removeObserver(obs) }
@@ -135,7 +139,9 @@ extension SelectionOverlayWindow {
                 object: window,
                 queue: .main
             ) { _ in
-                resume(nil)
+                MainActor.assumeIsolated {
+                    resume(nil)
+                }
             }
 
             window.overlayView.onSelectionCompleted = { rect in

@@ -25,9 +25,22 @@
 		8E491C282F72C454000F546A /* SnapOCRTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnapOCRTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8E491C601B2F72C453000F546A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8E491C182F72C453000F546A /* SnapOCR */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8E491C1B2F72C453000F546A /* SnapOCR */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8E491C601B2F72C453000F546A /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = SnapOCR;
 			sourceTree = "<group>";
 		};
