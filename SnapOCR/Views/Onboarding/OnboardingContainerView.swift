@@ -202,6 +202,6 @@ struct OnboardingContainerView: View {
     ) {
         print("Onboarding complete")
     }
-    .frame(width: 500, height: 400)
+    .frame(width: 500, height: 500)
 }
 #endif

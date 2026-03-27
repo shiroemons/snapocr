@@ -10,7 +10,7 @@ import SwiftUI
 
 private enum Constants {
     static let windowWidth: CGFloat = 500
-    static let windowHeight: CGFloat = 400
+    static let windowHeight: CGFloat = 500
 }
 
 /// オンボーディングウィンドウの管理クラス。
