@@ -4,7 +4,7 @@ import Carbon.HIToolbox
 enum KeyCodeMapping {
     // MARK: - Key Code to Display String
 
-    private nonisolated(unsafe) static let keyCodeMap: [UInt32: String] = [
+    private nonisolated static let keyCodeMap: [UInt32: String] = [
         // A-Z (ANSI layout)
         UInt32(kVK_ANSI_A): "A",
         UInt32(kVK_ANSI_B): "B",
