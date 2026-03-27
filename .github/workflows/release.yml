@@ -118,9 +118,7 @@ jobs:
           echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
 
       - name: Verify signature
-        run: |
-          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          spctl --assess --type execute --verbose=2 "$APP_PATH"
+        run: codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 
       - name: Notarize
         env:
@@ -137,6 +135,7 @@ jobs:
             --wait
 
           xcrun stapler staple "$APP_PATH"
+          spctl --assess --type execute --verbose=2 "$APP_PATH"
 
       - name: Create DMG
         env:
