@@ -36,7 +36,9 @@ jobs:
           delete-used-deriveddata-cache: true
 
       - name: Lint (SwiftLint)
-        run: swiftlint --strict
+        run: |
+          brew install swiftlint
+          swiftlint --strict
 
       - name: Build (Debug)
         run: |
