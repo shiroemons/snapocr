@@ -55,6 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationService.requestPermission()
+        permissionService.requestPermission()
         setupMenuBar()
         viewModel.setup()
         updateStatusItemIcon()

@@ -24,6 +24,7 @@ final class PermissionService {
     }
 
     func openSystemSettings() {
+        requestPermission()
         let settingsURLString =
             "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
         guard let url = URL(string: settingsURLString) else {
