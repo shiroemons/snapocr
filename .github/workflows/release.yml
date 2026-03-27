@@ -92,20 +92,18 @@ jobs:
         run: |
           APP_PATH="$RUNNER_TEMP/DerivedData/Build/Products/Release/$APP_NAME.app"
           IDENTITY="Developer ID Application"
-          SPARKLE_FW="$APP_PATH/Contents/Frameworks/Sparkle.framework"
 
-          # Sign all nested bundles inside Sparkle (XPC services, Updater.app, Autoupdate)
-          find "$SPARKLE_FW" \( -name "*.xpc" -o -name "*.app" -o -name "Autoupdate" \) -type d | while read bundle; do
-            codesign --force --options runtime --timestamp --sign "$IDENTITY" --keychain "$KEYCHAIN_PATH" "$bundle"
-          done
+          # Remove extended attributes that may interfere with signing
+          xattr -cr "$APP_PATH"
 
-          # Sign Sparkle framework itself
-          codesign --force --options runtime --timestamp --sign "$IDENTITY" --keychain "$KEYCHAIN_PATH" "$SPARKLE_FW"
-
-          # Sign app bundle with project entitlements (not extracted from build, to avoid get-task-allow)
-          codesign --force --options runtime --timestamp \
+          # Deep sign the entire app bundle (signs all nested components recursively)
+          codesign --deep --force --verify --verbose \
+            --sign "$IDENTITY" \
+            --options runtime \
+            --timestamp \
             --entitlements "$SCHEME/$SCHEME.entitlements" \
-            --sign "$IDENTITY" --keychain "$KEYCHAIN_PATH" "$APP_PATH"
+            --keychain "$KEYCHAIN_PATH" \
+            "$APP_PATH"
 
           echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
 
