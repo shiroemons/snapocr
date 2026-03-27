@@ -1,11 +1,10 @@
 import Foundation
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("SnapOCR App Tests")
 @MainActor
 struct SnapOCRTests {
-
     private func makeSettingsService() -> SettingsService {
         let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
         guard let testDefaults = UserDefaults(suiteName: suiteName) else {

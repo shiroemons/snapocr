@@ -21,6 +21,11 @@ struct OCRSettingsView: View {
         ]
     }
 
+    private func languageToggleHint(for displayName: String) -> String {
+        // swiftlint:disable:next line_length
+        String(localized: "Enable or disable \(displayName) text recognition. At least one language must remain enabled.", bundle: bundle, comment: "Accessibility hint for OCR language toggle describing its effect")
+    }
+
     var body: some View {
         Form {
             Section {
@@ -45,18 +50,20 @@ struct OCRSettingsView: View {
                             }
                         )
                     )
-                    .accessibilityHint(
-                        String(
-                            localized: "Enable or disable \(language.displayName) text recognition. At least one language must remain enabled.",
-                            bundle: bundle,
-                            comment: "Accessibility hint for OCR language toggle describing its effect"
-                        )
-                    )
+                    .accessibilityHint(languageToggleHint(for: language.displayName))
                 }
             } header: {
-                Text(String(localized: "Recognition Languages", bundle: bundle, comment: "OCR language selection section header"))
+                Text(String(
+                    localized: "Recognition Languages",
+                    bundle: bundle,
+                    comment: "OCR language selection section header"
+                ))
             } footer: {
-                Text(String(localized: "At least one language must be selected.", bundle: bundle, comment: "OCR language selection footer note"))
+                Text(String(
+                    localized: "At least one language must be selected.",
+                    bundle: bundle,
+                    comment: "OCR language selection footer note"
+                ))
                     .foregroundStyle(.secondary)
             }
         }

@@ -105,7 +105,9 @@ struct OnboardingContainerView: View {
             HStack {
                 backButton
                 Spacer()
-                Button(String(localized: "Skip", bundle: bundle, comment: "Button to skip the current onboarding step")) {
+                Button(
+                    String(localized: "Skip", bundle: bundle, comment: "Button to skip the current onboarding step")
+                ) {
                     advance()
                 }
                 .buttonStyle(.plain)
@@ -129,7 +131,13 @@ struct OnboardingContainerView: View {
         case 4:
             HStack {
                 Spacer()
-                Button(String(localized: "Get Started", bundle: bundle, comment: "Button to finish onboarding and start using the app")) {
+                Button(
+                    String(
+                        localized: "Get Started",
+                        bundle: bundle,
+                        comment: "Button to finish onboarding and start using the app"
+                    )
+                ) {
                     onComplete?()
                 }
                 .buttonStyle(.borderedProminent)
@@ -163,7 +171,9 @@ struct OnboardingContainerView: View {
     }
 
     private var backButton: some View {
-        Button(String(localized: "Back", bundle: bundle, comment: "Button to go back to the previous onboarding step")) {
+        Button(
+            String(localized: "Back", bundle: bundle, comment: "Button to go back to the previous onboarding step")
+        ) {
             retreat()
         }
         .buttonStyle(.bordered)

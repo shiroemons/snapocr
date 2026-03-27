@@ -5,8 +5,8 @@
 //  Created by 森田悟史 on 2026/03/25.
 //
 
-import SwiftUI
 @preconcurrency import Sparkle
+import SwiftUI
 
 @MainActor
 struct SettingsView: View {
@@ -51,7 +51,11 @@ struct SettingsView: View {
                     )
                 }
 
-            HistorySettingsView(settingsService: settingsService, historyService: historyService, onShowHistory: onShowHistory)
+            HistorySettingsView(
+                settingsService: settingsService,
+                historyService: historyService,
+                onShowHistory: onShowHistory
+            )
                 .tabItem {
                     Label(
                         String(localized: "History", bundle: bundle, comment: "History settings tab title"),

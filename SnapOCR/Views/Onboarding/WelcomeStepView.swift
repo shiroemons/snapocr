@@ -30,6 +30,7 @@ struct WelcomeStepView: View {
 
                 Text(
                     String(
+                        // swiftlint:disable:next line_length
                         localized: "Capture text from anywhere on your screen.\nPress the hotkey, drag to select a region, and the recognized text is instantly copied to your clipboard.",
                         bundle: bundle,
                         comment: "Welcome step description explaining the core workflow"

@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import os
 import Observation
+import os
 
 @Observable
 @MainActor
@@ -93,21 +93,14 @@ final class AppViewModel {
             isCapturing = false
         }
 
-        permissionService.checkPermission()
-        guard permissionService.isScreenCapturePermitted else {
-            Self.logger.warning("Screen capture permission not granted")
-            lastError = String(localized: "Screen recording permission is required.", bundle: bundle, comment: "Error message when screen recording permission is not granted")
-            permissionService.openSystemSettings()
-            return
-        }
-
+        guard checkScreenCapturePermission() else { return }
         lastError = nil
 
         do {
             Self.logger.info("Starting region selection")
             guard let selection = await SelectionOverlayWindow.selectRegion() else {
                 Self.logger.info("Region selection cancelled by user")
-                return // User cancelled
+                return
             }
             Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .private)")
 
@@ -124,26 +117,15 @@ final class AppViewModel {
 
             guard !text.isEmpty else {
                 Self.logger.warning("OCR result is empty")
-                lastError = String(localized: "No text was recognized.", bundle: bundle, comment: "Error message when OCR produces empty result")
+                lastError = String(
+                    localized: "No text was recognized.",
+                    bundle: bundle,
+                    comment: "Error message when OCR produces empty result"
+                )
                 return
             }
 
-            if ClipboardService.copy(text) {
-                Self.logger.info("Text copied to clipboard successfully")
-                NotificationService.notifySuccess(
-                    text: text,
-                    settings: settingsService
-                )
-                if settingsService.isHistoryEnabled {
-                    historyService?.addRecord(
-                        text: text,
-                        languages: settingsService.ocrLanguages,
-                        maxCount: settingsService.maxHistoryCount
-                    )
-                }
-            } else {
-                Self.logger.warning("Failed to copy text to clipboard")
-            }
+            handleRecognizedText(text)
         } catch {
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
             if let captureError = error as? CaptureError {
@@ -151,6 +133,38 @@ final class AppViewModel {
             } else {
                 lastError = error.localizedDescription
             }
+        }
+    }
+
+    /// Returns `true` if screen capture permission is granted; sets `lastError` and opens settings if not.
+    private func checkScreenCapturePermission() -> Bool {
+        permissionService.checkPermission()
+        guard permissionService.isScreenCapturePermitted else {
+            Self.logger.warning("Screen capture permission not granted")
+            lastError = String(
+                localized: "Screen recording permission is required.",
+                bundle: bundle,
+                comment: "Error message when screen recording permission is not granted"
+            )
+            permissionService.openSystemSettings()
+            return false
+        }
+        return true
+    }
+
+    private func handleRecognizedText(_ text: String) {
+        if ClipboardService.copy(text) {
+            Self.logger.info("Text copied to clipboard successfully")
+            NotificationService.notifySuccess(text: text, settings: settingsService)
+            if settingsService.isHistoryEnabled {
+                historyService?.addRecord(
+                    text: text,
+                    languages: settingsService.ocrLanguages,
+                    maxCount: settingsService.maxHistoryCount
+                )
+            }
+        } else {
+            Self.logger.warning("Failed to copy text to clipboard")
         }
     }
 }

@@ -41,7 +41,11 @@ struct MenuBarFooterView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringSettings = $0 }
             .help(String(localized: "Settings", bundle: bundle, comment: "Tooltip for settings button in footer"))
-            .accessibilityLabel(String(localized: "Settings", bundle: bundle, comment: "Accessibility label for settings button"))
+            .accessibilityLabel(String(
+                localized: "Settings",
+                bundle: bundle,
+                comment: "Accessibility label for settings button"
+            ))
 
             Button {
                 onDismissMenu()
@@ -55,7 +59,11 @@ struct MenuBarFooterView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringAbout = $0 }
             .help(String(localized: "About SnapOCR", bundle: bundle, comment: "Tooltip for about button in footer"))
-            .accessibilityLabel(String(localized: "About SnapOCR", bundle: bundle, comment: "Accessibility label for about button"))
+            .accessibilityLabel(String(
+                localized: "About SnapOCR",
+                bundle: bundle,
+                comment: "Accessibility label for about button"
+            ))
 
             Button {
                 onDismissMenu()
@@ -67,8 +75,16 @@ struct MenuBarFooterView: View {
             }
             .buttonStyle(.plain)
             .onHover { isHoveringUpdate = $0 }
-            .help(String(localized: "Check for Updates", bundle: bundle, comment: "Tooltip for check for updates button in footer"))
-            .accessibilityLabel(String(localized: "Check for Updates", bundle: bundle, comment: "Accessibility label for check for updates button"))
+            .help(String(
+                localized: "Check for Updates",
+                bundle: bundle,
+                comment: "Tooltip for check for updates button in footer"
+            ))
+            .accessibilityLabel(String(
+                localized: "Check for Updates",
+                bundle: bundle,
+                comment: "Accessibility label for check for updates button"
+            ))
 
             Spacer()
 
@@ -89,7 +105,11 @@ struct MenuBarFooterView: View {
             .buttonStyle(.plain)
             .onHover { isHoveringQuit = $0 }
             .help(String(localized: "Quit SnapOCR", bundle: bundle, comment: "Tooltip for quit button in footer"))
-            .accessibilityLabel(String(localized: "Quit SnapOCR", bundle: bundle, comment: "Accessibility label for quit button"))
+            .accessibilityLabel(String(
+                localized: "Quit SnapOCR",
+                bundle: bundle,
+                comment: "Accessibility label for quit button"
+            ))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

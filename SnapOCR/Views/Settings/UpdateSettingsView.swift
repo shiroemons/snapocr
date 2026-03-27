@@ -19,7 +19,11 @@ struct UpdateSettingsView: View {
         Form {
             Section {
                 Toggle(
-                    String(localized: "Automatically check for updates", bundle: bundle, comment: "Toggle label for automatic update checks"),
+                    String(
+                        localized: "Automatically check for updates",
+                        bundle: bundle,
+                        comment: "Toggle label for automatic update checks"
+                    ),
                     isOn: Binding(
                         get: { updater.automaticallyChecksForUpdates },
                         set: { updater.automaticallyChecksForUpdates = $0 }
@@ -27,7 +31,11 @@ struct UpdateSettingsView: View {
                 )
 
                 Picker(
-                    String(localized: "Check interval", bundle: bundle, comment: "Picker label for update check interval"),
+                    String(
+                        localized: "Check interval",
+                        bundle: bundle,
+                        comment: "Picker label for update check interval"
+                    ),
                     selection: Binding(
                         get: { updater.updateCheckInterval },
                         set: { updater.updateCheckInterval = $0 }
@@ -46,20 +54,32 @@ struct UpdateSettingsView: View {
                 }
 
                 Toggle(
-                    String(localized: "Automatically download and install updates", bundle: bundle, comment: "Toggle label for automatic update installation"),
+                    String(
+                        localized: "Automatically download and install updates",
+                        bundle: bundle,
+                        comment: "Toggle label for automatic update installation"
+                    ),
                     isOn: Binding(
                         get: { updater.automaticallyDownloadsUpdates },
                         set: { updater.automaticallyDownloadsUpdates = $0 }
                     )
                 )
             } header: {
-                Text(String(localized: "Automatic Updates", bundle: bundle, comment: "Section header for automatic update settings"))
+                Text(String(
+                    localized: "Automatic Updates",
+                    bundle: bundle,
+                    comment: "Section header for automatic update settings"
+                ))
             }
 
             Section {
                 HStack {
                     Spacer()
-                    Button(String(localized: "Check for Updates Now", bundle: bundle, comment: "Button to manually check for updates")) {
+                    Button(String(
+                        localized: "Check for Updates Now",
+                        bundle: bundle,
+                        comment: "Button to manually check for updates"
+                    )) {
                         updater.checkForUpdates()
                     }
                 }

@@ -70,9 +70,11 @@ struct HistoryListView: View {
         }
         .onDisappear { copyResetTask?.cancel() }
     }
+}
 
-    // MARK: - Search
+// MARK: - Search
 
+extension HistoryListView {
     private var searchField: some View {
         HStack(spacing: 0) {
             HStack {
@@ -152,9 +154,11 @@ struct HistoryListView: View {
         }
         .background(.bar)
     }
+}
 
-    // MARK: - Empty State
+// MARK: - Empty State
 
+extension HistoryListView {
     private var emptyState: some View {
         ContentUnavailableView {
             Label(
@@ -186,9 +190,11 @@ struct HistoryListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
 
-    // MARK: - Records List
+// MARK: - Records List
 
+extension HistoryListView {
     private var recordsList: some View {
         VStack(spacing: 0) {
             List {
@@ -248,8 +254,6 @@ struct HistoryListView: View {
             }
         }
     }
-
-    // MARK: - Editing Toolbar
 
     private var editingToolbar: some View {
         HStack {
@@ -335,9 +339,11 @@ struct HistoryListView: View {
         .padding(.vertical, 8)
         .background(.bar)
     }
+}
 
-    // MARK: - Actions
+// MARK: - Actions
 
+extension HistoryListView {
     private func copyRecord(_ record: CaptureRecord) {
         guard ClipboardService.copy(record.text) else { return }
         copiedRecordID = record.persistentModelID

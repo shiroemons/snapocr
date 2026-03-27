@@ -24,7 +24,6 @@ private enum Constants {
 }
 
 final class SelectionOverlayView: NSView {
-
     var onSelectionCompleted: ((CGRect) -> Void)?
     var onSelectionCancelled: (() -> Void)?
 
@@ -83,31 +82,14 @@ final class SelectionOverlayView: NSView {
             return cached
         }
 
-        let formatter = Self.numberFormatter
-        let line1: String
-        let line2: String
-        if currentRect.isEmpty {
-            let screenX = Int(mouseLocation.x)
-            let screenY = Int(bounds.height - mouseLocation.y)
-            line1 = formatter.string(from: NSNumber(value: screenX)) ?? "\(screenX)"
-            line2 = formatter.string(from: NSNumber(value: screenY)) ?? "\(screenY)"
-        } else {
-            let width = Int(currentRect.width)
-            let height = Int(currentRect.height)
-            line1 = formatter.string(from: NSNumber(value: width)) ?? "\(width)"
-            line2 = formatter.string(from: NSNumber(value: height)) ?? "\(height)"
-        }
-
+        let (line1, line2) = cursorLabelLines()
         let font = NSFont.monospacedDigitSystemFont(ofSize: Constants.labelFontSize, weight: .bold)
+        let fillAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.black]
         let outlineAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.white,
             .strokeColor: NSColor.white,
             .strokeWidth: NSNumber(value: -4.0)
-        ]
-        let fillAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.black
         ]
 
         let str1 = NSAttributedString(string: line1, attributes: fillAttributes)
@@ -118,65 +100,21 @@ final class SelectionOverlayView: NSView {
         let crossSize = Constants.cursorSize
         let halfCross = crossSize / 2
         let textOffset: CGFloat = 2
-        let totalTextHeight = textHeight * 2
         let imageWidth = crossSize + textOffset + maxTextWidth + 4
-        let imageHeight = crossSize + textOffset + totalTextHeight
-
+        let imageHeight = crossSize + textOffset + textHeight * 2
         let crossCenterX = halfCross
         let crossCenterY = imageHeight - halfCross
 
         let image = NSImage(size: NSSize(width: imageWidth, height: imageHeight))
         image.lockFocus()
-
-        let inset = Constants.cursorLineInset
-        let r = Constants.cursorCircleRadius
-
-        // グレーの枠
-        NSColor.gray.withAlphaComponent(0.5).setStroke()
-        let outlinePath = NSBezierPath()
-        outlinePath.lineWidth = Constants.cursorOutlineWidth
-        outlinePath.lineCapStyle = .round
-        outlinePath.move(to: NSPoint(x: crossCenterX, y: crossCenterY - halfCross))
-        outlinePath.line(to: NSPoint(x: crossCenterX, y: crossCenterY + halfCross))
-        outlinePath.move(to: NSPoint(x: crossCenterX - halfCross, y: crossCenterY))
-        outlinePath.line(to: NSPoint(x: crossCenterX + halfCross, y: crossCenterY))
-        outlinePath.stroke()
-
-        // 黒い十字線
-        NSColor.black.setStroke()
-        let crossPath = NSBezierPath()
-        crossPath.lineWidth = Constants.cursorLineWidth
-        crossPath.move(to: NSPoint(x: crossCenterX, y: crossCenterY - halfCross + inset))
-        crossPath.line(to: NSPoint(x: crossCenterX, y: crossCenterY + halfCross - inset))
-        crossPath.move(to: NSPoint(x: crossCenterX - halfCross + inset, y: crossCenterY))
-        crossPath.line(to: NSPoint(x: crossCenterX + halfCross - inset, y: crossCenterY))
-        crossPath.stroke()
-
-        // グレーの中央円リング
-        NSColor.gray.withAlphaComponent(0.5).setStroke()
-        let circlePath = NSBezierPath(ovalIn: NSRect(
-            x: crossCenterX - r, y: crossCenterY - r, width: r * 2, height: r * 2
-        ))
-        circlePath.lineWidth = Constants.cursorLineWidth
-        circlePath.stroke()
-
-        // 中心の白いドット
-        NSColor.white.setFill()
-        let dr = Constants.cursorDotRadius
-        NSBezierPath(ovalIn: NSRect(
-            x: crossCenterX - dr, y: crossCenterY - dr, width: dr * 2, height: dr * 2
-        )).fill()
-
-        // テキスト描画
-        let textX = crossCenterX + r + 2
-        let text1Y = crossCenterY - textOffset - textHeight
-        let text2Y = text1Y - textHeight
-
-        NSAttributedString(string: line1, attributes: outlineAttributes).draw(at: NSPoint(x: textX, y: text1Y))
-        NSAttributedString(string: line2, attributes: outlineAttributes).draw(at: NSPoint(x: textX, y: text2Y))
-        str1.draw(at: NSPoint(x: textX, y: text1Y))
-        str2.draw(at: NSPoint(x: textX, y: text2Y))
-
+        drawCrosshairSymbol(centerX: crossCenterX, centerY: crossCenterY, halfSize: halfCross)
+        let labelContext = CursorLabelContext(
+            line1: line1, line2: line2,
+            str1: str1, str2: str2,
+            outlineAttributes: outlineAttributes,
+            textOffset: textOffset, textHeight: textHeight
+        )
+        drawCursorLabels(context: labelContext, centerX: crossCenterX, centerY: crossCenterY)
         image.unlockFocus()
 
         cachedMouseLocation = mouseLocation
@@ -184,6 +122,94 @@ final class SelectionOverlayView: NSView {
         let cursor = NSCursor(image: image, hotSpot: NSPoint(x: crossCenterX, y: imageHeight - crossCenterY))
         cachedCursor = cursor
         return cursor
+    }
+
+    /// Returns (line1, line2) label strings — coordinates when idle, dimensions when dragging.
+    private func cursorLabelLines() -> (String, String) {
+        let formatter = Self.numberFormatter
+        if currentRect.isEmpty {
+            let screenX = Int(mouseLocation.x)
+            let screenY = Int(bounds.height - mouseLocation.y)
+            return (
+                formatter.string(from: NSNumber(value: screenX)) ?? "\(screenX)",
+                formatter.string(from: NSNumber(value: screenY)) ?? "\(screenY)"
+            )
+        } else {
+            let width = Int(currentRect.width)
+            let height = Int(currentRect.height)
+            return (
+                formatter.string(from: NSNumber(value: width)) ?? "\(width)",
+                formatter.string(from: NSNumber(value: height)) ?? "\(height)"
+            )
+        }
+    }
+
+    /// Draws the grey outline, black crosshair lines, circle ring, and centre dot.
+    private func drawCrosshairSymbol(centerX: CGFloat, centerY: CGFloat, halfSize: CGFloat) {
+        let inset = Constants.cursorLineInset
+        let circleRadius = Constants.cursorCircleRadius
+
+        // グレーの枠
+        NSColor.gray.withAlphaComponent(0.5).setStroke()
+        let outlinePath = NSBezierPath()
+        outlinePath.lineWidth = Constants.cursorOutlineWidth
+        outlinePath.lineCapStyle = .round
+        outlinePath.move(to: NSPoint(x: centerX, y: centerY - halfSize))
+        outlinePath.line(to: NSPoint(x: centerX, y: centerY + halfSize))
+        outlinePath.move(to: NSPoint(x: centerX - halfSize, y: centerY))
+        outlinePath.line(to: NSPoint(x: centerX + halfSize, y: centerY))
+        outlinePath.stroke()
+
+        // 黒い十字線
+        NSColor.black.setStroke()
+        let crossPath = NSBezierPath()
+        crossPath.lineWidth = Constants.cursorLineWidth
+        crossPath.move(to: NSPoint(x: centerX, y: centerY - halfSize + inset))
+        crossPath.line(to: NSPoint(x: centerX, y: centerY + halfSize - inset))
+        crossPath.move(to: NSPoint(x: centerX - halfSize + inset, y: centerY))
+        crossPath.line(to: NSPoint(x: centerX + halfSize - inset, y: centerY))
+        crossPath.stroke()
+
+        // グレーの中央円リング
+        NSColor.gray.withAlphaComponent(0.5).setStroke()
+        let circlePath = NSBezierPath(ovalIn: NSRect(
+            x: centerX - circleRadius, y: centerY - circleRadius,
+            width: circleRadius * 2, height: circleRadius * 2
+        ))
+        circlePath.lineWidth = Constants.cursorLineWidth
+        circlePath.stroke()
+
+        // 中心の白いドット
+        NSColor.white.setFill()
+        let dotRadius = Constants.cursorDotRadius
+        NSBezierPath(ovalIn: NSRect(
+            x: centerX - dotRadius, y: centerY - dotRadius,
+            width: dotRadius * 2, height: dotRadius * 2
+        )).fill()
+    }
+
+    private struct CursorLabelContext {
+        let line1: String
+        let line2: String
+        let str1: NSAttributedString
+        let str2: NSAttributedString
+        let outlineAttributes: [NSAttributedString.Key: Any]
+        let textOffset: CGFloat
+        let textHeight: CGFloat
+    }
+
+    /// Draws the two coordinate/size label strings with outline and fill passes.
+    private func drawCursorLabels(context: CursorLabelContext, centerX: CGFloat, centerY: CGFloat) {
+        let textX = centerX + Constants.cursorCircleRadius + 2
+        let text1Y = centerY - context.textOffset - context.textHeight
+        let text2Y = text1Y - context.textHeight
+
+        NSAttributedString(string: context.line1, attributes: context.outlineAttributes)
+            .draw(at: NSPoint(x: textX, y: text1Y))
+        NSAttributedString(string: context.line2, attributes: context.outlineAttributes)
+            .draw(at: NSPoint(x: textX, y: text2Y))
+        context.str1.draw(at: NSPoint(x: textX, y: text1Y))
+        context.str2.draw(at: NSPoint(x: textX, y: text2Y))
     }
 
     // MARK: - Mouse Events
@@ -210,7 +236,9 @@ final class SelectionOverlayView: NSView {
         startPoint = nil
         currentRect = .zero
 
-        if selectionRect.width > Constants.minimumSelectionSize && selectionRect.height > Constants.minimumSelectionSize {
+        let isValidSelection = selectionRect.width > Constants.minimumSelectionSize
+            && selectionRect.height > Constants.minimumSelectionSize
+        if isValidSelection {
             onSelectionCompleted?(selectionRect)
         } else {
             onSelectionCancelled?()

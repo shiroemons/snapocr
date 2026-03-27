@@ -5,8 +5,8 @@
 //  Created by 森田悟史 on 2026/03/27.
 //
 
-@preconcurrency import Sparkle
 import os
+@preconcurrency import Sparkle
 
 @MainActor
 final class UpdateService {

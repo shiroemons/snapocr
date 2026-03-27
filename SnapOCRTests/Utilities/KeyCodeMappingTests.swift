@@ -1,11 +1,10 @@
 import AppKit
 import Carbon.HIToolbox
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("KeyCodeMapping Tests")
 struct KeyCodeMappingTests {
-
     // MARK: - string(for:) — letters
 
     @Test func letterA() {
@@ -118,7 +117,7 @@ struct KeyCodeMappingTests {
     }
 
     @Test func modifierNone() {
-        #expect(KeyCodeMapping.modifierString(for: 0) == "")
+        #expect(KeyCodeMapping.modifierString(for: 0).isEmpty)
     }
 
     // MARK: - displayString(keyCode:modifiers:)

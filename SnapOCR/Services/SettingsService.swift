@@ -26,7 +26,6 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
             String(localized: "Dark", bundle: bundle, comment: "Dark appearance mode")
         }
     }
-
 }
 
 enum AppLanguage: String, CaseIterable, Identifiable {
@@ -65,7 +64,7 @@ final class SettingsService {
         static let appLanguage = "appLanguage"
     }
 
-    static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
+    static let defaultHotkeyKeyCode = UInt32(kVK_ANSI_O)
     static let defaultHotkeyModifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
     private let defaults: UserDefaults
 
@@ -162,8 +161,14 @@ final class SettingsService {
 
     init(userDefaults: UserDefaults = .standard) {
         self.defaults = userDefaults
-
         // didSet is not triggered during init, so restoring here won't re-persist.
+        restoreAppearanceSettings(from: userDefaults)
+        localizationBundle = resolveLocalizationBundle()
+        restoreHotkeySettings(from: userDefaults)
+        restoreFeatureSettings(from: userDefaults)
+    }
+
+    private func restoreAppearanceSettings(from userDefaults: UserDefaults) {
         if let rawValue = userDefaults.string(forKey: Keys.appearanceMode),
            let mode = AppearanceMode(rawValue: rawValue) {
             appearanceMode = mode
@@ -172,7 +177,9 @@ final class SettingsService {
            let language = AppLanguage(rawValue: rawValue) {
             appLanguage = language
         }
-        localizationBundle = resolveLocalizationBundle()
+    }
+
+    private func restoreHotkeySettings(from userDefaults: UserDefaults) {
         if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int,
            (0...0xFFFF).contains(intValue) {
             hotkeyKeyCode = UInt32(intValue)
@@ -184,6 +191,9 @@ final class SettingsService {
         if let languages = userDefaults.stringArray(forKey: Keys.ocrLanguages) {
             ocrLanguages = languages
         }
+    }
+
+    private func restoreFeatureSettings(from userDefaults: UserDefaults) {
         if let value = userDefaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool {
             hasCompletedOnboarding = value
         }

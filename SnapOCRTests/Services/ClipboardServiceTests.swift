@@ -1,11 +1,10 @@
 import AppKit
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("ClipboardService Tests")
 @MainActor
 struct ClipboardServiceTests {
-
     @Test func copySingleLineText() {
         let result = ClipboardService.copy("Hello World")
         #expect(result == true)

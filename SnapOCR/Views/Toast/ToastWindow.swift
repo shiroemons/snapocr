@@ -30,7 +30,11 @@ private struct ToastContentView: View {
                     .foregroundStyle(.green)
                     .font(.system(size: 16, weight: .medium))
 
-                Text(String(localized: "Copied to Clipboard", bundle: bundle, comment: "Toast notification title when OCR text is copied to clipboard"))
+                Text(String(
+                    localized: "Copied to Clipboard",
+                    bundle: bundle,
+                    comment: "Toast notification title when OCR text is copied to clipboard"
+                ))
                     .font(.system(size: 13, weight: .medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -130,8 +134,8 @@ final class ToastWindow {
             Task { @MainActor in
                 win?.close()
                 self?.window = nil
-                if ToastWindow.current === self {
-                    ToastWindow.current = nil
+                if Self.current === self {
+                    Self.current = nil
                 }
             }
         }

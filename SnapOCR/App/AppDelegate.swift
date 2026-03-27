@@ -7,9 +7,9 @@
 
 import AppKit
 import os
+@preconcurrency import Sparkle
 import SwiftData
 import SwiftUI
-@preconcurrency import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
     private(set) lazy var updateService = UpdateService()
-    private(set) lazy var historyService: HistoryService = HistoryService(
+    private(set) lazy var historyService = HistoryService(
         modelContainer: Self.makeModelContainer(logger: Self.logger)
     )
 
@@ -27,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             return try ModelContainer(for: CaptureRecord.self)
         } catch {
-            logger.error("ModelContainer failed, falling back to in-memory store: \(error.localizedDescription, privacy: .public)")
+            let description = error.localizedDescription
+            logger.error("ModelContainer failed, falling back to in-memory store: \(description, privacy: .public)")
         }
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -40,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preconditionFailure("In-memory ModelContainer creation failed: \(error.localizedDescription)")
         }
     }
-    private lazy var viewModel: AppViewModel = AppViewModel(
+    private lazy var viewModel = AppViewModel(
         permissionService: permissionService,
         settingsService: settingsService,
         historyService: historyService
@@ -161,7 +162,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permissionService.isScreenCapturePermitted {
             button.image = NSImage(
                 systemSymbolName: "text.viewfinder",
-                accessibilityDescription: String(localized: "SnapOCR", bundle: settingsService.localizationBundle, comment: "Accessibility description for menu bar icon")
+                accessibilityDescription: String(
+                    localized: "SnapOCR",
+                    bundle: settingsService.localizationBundle,
+                    comment: "Accessibility description for menu bar icon"
+                )
             )
         } else {
             button.image = warningBadgedIcon
@@ -171,7 +176,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeWarningBadgedIcon() -> NSImage? {
         guard let base = NSImage(
             systemSymbolName: "text.viewfinder",
-            accessibilityDescription: String(localized: "SnapOCR", bundle: settingsService.localizationBundle, comment: "Accessibility description for menu bar icon")
+            accessibilityDescription: String(
+                localized: "SnapOCR",
+                bundle: settingsService.localizationBundle,
+                comment: "Accessibility description for menu bar icon"
+            )
         ) else { return nil }
 
         let size = base.size

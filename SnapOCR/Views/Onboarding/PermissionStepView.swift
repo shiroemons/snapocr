@@ -38,6 +38,7 @@ struct PermissionStepView: View {
 
                 Text(
                     String(
+                        // swiftlint:disable:next line_length
                         localized: "SnapOCR needs permission to capture your screen in order to recognize text. Your screen contents are processed entirely on-device and never sent anywhere.",
                         bundle: bundle,
                         comment: "Permission step description explaining why screen recording access is required"
@@ -59,8 +60,16 @@ struct PermissionStepView: View {
 
                 Text(
                     permissionService.isScreenCapturePermitted
-                        ? String(localized: "Permission granted", bundle: bundle, comment: "Screen recording permission is granted")
-                        : String(localized: "Permission not yet granted", bundle: bundle, comment: "Screen recording permission has not been granted yet")
+                        ? String(
+                            localized: "Permission granted",
+                            bundle: bundle,
+                            comment: "Screen recording permission is granted"
+                        )
+                        : String(
+                            localized: "Permission not yet granted",
+                            bundle: bundle,
+                            comment: "Screen recording permission has not been granted yet"
+                        )
                 )
                 .font(.subheadline)
                 .fontWeight(.medium)
@@ -134,7 +143,11 @@ struct PermissionStepView: View {
     @Previewable @State var canProceed = false
     let permissionService = PermissionService()
 
-    PermissionStepView(permissionService: permissionService, settingsService: SettingsService(), canProceed: $canProceed)
+    PermissionStepView(
+        permissionService: permissionService,
+        settingsService: SettingsService(),
+        canProceed: $canProceed
+    )
         .frame(width: 500, height: 380)
         .padding()
 }

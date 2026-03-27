@@ -1,6 +1,6 @@
 import AppKit
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("CaptureService Tests")
 struct CaptureServiceTests {

@@ -1,11 +1,10 @@
 import Foundation
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("NotificationService Tests")
 @MainActor
 struct NotificationServiceTests {
-
     @Test func playSoundWithValidNameDoesNotCrash() {
         NotificationService.playSound(named: "Tink")
     }
@@ -19,8 +18,8 @@ struct NotificationServiceTests {
         NotificationService.playSound(named: "")
     }
 
-    @Test func notifySuccessWithEmptyTextAndAllDisabled() {
-        let defaults = UserDefaults(suiteName: "test.notification.allDisabled.\(UUID().uuidString)")!
+    @Test func notifySuccessWithEmptyTextAndAllDisabled() throws {
+        let defaults = try #require(UserDefaults(suiteName: "test.notification.allDisabled.\(UUID().uuidString)"))
         let settings = SettingsService(userDefaults: defaults)
         settings.isNotificationCenterEnabled = false
         settings.isCompletionSoundEnabled = false
@@ -29,8 +28,8 @@ struct NotificationServiceTests {
         NotificationService.notifySuccess(text: "", settings: settings)
     }
 
-    @Test func notifySuccessWithEmptyTextAndNotificationCenterEnabled() {
-        let defaults = UserDefaults(suiteName: "test.notification.centerOnly.\(UUID().uuidString)")!
+    @Test func notifySuccessWithEmptyTextAndNotificationCenterEnabled() throws {
+        let defaults = try #require(UserDefaults(suiteName: "test.notification.centerOnly.\(UUID().uuidString)"))
         let settings = SettingsService(userDefaults: defaults)
         settings.isNotificationCenterEnabled = true
         settings.isCompletionSoundEnabled = false

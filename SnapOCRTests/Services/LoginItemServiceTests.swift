@@ -1,5 +1,5 @@
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("LoginItemService Tests")
 @MainActor
@@ -7,7 +7,7 @@ struct LoginItemServiceTests {
     @Test func isEnabledReturnsBoolValue() {
         let service = LoginItemService()
         // Just verify it returns a Bool without crashing
-        let _ = service.isEnabled
+        _ = service.isEnabled
     }
 
     @Test func isEnabledIsConsistentWithoutSideEffects() {

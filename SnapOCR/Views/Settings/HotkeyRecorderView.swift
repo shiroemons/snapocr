@@ -59,14 +59,29 @@ struct HotkeyRecorderView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             isRecording
-            ? String(localized: "Recording shortcut", bundle: bundle, comment: "Accessibility label when hotkey recorder is active")
-            : String(localized: "Current shortcut: \(currentDisplayString)", bundle: bundle, comment: "Accessibility label showing current hotkey")
+            ? String(
+                localized: "Recording shortcut",
+                bundle: bundle,
+                comment: "Accessibility label when hotkey recorder is active"
+            )
+            : String(
+                localized: "Current shortcut: \(currentDisplayString)",
+                bundle: bundle,
+                comment: "Accessibility label showing current hotkey"
+            )
         )
     }
 
     private var resetButton: some View {
-        Button(String(localized: "Reset to Default", bundle: bundle, comment: "Button to restore the default hotkey")) {
-            applyHotkey(keyCode: SettingsService.defaultHotkeyKeyCode, modifiers: SettingsService.defaultHotkeyModifiers)
+        Button(String(
+            localized: "Reset to Default",
+            bundle: bundle,
+            comment: "Button to restore the default hotkey"
+        )) {
+            applyHotkey(
+                keyCode: SettingsService.defaultHotkeyKeyCode,
+                modifiers: SettingsService.defaultHotkeyModifiers
+            )
         }
         .buttonStyle(.plain)
         .font(.system(size: 12))
@@ -87,7 +102,11 @@ struct HotkeyRecorderView: View {
             if pendingModifiers != 0 {
                 return KeyCodeMapping.modifierString(for: pendingModifiers)
             }
-            return String(localized: "Type shortcut...", bundle: bundle, comment: "Prompt shown in hotkey recorder while waiting for key input")
+            return String(
+                localized: "Type shortcut...",
+                bundle: bundle,
+                comment: "Prompt shown in hotkey recorder while waiting for key input"
+            )
         }
         return currentDisplayString
     }
@@ -171,10 +190,14 @@ struct HotkeyRecorderView: View {
 // MARK: - Preview
 
 #Preview {
-    @Previewable @State var keyCode: UInt32 = UInt32(kVK_ANSI_O)
+    @Previewable @State var keyCode = UInt32(kVK_ANSI_O)
     @Previewable @State var modifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
 
-    HotkeyRecorderView(settingsService: SettingsService(), keyCode: $keyCode, modifiers: $modifiers) { newKey, newMods in
+    HotkeyRecorderView(
+        settingsService: SettingsService(),
+        keyCode: $keyCode,
+        modifiers: $modifiers
+    ) { newKey, newMods in
         print("Hotkey changed: \(KeyCodeMapping.displayString(keyCode: newKey, modifiers: newMods))")
     }
     .padding()

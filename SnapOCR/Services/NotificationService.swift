@@ -48,7 +48,11 @@ enum NotificationService {
 
     private static func sendNotification(text: String, bundle: Bundle) {
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Text Copied", bundle: bundle, comment: "Notification title when OCR text is copied")
+        content.title = String(
+            localized: "Text Copied",
+            bundle: bundle,
+            comment: "Notification title when OCR text is copied"
+        )
         content.body = text.count > 100 ? String(text.prefix(100)) + "…" : text
         content.sound = nil // Sound is handled separately
 

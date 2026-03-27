@@ -1,6 +1,6 @@
 import Carbon.HIToolbox
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("SettingsService Tests")
 @MainActor

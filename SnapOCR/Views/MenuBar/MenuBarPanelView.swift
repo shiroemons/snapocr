@@ -79,7 +79,11 @@ struct MenuBarPanelView: View {
                 .opacity(Constants.dividerOpacity)
                 .accessibilityHidden(true)
 
-            RecentCapturesView(settingsService: settingsService, historyService: historyService, onShowHistory: onShowHistory)
+            RecentCapturesView(
+                settingsService: settingsService,
+                historyService: historyService,
+                onShowHistory: onShowHistory
+            )
 
             Divider()
                 .opacity(Constants.dividerOpacity)

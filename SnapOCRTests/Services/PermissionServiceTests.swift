@@ -1,10 +1,9 @@
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("PermissionService Tests")
 @MainActor
 struct PermissionServiceTests {
-
     @Test func startMonitoringStartsTimer() {
         let service = PermissionService()
         service.startMonitoring()

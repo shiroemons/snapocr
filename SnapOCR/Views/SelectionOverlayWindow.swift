@@ -16,7 +16,7 @@ struct SelectionResult: Sendable {
 
 final class SelectionOverlayWindow: NSWindow {
     private(set) var overlayView: SelectionOverlayView
-    private nonisolated(unsafe) var spaceChangeObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var spaceChangeObserver: NSObjectProtocol?
     private(set) var isDismissed = false
 
     init(screen: NSScreen) {

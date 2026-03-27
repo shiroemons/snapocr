@@ -1,5 +1,5 @@
-import Testing
 @testable import SnapOCR
+import Testing
 
 @Suite("HotkeyService Tests")
 @MainActor

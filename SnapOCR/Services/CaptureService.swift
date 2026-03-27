@@ -52,11 +52,14 @@ enum CaptureService {
         )
 
         guard let croppedImage = fullImage.cropping(to: cropRect) else {
+            // swiftlint:disable:next line_length
             logger.error("Cropping failed. cropRect: \(String(describing: cropRect), privacy: .public), image: \(fullImage.width, privacy: .public)x\(fullImage.height, privacy: .public)")
             throw CaptureError.captureFailure
         }
 
-        logger.info("Captured image size: \(croppedImage.width, privacy: .public)x\(croppedImage.height, privacy: .public)")
+        logger.info(
+            "Captured image size: \(croppedImage.width, privacy: .public)x\(croppedImage.height, privacy: .public)"
+        )
 
         return croppedImage
     }
@@ -89,11 +92,23 @@ enum CaptureError: LocalizedError {
     func localizedDescription(bundle: Bundle) -> String {
         switch self {
         case .noDisplay:
-            String(localized: "No display found", bundle: bundle, comment: "Error when target display is unavailable")
+            String(
+                localized: "No display found",
+                bundle: bundle,
+                comment: "Error when target display is unavailable"
+            )
         case .captureFailure:
-            String(localized: "Screen capture failed", bundle: bundle, comment: "Error when screen capture operation fails")
+            String(
+                localized: "Screen capture failed",
+                bundle: bundle,
+                comment: "Error when screen capture operation fails"
+            )
         case .invalidRegion:
-            String(localized: "Invalid capture region", bundle: bundle, comment: "Error when capture region has invalid dimensions")
+            String(
+                localized: "Invalid capture region",
+                bundle: bundle,
+                comment: "Error when capture region has invalid dimensions"
+            )
         }
     }
 }

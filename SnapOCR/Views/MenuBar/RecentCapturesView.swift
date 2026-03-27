@@ -119,7 +119,11 @@ struct RecentCapturesView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(record.text)
                 .accessibilityHint(
-                    String(localized: "Copies this text to the clipboard", bundle: bundle, comment: "Accessibility hint for recent capture item button")
+                    String(
+                        localized: "Copies this text to the clipboard",
+                        bundle: bundle,
+                        comment: "Accessibility hint for recent capture item button"
+                    )
                 )
                 .onHover { hovering in
                     hoveredRecordID = hovering ? record.persistentModelID : nil
