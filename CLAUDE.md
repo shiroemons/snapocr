@@ -71,6 +71,7 @@ swift package plugin lint
 3. **Screen Recording permission** — Check with `CGPreflightScreenCaptureAccess()`. Cannot programmatically grant — guide user to System Settings.
 4. **OCR text ordering** — `ImageAnalyzer` returns a structured `transcript` with automatic text ordering. For advanced reordering needs, access individual text observations via the analysis result.
 5. **No image persistence** — Captured images must stay in memory only. Release after OCR completes.
+6. **`STRING_CATALOG_GENERATE_SYMBOLS = NO`** — ランタイム言語切替のため `String(localized:, bundle:, comment:)` に `settingsService.localizationBundle` を渡すパターンを使用。生成シンボルは `Bundle.main` 固定のため言語切替が壊れるので使用不可。
 
 ## Workflow
 
