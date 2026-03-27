@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8E4E4F6E2F765619008047D7 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 8E491C512F85A000000F546A /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		8E491C292F72C454000F546A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8E4E4F6E2F765619008047D7 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +95,7 @@
 			);
 			name = SnapOCR;
 			packageProductDependencies = (
+				8E491C512F85A000000F546A /* Sparkle */,
 			);
 			productName = SnapOCR;
 			productReference = 8E491C192F72C453000F546A /* SnapOCR.app */;
@@ -147,6 +153,9 @@
 			);
 			mainGroup = 8E491C102F72C453000F546A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8E491C502F85A000000F546A /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8E491C1A2F72C453000F546A /* Products */;
 			projectDirPath = "";
@@ -343,6 +352,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnapOCR/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 shiroemons. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -378,6 +388,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnapOCR/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 shiroemons. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -472,6 +483,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8E491C502F85A000000F546A /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8E491C512F85A000000F546A /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8E491C502F85A000000F546A /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8E491C112F72C453000F546A /* Project object */;
 }

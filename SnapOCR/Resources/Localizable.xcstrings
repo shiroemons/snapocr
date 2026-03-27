@@ -41,6 +41,39 @@
         }
       }
     },
+    "Automatic Updates" : {
+      "comment" : "Section header for automatic update settings",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動アップデート"
+          }
+        }
+      }
+    },
+    "Automatically check for updates" : {
+      "comment" : "Toggle label for automatic update checks",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを自動的にチェック"
+          }
+        }
+      }
+    },
+    "Automatically download and install updates" : {
+      "comment" : "Toggle label for automatic update installation",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを自動的にダウンロードしてインストール"
+          }
+        }
+      }
+    },
     "Back" : {
       "comment" : "Button to go back to the previous onboarding step",
       "localizations" : {
@@ -103,6 +136,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャプチャしたテキストがここに表示されます。"
+          }
+        }
+      }
+    },
+    "Check for Updates" : {
+      "comment" : "Accessibility label for check for updates button\nTooltip for check for updates button in footer",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートを確認"
+          }
+        }
+      }
+    },
+    "Check for Updates Now" : {
+      "comment" : "Button to manually check for updates",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐアップデートを確認"
+          }
+        }
+      }
+    },
+    "Check interval" : {
+      "comment" : "Picker label for update check interval",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェック間隔"
           }
         }
       }
@@ -404,6 +470,61 @@
         }
       }
     },
+    "Every 12 hours" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12時間ごと"
+          }
+        }
+      }
+    },
+    "Every 6 hours" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6時間ごと"
+          }
+        }
+      }
+    },
+    "Every day" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎日"
+          }
+        }
+      }
+    },
+    "Every hour" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1時間ごと"
+          }
+        }
+      }
+    },
+    "Every week" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎週"
+          }
+        }
+      }
+    },
     "Finish setup and start using SnapOCR" : {
       "comment" : "Accessibility label for the button that completes onboarding",
       "localizations" : {
@@ -510,6 +631,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "言語"
+          }
+        }
+      }
+    },
+    "Last checked" : {
+      "comment" : "Label for last update check date",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終確認"
           }
         }
       }
@@ -1330,17 +1462,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ショートカットを入力..."
-          }
-        }
-      }
-    },
-    "Update settings will be available in Phase 5." : {
-      "comment" : "Placeholder message for update settings not yet implemented",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデート設定はフェーズ5で利用可能になります。"
           }
         }
       }

@@ -24,6 +24,7 @@ struct MenuBarPanelView: View {
     let onCapture: () -> Void
     let onDismissMenu: () -> Void
     let onShowHistory: () -> Void
+    let onCheckForUpdates: () -> Void
     let onQuit: () -> Void
 
     init(
@@ -33,6 +34,7 @@ struct MenuBarPanelView: View {
         onCapture: @escaping () -> Void,
         onDismissMenu: @escaping () -> Void,
         onShowHistory: @escaping () -> Void,
+        onCheckForUpdates: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.permissionService = permissionService
@@ -41,6 +43,7 @@ struct MenuBarPanelView: View {
         self.onCapture = onCapture
         self.onDismissMenu = onDismissMenu
         self.onShowHistory = onShowHistory
+        self.onCheckForUpdates = onCheckForUpdates
         self.onQuit = onQuit
     }
 
@@ -85,6 +88,7 @@ struct MenuBarPanelView: View {
             MenuBarFooterView(
                 settingsService: settingsService,
                 onDismissMenu: onDismissMenu,
+                onCheckForUpdates: onCheckForUpdates,
                 onQuit: onQuit
             )
         }
@@ -128,6 +132,8 @@ private func makePreviewContainer() -> ModelContainer {
         // dismiss menu
     } onShowHistory: {
         // history
+    } onCheckForUpdates: {
+        // check for updates
     } onQuit: {
         // quit
     }

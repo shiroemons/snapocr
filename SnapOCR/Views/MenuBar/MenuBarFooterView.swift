@@ -12,12 +12,14 @@ struct MenuBarFooterView: View {
     @Environment(\.openSettings) private var openSettings
     let settingsService: SettingsService
     let onDismissMenu: () -> Void
+    let onCheckForUpdates: () -> Void
     let onQuit: () -> Void
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var isHoveringSettings = false
     @State private var isHoveringAbout = false
+    @State private var isHoveringUpdate = false
     @State private var isHoveringQuit = false
 
     // Version strings are technical identifiers and are intentionally not localized.
@@ -55,6 +57,19 @@ struct MenuBarFooterView: View {
             .help(String(localized: "About SnapOCR", bundle: bundle, comment: "Tooltip for about button in footer"))
             .accessibilityLabel(String(localized: "About SnapOCR", bundle: bundle, comment: "Accessibility label for about button"))
 
+            Button {
+                onDismissMenu()
+                onCheckForUpdates()
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.body)
+                    .foregroundStyle(isHoveringUpdate ? .primary : .secondary)
+            }
+            .buttonStyle(.plain)
+            .onHover { isHoveringUpdate = $0 }
+            .help(String(localized: "Check for Updates", bundle: bundle, comment: "Tooltip for check for updates button in footer"))
+            .accessibilityLabel(String(localized: "Check for Updates", bundle: bundle, comment: "Accessibility label for check for updates button"))
+
             Spacer()
 
             Text(Self.versionString)
@@ -85,6 +100,8 @@ struct MenuBarFooterView: View {
 #Preview {
     MenuBarFooterView(settingsService: SettingsService()) {
         // dismiss menu
+    } onCheckForUpdates: {
+        // check for updates
     } onQuit: {
         // quit
     }

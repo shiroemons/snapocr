@@ -19,7 +19,8 @@ struct SnapOCRApp: App {
                 loginItemService: appDelegate.loginItemService,
                 historyService: appDelegate.historyService,
                 onShowOnboarding: { appDelegate.showOnboarding() },
-                onShowHistory: { appDelegate.showHistoryWindow() }
+                onShowHistory: { appDelegate.showHistoryWindow() },
+                updater: appDelegate.updateService.updater
             )
         }
     }

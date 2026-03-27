@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+@preconcurrency import Sparkle
 
 @MainActor
 struct SettingsView: View {
@@ -15,6 +16,7 @@ struct SettingsView: View {
     let historyService: HistoryService
     let onShowOnboarding: () -> Void
     let onShowHistory: () -> Void
+    let updater: SPUUpdater
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
@@ -57,7 +59,7 @@ struct SettingsView: View {
                     )
                 }
 
-            UpdateSettingsView(settingsService: settingsService)
+            UpdateSettingsView(settingsService: settingsService, updater: updater)
                 .tabItem {
                     Label(
                         String(localized: "Updates", bundle: bundle, comment: "Updates settings tab title"),

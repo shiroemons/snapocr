@@ -9,6 +9,7 @@ import AppKit
 import os
 import SwiftData
 import SwiftUI
+@preconcurrency import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -17,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
+    private(set) lazy var updateService = UpdateService()
     private(set) lazy var historyService: HistoryService = HistoryService(
         modelContainer: Self.makeModelContainer(logger: Self.logger)
     )
@@ -59,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         trackAppearanceChanges()
         trackLanguageChanges()
         trackPermissionChanges()
+        updateService.startUpdater()
 
         if settingsService.shouldShowOnboarding {
             showOnboarding()
@@ -111,6 +114,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowHistory: { [weak self] in
                 self?.statusItem?.menu?.cancelTracking()
                 self?.showHistoryWindow()
+            },
+            onCheckForUpdates: { [weak self] in
+                self?.statusItem?.menu?.cancelTracking()
+                self?.updateService.checkForUpdates()
             },
             onQuit: {
                 NSApp.terminate(nil)
