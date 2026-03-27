@@ -253,32 +253,32 @@ jobs:
           cd "$RUNNER_TEMP/homebrew-tap"
 
           # Generate updated Cask file
-          cat > Casks/snapocr.rb << CASK_EOF
-cask "snapocr" do
-  version "$VERSION"
-  sha256 "$SHA256"
+          cat > Casks/snapocr.rb <<EOF
+          cask "snapocr" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
 
-  url "https://github.com/shiroemons/snapocr/releases/download/v\#{version}/SnapOCR-\#{version}.dmg"
-  name "SnapOCR"
-  desc "OCR screen text via global hotkey and copy to clipboard"
-  homepage "https://github.com/shiroemons/snapocr"
+            url "https://github.com/shiroemons/snapocr/releases/download/v#{version}/SnapOCR-#{version}.dmg"
+            name "SnapOCR"
+            desc "OCR screen text via global hotkey and copy to clipboard"
+            homepage "https://github.com/shiroemons/snapocr"
 
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
 
-  depends_on macos: ">= :tahoe"
+            depends_on macos: ">= :tahoe"
 
-  app "SnapOCR.app"
+            app "SnapOCR.app"
 
-  zap trash: [
-    "~/Library/Application Support/SnapOCR",
-    "~/Library/Preferences/com.shiroemons.snapocr.plist",
-    "~/Library/Caches/com.shiroemons.snapocr",
-  ]
-end
-CASK_EOF
+            zap trash: [
+              "~/Library/Application Support/SnapOCR",
+              "~/Library/Preferences/com.shiroemons.snapocr.plist",
+              "~/Library/Caches/com.shiroemons.snapocr",
+            ]
+          end
+          EOF
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
