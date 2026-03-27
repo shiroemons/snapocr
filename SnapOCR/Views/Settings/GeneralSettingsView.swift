@@ -62,11 +62,6 @@ struct GeneralSettingsView: View {
                         )
                     )
                 }
-            } header: {
-                Text(String(localized: "Hotkey", bundle: bundle, comment: "Hotkey section header in General settings"))
-            }
-
-            Section {
                 Toggle(
                     String(localized: "Launch at Login", bundle: bundle, comment: "Toggle label for launch at login setting"),
                     isOn: Binding(
@@ -74,22 +69,6 @@ struct GeneralSettingsView: View {
                         set: { _ in loginItemService.toggle() }
                     )
                 )
-            } header: {
-                Text(String(localized: "Startup", bundle: bundle, comment: "Startup section header in General settings"))
-            }
-
-            Section {
-                HStack {
-                    Spacer()
-                    Button(String(localized: "Show Onboarding Again", bundle: bundle, comment: "Button to reset and re-show the onboarding wizard")) {
-                        onShowOnboarding()
-                    }
-                }
-            } header: {
-                Text(String(localized: "Onboarding", bundle: bundle, comment: "Onboarding section header in General settings"))
-            }
-
-            Section {
                 Picker(
                     String(localized: "Appearance", bundle: bundle, comment: "Appearance picker label in General settings"),
                     selection: Binding(
@@ -102,17 +81,8 @@ struct GeneralSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-            } header: {
-                Text(String(localized: "Appearance", bundle: bundle, comment: "Appearance section header in General settings"))
-            }
-
-            Section {
                 Picker(
-                    String(
-                        localized: "Language",
-                        bundle: bundle,
-                        comment: "Language picker label in General settings"
-                    ),
+                    String(localized: "Language", bundle: bundle, comment: "Language picker label in General settings"),
                     selection: Binding(
                         get: { settingsService.appLanguage },
                         set: { settingsService.appLanguage = $0 }
@@ -123,13 +93,16 @@ struct GeneralSettingsView: View {
                     }
                 }
             } header: {
-                Text(
-                    String(
-                        localized: "Language",
-                        bundle: bundle,
-                        comment: "Language section header in General settings"
-                    )
-                )
+                Text(String(localized: "General", bundle: bundle, comment: "General section header in General settings"))
+            }
+
+            Section {
+                HStack {
+                    Spacer()
+                    Button(String(localized: "Show Onboarding Again", bundle: bundle, comment: "Button to reset and re-show the onboarding wizard"), action: onShowOnboarding)
+                }
+            } header: {
+                Text(String(localized: "Onboarding", bundle: bundle, comment: "Onboarding section header in General settings"))
             }
         }
         .formStyle(.grouped)
