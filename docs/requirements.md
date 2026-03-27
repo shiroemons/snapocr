@@ -54,7 +54,7 @@
 | アーキテクチャ | MVVM + Service 層 | SwiftUI + `@Observable` との親和性が高い。メニューバーユーティリティの規模に適切（TCA はオーバーキル） |
 | UI フレームワーク | SwiftUI (macOS 26 SDK) | Liquid Glass デザイン対応、最新 API を活用可能 |
 | メニューバー | NSMenu + NSHostingView (SwiftUI ハイブリッド) | NSPopover より高速でネイティブな挙動。リッチ UI を NSMenu 内に描画 |
-| OCR エンジン | Apple Vision (VNRecognizeTextRequest) | OS 標準、縦書き日本語対応、外部依存なし |
+| OCR エンジン | VisionKit (`ImageAnalyzer`) | OS 標準、構造化テキスト認識（`transcript` による自動読み順解決）、縦書き日本語対応、外部依存なし |
 | スクリーンキャプチャ | ScreenCaptureKit | macOS 12.3+ のモダンな画面キャプチャ API |
 | ホットキー | Carbon API (`RegisterEventHotKey`) | レガシーだが最も確実。アクセシビリティ権限不要、多数の実績あり |
 | データ永続化 | SwiftData | macOS 26 で安定した Apple 純正 ORM。OCR 履歴の保存に最適 |
@@ -87,14 +87,13 @@
 
 #### 3.1.3 OCR 処理
 
-- Apple Vision Framework の `VNRecognizeTextRequest` を使用
-- 認識レベル: `.accurate`（精度優先）
-- 対応言語: 日本語 (`ja`) + 英語 (`en`) をデフォルト設定
-- **縦書きテキスト対応**（`VNRecognizeTextRequest` の `automaticallyDetectsLanguage` を活用）
-- 認識結果のテキストを適切な読み順序で結合
-  - 横書き: 上→下、左→右
-  - 縦書き: 右→左、上→下
-- 認識信頼度が低いテキストの処理方針: そのまま含める（ユーザーが判断）
+- VisionKit の `ImageAnalyzer` を使用（`.text` 構成）
+- `ImageAnalyzer` はシングルトンとして再利用（初期化コスト削減）
+- 対応言語: システム設定に基づく自動検出（日本語・英語を含む多言語対応）
+- **縦書きテキスト対応**: `ImageAnalyzer` が自動的に検出・処理
+- 認識結果は `analysis.transcript` で取得（自動的に適切な読み順で構造化済み）
+  - 横書き・縦書きの読み順ソートは `ImageAnalyzer` が内部処理
+  - 手動での座標ベースのソートは不要
 
 #### 3.1.4 クリップボードへのコピー
 
@@ -407,7 +406,7 @@ PR / push 時に実行する品質保証ワークフロー:
 
 | テスト対象 | テスト内容 | 方式 |
 |-----------|-----------|------|
-| OCR テキスト処理 | 読み順ソート（横書き・縦書き）、テキスト結合ロジック | `@Test` + パラメタライズドテスト |
+| OCR テキスト処理 | `ImageAnalyzer` の認識結果取得、エラーハンドリング | `@Test` |
 | 設定管理 | UserDefaults / SwiftData の読み書き、デフォルト値 | `@Suite` でグループ化 |
 | クリップボード | `NSPasteboard` へのコピー処理 | `@Test` |
 | 履歴管理 | SwiftData CRUD、件数制限、検索 | `@Suite(.serialized)` で直列実行 |
@@ -635,9 +634,9 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 
 ### 7.2 縦書きテキストの読み順
 
-- `VNRecognizeTextRequest` は認識結果を `VNRecognizedTextObservation` の配列で返す
-- 各 observation の `boundingBox` の座標から縦書き/横書きを推定し、適切な順序でソートする必要がある
-- 縦書き判定ロジック: 各テキストブロックの幅と高さの比率で判定
+- VisionKit `ImageAnalyzer` の `analysis.transcript` は、横書き・縦書きを問わず適切な読み順で構造化済みのテキストを返す
+- `VNRecognizeTextRequest` と異なり、手動での座標ベースのソートや縦書き判定ロジックは不要
+- より高度なテキスト操作が必要な場合は、`analysis` の個別テキスト観察結果にアクセス可能
 
 ### 7.3 macOS Tahoe の画面収録権限
 
@@ -713,3 +712,4 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 | 2026-03-23 | 0.11 | DMG を `shiroemons/snapocr` の GitHub Releases に配置する構成に変更。appcast リポジトリには appcast.xml のみ。デルタアップデートも GitHub Releases に添付 |
 | 2026-03-23 | 0.12 | グローバルホットキーを Carbon API (`RegisterEventHotKey`) に確定。アクセシビリティ権限不要。選定理由・実装注意点を詳細化。権限テーブルから Accessibility を不要に変更 |
 | 2026-03-23 | 1.0 | 要求定義書ファイナライズ: アプリ名「SnapOCR」確定、MVVM アーキテクチャ採用、MIT License、デフォルトホットキー `⌃⇧O` 確定、クラッシュレポートなし、SemVer バージョニング、プライバシーポリシー方針、プロジェクト情報セクション追加 |
+| 2026-03-27 | 1.1 | OCR エンジンを Apple Vision (`VNRecognizeTextRequest`) から VisionKit (`ImageAnalyzer`) に変更。`transcript` による自動読み順解決により縦書きソートロジックが不要に。テスト構成を実装に合わせて更新 |
