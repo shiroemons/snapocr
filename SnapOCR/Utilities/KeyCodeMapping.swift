@@ -69,9 +69,9 @@ enum KeyCodeMapping {
     ]
 
     /// Carbon keyCode を表示用文字に変換
-    nonisolated static func string(for keyCode: UInt32) -> String {
+    nonisolated static func string(for keyCode: UInt32, bundle: Bundle = .main) -> String {
         if keyCode == UInt32(kVK_Space) {
-            return String(localized: "Space", comment: "Space key display name")
+            return String(localized: "Space", bundle: bundle, comment: "Space key display name")
         }
         return keyCodeMap[keyCode] ?? "?"
     }
@@ -91,8 +91,8 @@ enum KeyCodeMapping {
     // MARK: - Combined Display String
 
     /// keyCode + modifiers を完全な表示文字列に変換（例: "⌃⇧O"）
-    nonisolated static func displayString(keyCode: UInt32, modifiers: UInt32) -> String {
-        modifierString(for: modifiers) + string(for: keyCode)
+    nonisolated static func displayString(keyCode: UInt32, modifiers: UInt32, bundle: Bundle = .main) -> String {
+        modifierString(for: modifiers) + string(for: keyCode, bundle: bundle)
     }
 
     // MARK: - NSEvent → Carbon Modifier Conversion

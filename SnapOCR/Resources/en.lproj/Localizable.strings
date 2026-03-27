@@ -1,0 +1,176 @@
+/* App */
+"SnapOCR" = "SnapOCR";
+
+/* Menu Bar Panel */
+"SnapOCR Menu Bar Panel" = "SnapOCR Menu Bar Panel";
+
+/* Capture Action */
+"Capture Text" = "Capture Text";
+"Capture screen text" = "Capture screen text";
+"Double-click to start text capture" = "Double-click to start text capture";
+"Screen recording permission required" = "Screen recording permission required";
+"Hotkey: %@" = "Hotkey: %@";
+
+/* Permission Warning Banner */
+"Grant access in System Settings to use OCR capture." = "Grant access in System Settings to use OCR capture.";
+"Open Settings" = "Open Settings";
+"Open System Settings to grant screen recording permission" = "Open System Settings to grant screen recording permission";
+
+/* Menu Bar Footer */
+"Settings" = "Settings";
+"Quit SnapOCR" = "Quit SnapOCR";
+
+/* Recent Captures */
+"Recent Captures" = "Recent Captures";
+"No captures yet" = "No captures yet";
+"Copies this text to the clipboard" = "Copies this text to the clipboard";
+"Show All History..." = "Show All History...";
+
+/* Toast */
+"Copied to Clipboard" = "Copied to Clipboard";
+
+/* General Settings */
+"Screen Recording: Allowed" = "Screen Recording: Allowed";
+"Screen Recording: Not Allowed" = "Screen Recording: Not Allowed";
+"Open System Settings" = "Open System Settings";
+"Permissions" = "Permissions";
+"Capture Hotkey" = "Capture Hotkey";
+"Hotkey" = "Hotkey";
+"Launch at Login" = "Launch at Login";
+"Startup" = "Startup";
+"Show Onboarding Again" = "Show Onboarding Again";
+"Onboarding" = "Onboarding";
+"Appearance" = "Appearance";
+"Language" = "Language";
+
+/* Appearance Mode */
+"System" = "System";
+"Light" = "Light";
+"Dark" = "Dark";
+
+/* Settings Tabs */
+"General" = "General";
+"OCR" = "OCR";
+"Notifications" = "Notifications";
+"History" = "History";
+"Updates" = "Updates";
+
+/* OCR Settings */
+"Japanese" = "Japanese";
+"English" = "English";
+"Recognition Languages" = "Recognition Languages";
+"At least one language must be selected." = "At least one language must be selected.";
+"Enable or disable %@ text recognition. At least one language must remain enabled." = "Enable or disable %@ text recognition. At least one language must remain enabled.";
+
+/* Notification Settings */
+"Notification Center" = "Notification Center";
+"Show a macOS notification with a preview of the recognized text." = "Show a macOS notification with a preview of the recognized text.";
+"Completion Sound" = "Completion Sound";
+"Sound" = "Sound";
+"Completion sound selection" = "Completion sound selection";
+"Test Sound" = "Test Sound";
+"Preview the selected completion sound" = "Preview the selected completion sound";
+"Screen Toast" = "Screen Toast";
+"Show a floating notification at the top of the screen that auto-dismisses." = "Show a floating notification at the top of the screen that auto-dismisses.";
+"Toast" = "Toast";
+
+/* History Settings */
+"Save OCR History" = "Save OCR History";
+"Save recognized text from screen captures for later reference." = "Save recognized text from screen captures for later reference.";
+"Maximum History Count" = "Maximum History Count";
+"Storage" = "Storage";
+"Show All History" = "Show All History";
+"Show all OCR history in a separate window" = "Show all OCR history in a separate window";
+"Delete All History" = "Delete All History";
+"Delete all OCR history permanently" = "Delete all OCR history permanently";
+"Delete All History?" = "Delete All History?";
+"Delete All" = "Delete All";
+"This action cannot be undone." = "This action cannot be undone.";
+"Management" = "Management";
+
+/* Update Settings */
+"Update settings will be available in Phase 5." = "Update settings will be available in Phase 5.";
+
+/* Hotkey Recorder */
+"Recording shortcut" = "Recording shortcut";
+"Current shortcut: %@" = "Current shortcut: %@";
+"Reset to Default" = "Reset to Default";
+"Reset shortcut to default" = "Reset shortcut to default";
+"Type shortcut..." = "Type shortcut...";
+
+/* Notification Service */
+"Text Copied" = "Text Copied";
+
+/* Capture Errors */
+"No display found" = "No display found";
+"Screen capture failed" = "Screen capture failed";
+"Invalid capture region" = "Invalid capture region";
+
+/* App View Model */
+"Screen recording permission is required." = "Screen recording permission is required.";
+"No text was recognized." = "No text was recognized.";
+
+/* Key Code Mapping */
+"Space" = "Space";
+
+/* Onboarding Window */
+"Welcome to SnapOCR" = "Welcome to SnapOCR";
+
+/* Welcome Step */
+"Capture text from anywhere on your screen.\nPress the hotkey, drag to select a region, and the recognized text is instantly copied to your clipboard." = "Capture text from anywhere on your screen.\nPress the hotkey, drag to select a region, and the recognized text is instantly copied to your clipboard.";
+
+/* Permission Step */
+"Screen Recording Permission" = "Screen Recording Permission";
+"SnapOCR needs permission to capture your screen in order to recognize text. Your screen contents are processed entirely on-device and never sent anywhere." = "SnapOCR needs permission to capture your screen in order to recognize text. Your screen contents are processed entirely on-device and never sent anywhere.";
+"Permission granted" = "Permission granted";
+"Permission not yet granted" = "Permission not yet granted";
+
+/* Hotkey Step */
+"Set Your Capture Hotkey" = "Set Your Capture Hotkey";
+"A global hotkey lets you start a capture from anywhere, even when SnapOCR is in the background. The default shortcut is ⌃⇧O." = "A global hotkey lets you start a capture from anywhere, even when SnapOCR is in the background. The default shortcut is ⌃⇧O.";
+"Click the shortcut field and press a new key combination to change it. Press Escape to cancel." = "Click the shortcut field and press a new key combination to change it. Press Escape to cancel.";
+
+/* Completion Step */
+"Press the hotkey" = "Press the hotkey";
+"Press %@ (or your custom shortcut) to activate capture mode." = "Press %@ (or your custom shortcut) to activate capture mode.";
+"Select a region" = "Select a region";
+"Drag to draw a selection around the text you want to recognize." = "Drag to draw a selection around the text you want to recognize.";
+"Text is copied" = "Text is copied";
+"The recognized text is instantly copied to your clipboard and ready to paste." = "The recognized text is instantly copied to your clipboard and ready to paste.";
+"Setup Complete!" = "Setup Complete!";
+
+/* Onboarding Container */
+"Step %lld of %lld" = "Step %lld of %lld";
+"Skip" = "Skip";
+"Skip this step" = "Skip this step";
+"Get Started" = "Get Started";
+"Finish setup and start using SnapOCR" = "Finish setup and start using SnapOCR";
+"Next" = "Next";
+"Next step" = "Next step";
+"Back" = "Back";
+"Previous step" = "Previous step";
+
+/* History Window */
+"OCR History" = "OCR History";
+"Search history..." = "Search history...";
+"Clear search" = "Clear search";
+"Done" = "Done";
+"Select" = "Select";
+"Done selecting" = "Done selecting";
+"Select items" = "Select items";
+"No History" = "No History";
+"Captured text will appear here." = "Captured text will appear here.";
+"No results for \"%@\"." = "No results for \"%@\".";
+"Copy" = "Copy";
+"Delete" = "Delete";
+"Delete %lld Selected" = "Delete %lld Selected";
+"Delete %lld selected items" = "Delete %lld selected items";
+"Deselect All" = "Deselect All";
+"Select All" = "Select All";
+"Deselect all items" = "Deselect all items";
+"Select all items" = "Select all items";
+"This will permanently delete all OCR history." = "This will permanently delete all OCR history.";
+"Copy text" = "Copy text";
+"Copies the recognized text to the clipboard" = "Copies the recognized text to the clipboard";
+"Delete record" = "Delete record";
+"Permanently deletes this history record" = "Permanently deletes this history record";

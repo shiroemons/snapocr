@@ -12,7 +12,10 @@ import SwiftUI
 /// 検索・再コピー・削除機能を提供する。
 @MainActor
 struct HistoryListView: View {
+    let settingsService: SettingsService
     let historyService: HistoryService
+
+    private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var searchText = ""
     @State private var copiedRecordID: PersistentIdentifier?
@@ -40,6 +43,7 @@ struct HistoryListView: View {
         .confirmationDialog(
             String(
                 localized: "Delete All History",
+                bundle: bundle,
                 comment: "Confirmation dialog title for delete all"
             ),
             isPresented: $showDeleteAllConfirmation,
@@ -48,6 +52,7 @@ struct HistoryListView: View {
             Button(
                 String(
                     localized: "Delete All",
+                    bundle: bundle,
                     comment: "Confirmation button to delete all history"
                 ),
                 role: .destructive
@@ -58,6 +63,7 @@ struct HistoryListView: View {
             Text(
                 String(
                     localized: "This will permanently delete all OCR history.",
+                    bundle: bundle,
                     comment: "Confirmation dialog message for delete all"
                 )
             )
@@ -75,6 +81,7 @@ struct HistoryListView: View {
                 TextField(
                     String(
                         localized: "Search history...",
+                        bundle: bundle,
                         comment: "History search placeholder"
                     ),
                     text: $searchText
@@ -91,6 +98,7 @@ struct HistoryListView: View {
                     .accessibilityLabel(
                         String(
                             localized: "Clear search",
+                            bundle: bundle,
                             comment: "Accessibility label for clear search button"
                         )
                     )
@@ -110,6 +118,7 @@ struct HistoryListView: View {
                     Text(
                         String(
                             localized: "Done",
+                            bundle: bundle,
                             comment: "Exit edit mode button"
                         )
                     )
@@ -117,6 +126,7 @@ struct HistoryListView: View {
                     Text(
                         String(
                             localized: "Select",
+                            bundle: bundle,
                             comment: "Enter edit mode button"
                         )
                     )
@@ -130,10 +140,12 @@ struct HistoryListView: View {
                 isEditing
                     ? String(
                         localized: "Done selecting",
+                        bundle: bundle,
                         comment: "Accessibility label for done button in edit mode"
                     )
                     : String(
                         localized: "Select items",
+                        bundle: bundle,
                         comment: "Accessibility label for select button"
                     )
             )
@@ -148,6 +160,7 @@ struct HistoryListView: View {
             Label(
                 String(
                     localized: "No History",
+                    bundle: bundle,
                     comment: "Empty history title"
                 ),
                 systemImage: "clock.arrow.circlepath"
@@ -157,6 +170,7 @@ struct HistoryListView: View {
                 Text(
                     String(
                         localized: "Captured text will appear here.",
+                        bundle: bundle,
                         comment: "Empty history description"
                     )
                 )
@@ -164,6 +178,7 @@ struct HistoryListView: View {
                 Text(
                     String(
                         localized: "No results for \"\(searchText)\".",
+                        bundle: bundle,
                         comment: "No search results"
                     )
                 )
@@ -181,6 +196,7 @@ struct HistoryListView: View {
                     let recordID = record.persistentModelID
                     HistoryRowView(
                         record: record,
+                        settingsService: settingsService,
                         isCopied: copiedRecordID == recordID,
                         isEditing: isEditing,
                         isSelected: selectedIDs.contains(recordID),
@@ -199,6 +215,7 @@ struct HistoryListView: View {
                         Button(
                             String(
                                 localized: "Copy",
+                                bundle: bundle,
                                 comment: "Context menu copy"
                             )
                         ) {
@@ -208,6 +225,7 @@ struct HistoryListView: View {
                         Button(
                             String(
                                 localized: "Delete",
+                                bundle: bundle,
                                 comment: "Context menu delete"
                             ),
                             role: .destructive
@@ -243,6 +261,7 @@ struct HistoryListView: View {
                 Text(
                     String(
                         localized: "Delete \(selectedIDs.count) Selected",
+                        bundle: bundle,
                         comment: "Delete selected items button"
                     )
                 )
@@ -251,6 +270,7 @@ struct HistoryListView: View {
             .accessibilityLabel(
                 String(
                     localized: "Delete \(selectedIDs.count) selected items",
+                    bundle: bundle,
                     comment: "Accessibility label for delete selected button"
                 )
             )
@@ -268,6 +288,7 @@ struct HistoryListView: View {
                     Text(
                         String(
                             localized: "Deselect All",
+                            bundle: bundle,
                             comment: "Deselect all items button"
                         )
                     )
@@ -275,6 +296,7 @@ struct HistoryListView: View {
                     Text(
                         String(
                             localized: "Select All",
+                            bundle: bundle,
                             comment: "Select all items button"
                         )
                     )
@@ -284,10 +306,12 @@ struct HistoryListView: View {
                 selectedIDs.count == records.count
                     ? String(
                         localized: "Deselect all items",
+                        bundle: bundle,
                         comment: "Accessibility label for deselect all button"
                     )
                     : String(
                         localized: "Select all items",
+                        bundle: bundle,
                         comment: "Accessibility label for select all button"
                     )
             )
@@ -300,6 +324,7 @@ struct HistoryListView: View {
                 Text(
                     String(
                         localized: "Delete All",
+                        bundle: bundle,
                         comment: "Delete all history button"
                     )
                 )

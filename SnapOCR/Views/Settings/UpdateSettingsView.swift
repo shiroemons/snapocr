@@ -9,10 +9,16 @@ import SwiftUI
 
 @MainActor
 struct UpdateSettingsView: View {
+    let settingsService: SettingsService
+
     var body: some View {
         PlaceholderSettingsView(
             systemImage: "arrow.triangle.2.circlepath",
-            message: String(localized: "Update settings will be available in Phase 5.", comment: "Placeholder message for update settings not yet implemented")
+            message: String(
+                localized: "Update settings will be available in Phase 5.",
+                bundle: settingsService.localizationBundle,
+                comment: "Placeholder message for update settings not yet implemented"
+            )
         )
     }
 }

@@ -20,6 +20,8 @@ final class AppViewModel {
 
     private var isTrackingActive = true
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     private(set) var isCapturing = false
     private(set) var lastError: String?
     private var captureTask: Task<Void, Never>?
@@ -94,7 +96,7 @@ final class AppViewModel {
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             Self.logger.warning("Screen capture permission not granted")
-            lastError = String(localized: "Screen recording permission is required.", comment: "Error message when screen recording permission is not granted")
+            lastError = String(localized: "Screen recording permission is required.", bundle: bundle, comment: "Error message when screen recording permission is not granted")
             permissionService.openSystemSettings()
             return
         }
@@ -122,7 +124,7 @@ final class AppViewModel {
 
             guard !text.isEmpty else {
                 Self.logger.warning("OCR result is empty")
-                lastError = String(localized: "No text was recognized.", comment: "Error message when OCR produces empty result")
+                lastError = String(localized: "No text was recognized.", bundle: bundle, comment: "Error message when OCR produces empty result")
                 return
             }
 
@@ -144,7 +146,11 @@ final class AppViewModel {
             }
         } catch {
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
-            lastError = error.localizedDescription
+            if let captureError = error as? CaptureError {
+                lastError = captureError.localizedDescription(bundle: bundle)
+            } else {
+                lastError = error.localizedDescription
+            }
         }
     }
 }

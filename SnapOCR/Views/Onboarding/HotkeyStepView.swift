@@ -13,6 +13,8 @@ import SwiftUI
 struct HotkeyStepView: View {
     let settingsService: SettingsService
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "keyboard")
@@ -24,7 +26,7 @@ struct HotkeyStepView: View {
 
             VStack(spacing: 8) {
                 Text(
-                    String(localized: "Set Your Capture Hotkey", comment: "Hotkey step title")
+                    String(localized: "Set Your Capture Hotkey", bundle: bundle, comment: "Hotkey step title")
                 )
                 .font(.title2)
                 .fontWeight(.bold)
@@ -32,6 +34,7 @@ struct HotkeyStepView: View {
                 Text(
                     String(
                         localized: "A global hotkey lets you start a capture from anywhere, even when SnapOCR is in the background. The default shortcut is ⌃⇧O.",
+                        bundle: bundle,
                         comment: "Hotkey step description explaining the hotkey feature and default shortcut"
                     )
                 )
@@ -43,13 +46,14 @@ struct HotkeyStepView: View {
 
             VStack(spacing: 12) {
                 Text(
-                    String(localized: "Capture Hotkey", comment: "Label for the hotkey recorder in the onboarding hotkey step")
+                    String(localized: "Capture Hotkey", bundle: bundle, comment: "Label for the hotkey recorder in the onboarding hotkey step")
                 )
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
 
                 HotkeyRecorderView(
+                    settingsService: settingsService,
                     keyCode: Binding(
                         get: { settingsService.hotkeyKeyCode },
                         set: { settingsService.hotkeyKeyCode = $0 }
@@ -74,6 +78,7 @@ struct HotkeyStepView: View {
             Text(
                 String(
                     localized: "Click the shortcut field and press a new key combination to change it. Press Escape to cancel.",
+                    bundle: bundle,
                     comment: "Hint text explaining how to record a new hotkey"
                 )
             )

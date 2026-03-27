@@ -18,12 +18,17 @@ private enum Constants {
 @MainActor
 final class HistoryWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private let settingsService: SettingsService
     var onDismiss: (() -> Void)?
+
+    init(settingsService: SettingsService) {
+        self.settingsService = settingsService
+    }
 
     // MARK: - Presentation
 
     func present(historyService: HistoryService) {
-        let contentView = HistoryListView(historyService: historyService)
+        let contentView = HistoryListView(settingsService: settingsService, historyService: historyService)
         let sizedView = contentView
             .frame(
                 minWidth: Constants.windowWidth,
@@ -54,6 +59,7 @@ final class HistoryWindow: NSObject, NSWindowDelegate {
         )
         win.title = String(
             localized: "OCR History",
+            bundle: settingsService.localizationBundle,
             comment: "History window title"
         )
         win.isReleasedWhenClosed = false

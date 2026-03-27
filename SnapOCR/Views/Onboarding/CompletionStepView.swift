@@ -12,6 +12,8 @@ import SwiftUI
 struct CompletionStepView: View {
     let settingsService: SettingsService
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     private struct UsageStep: Identifiable {
         let id: Int
         let symbol: String
@@ -22,7 +24,8 @@ struct CompletionStepView: View {
     private var hotkeyDisplayString: String {
         KeyCodeMapping.displayString(
             keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers
+            modifiers: settingsService.hotkeyModifiers,
+            bundle: bundle
         )
     }
 
@@ -31,27 +34,30 @@ struct CompletionStepView: View {
             UsageStep(
                 id: 1,
                 symbol: "keyboard",
-                title: String(localized: "Press the hotkey", comment: "Usage step 1 title"),
+                title: String(localized: "Press the hotkey", bundle: bundle, comment: "Usage step 1 title"),
                 description: String(
                     localized: "Press \(hotkeyDisplayString) (or your custom shortcut) to activate capture mode.",
+                    bundle: bundle,
                     comment: "Usage step 1 description"
                 )
             ),
             UsageStep(
                 id: 2,
                 symbol: "rectangle.dashed",
-                title: String(localized: "Select a region", comment: "Usage step 2 title"),
+                title: String(localized: "Select a region", bundle: bundle, comment: "Usage step 2 title"),
                 description: String(
                     localized: "Drag to draw a selection around the text you want to recognize.",
+                    bundle: bundle,
                     comment: "Usage step 2 description"
                 )
             ),
             UsageStep(
                 id: 3,
                 symbol: "doc.on.clipboard",
-                title: String(localized: "Text is copied", comment: "Usage step 3 title"),
+                title: String(localized: "Text is copied", bundle: bundle, comment: "Usage step 3 title"),
                 description: String(
                     localized: "The recognized text is instantly copied to your clipboard and ready to paste.",
+                    bundle: bundle,
                     comment: "Usage step 3 description"
                 )
             ),
@@ -68,7 +74,7 @@ struct CompletionStepView: View {
                     .foregroundStyle(Color.green)
                     .accessibilityHidden(true)
 
-                Text(String(localized: "Setup Complete!", comment: "Completion step headline"))
+                Text(String(localized: "Setup Complete!", bundle: bundle, comment: "Completion step headline"))
                     .font(.title2)
                     .fontWeight(.bold)
             }

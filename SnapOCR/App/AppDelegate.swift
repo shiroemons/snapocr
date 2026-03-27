@@ -57,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusItemIcon()
         applyAppearance()
         trackAppearanceChanges()
+        trackLanguageChanges()
         trackPermissionChanges()
 
         if settingsService.shouldShowOnboarding {
@@ -137,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             existing.bringToFront()
             return
         }
-        let window = HistoryWindow()
+        let window = HistoryWindow(settingsService: settingsService)
         window.onDismiss = { [weak self] in
             self?.historyWindow = nil
         }
@@ -153,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if permissionService.isScreenCapturePermitted {
             button.image = NSImage(
                 systemSymbolName: "text.viewfinder",
-                accessibilityDescription: String(localized: "SnapOCR", comment: "Accessibility description for menu bar icon")
+                accessibilityDescription: String(localized: "SnapOCR", bundle: settingsService.localizationBundle, comment: "Accessibility description for menu bar icon")
             )
         } else {
             button.image = warningBadgedIcon
@@ -163,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeWarningBadgedIcon() -> NSImage? {
         guard let base = NSImage(
             systemSymbolName: "text.viewfinder",
-            accessibilityDescription: String(localized: "SnapOCR", comment: "Accessibility description for menu bar icon")
+            accessibilityDescription: String(localized: "SnapOCR", bundle: settingsService.localizationBundle, comment: "Accessibility description for menu bar icon")
         ) else { return nil }
 
         let size = base.size
@@ -205,6 +206,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self, self.isTrackingActive else { return }
                 self.applyAppearance()
                 self.trackAppearanceChanges()
+            }
+        }
+    }
+
+    private func trackLanguageChanges() {
+        withObservationTracking {
+            _ = settingsService.appLanguage
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self, self.isTrackingActive else { return }
+                self.updateStatusItemIcon()
+                self.trackLanguageChanges()
             }
         }
     }

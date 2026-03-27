@@ -11,16 +11,20 @@ import SwiftUI
 struct OCRSettingsView: View {
     let settingsService: SettingsService
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     /// サポートする言語の定義
-    private static let supportedLanguages: [(code: String, displayName: String)] = [
-        ("ja", String(localized: "Japanese", comment: "Japanese language option in OCR settings")),
-        ("en", String(localized: "English", comment: "English language option in OCR settings")),
-    ]
+    private var supportedLanguages: [(code: String, displayName: String)] {
+        [
+            ("ja", String(localized: "Japanese", bundle: bundle, comment: "Japanese language option in OCR settings")),
+            ("en", String(localized: "English", bundle: bundle, comment: "English language option in OCR settings")),
+        ]
+    }
 
     var body: some View {
         Form {
             Section {
-                ForEach(Self.supportedLanguages, id: \.code) { language in
+                ForEach(supportedLanguages, id: \.code) { language in
                     Toggle(
                         language.displayName,
                         isOn: Binding(
@@ -44,14 +48,15 @@ struct OCRSettingsView: View {
                     .accessibilityHint(
                         String(
                             localized: "Enable or disable \(language.displayName) text recognition. At least one language must remain enabled.",
+                            bundle: bundle,
                             comment: "Accessibility hint for OCR language toggle describing its effect"
                         )
                     )
                 }
             } header: {
-                Text(String(localized: "Recognition Languages", comment: "OCR language selection section header"))
+                Text(String(localized: "Recognition Languages", bundle: bundle, comment: "OCR language selection section header"))
             } footer: {
-                Text(String(localized: "At least one language must be selected.", comment: "OCR language selection footer note"))
+                Text(String(localized: "At least one language must be selected.", bundle: bundle, comment: "OCR language selection footer note"))
                     .foregroundStyle(.secondary)
             }
         }

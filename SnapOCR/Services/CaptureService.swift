@@ -83,13 +83,17 @@ enum CaptureError: LocalizedError {
     case invalidRegion
 
     var errorDescription: String? {
+        localizedDescription(bundle: .main)
+    }
+
+    func localizedDescription(bundle: Bundle) -> String {
         switch self {
         case .noDisplay:
-            return String(localized: "No display found", comment: "Error when target display is unavailable")
+            String(localized: "No display found", bundle: bundle, comment: "Error when target display is unavailable")
         case .captureFailure:
-            return String(localized: "Screen capture failed", comment: "Error when screen capture operation fails")
+            String(localized: "Screen capture failed", bundle: bundle, comment: "Error when screen capture operation fails")
         case .invalidRegion:
-            return String(localized: "Invalid capture region", comment: "Error when capture region has invalid dimensions")
+            String(localized: "Invalid capture region", bundle: bundle, comment: "Error when capture region has invalid dimensions")
         }
     }
 }

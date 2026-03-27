@@ -16,14 +16,35 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
-    var displayName: String {
+    func displayName(bundle: Bundle) -> String {
         switch self {
-        case .system: String(localized: "System", comment: "Appearance mode that follows system setting")
-        case .light: String(localized: "Light", comment: "Light appearance mode")
-        case .dark: String(localized: "Dark", comment: "Dark appearance mode")
+        case .system:
+            String(localized: "System", bundle: bundle, comment: "Appearance mode that follows system setting")
+        case .light:
+            String(localized: "Light", bundle: bundle, comment: "Light appearance mode")
+        case .dark:
+            String(localized: "Dark", bundle: bundle, comment: "Dark appearance mode")
         }
     }
 
+}
+
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case japanese = "ja"
+    case english = "en"
+
+    var id: Self { self }
+
+    /// `.system` is localized; language names use their native form.
+    func displayName(bundle: Bundle) -> String {
+        switch self {
+        case .system:
+            String(localized: "System", bundle: bundle, comment: "Language mode that follows system setting")
+        case .japanese: "日本語"
+        case .english: "English"
+        }
+    }
 }
 
 @Observable
@@ -41,6 +62,7 @@ final class SettingsService {
         static let isToastEnabled = "isToastEnabled"
         static let isHistoryEnabled = "isHistoryEnabled"
         static let maxHistoryCount = "maxHistoryCount"
+        static let appLanguage = "appLanguage"
     }
 
     static let defaultHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_O)
@@ -51,6 +73,33 @@ final class SettingsService {
 
     var appearanceMode: AppearanceMode = .system {
         didSet { defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode) }
+    }
+
+    var appLanguage: AppLanguage = .system {
+        didSet {
+            defaults.set(appLanguage.rawValue, forKey: Keys.appLanguage)
+            localizationBundle = resolveLocalizationBundle()
+        }
+    }
+
+    private(set) var localizationBundle: Bundle = .main
+
+    private func resolveLocalizationBundle() -> Bundle {
+        let languageCode: String
+        switch appLanguage {
+        case .system:
+            let preferred = Locale.preferredLanguages.first ?? "en"
+            languageCode = preferred.hasPrefix("ja") ? "ja" : "en"
+        case .japanese:
+            languageCode = "ja"
+        case .english:
+            languageCode = "en"
+        }
+        if let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            return bundle
+        }
+        return Bundle.main
     }
 
     var hotkeyKeyCode: UInt32 = SettingsService.defaultHotkeyKeyCode {
@@ -119,6 +168,11 @@ final class SettingsService {
            let mode = AppearanceMode(rawValue: rawValue) {
             appearanceMode = mode
         }
+        if let rawValue = userDefaults.string(forKey: Keys.appLanguage),
+           let language = AppLanguage(rawValue: rawValue) {
+            appLanguage = language
+        }
+        localizationBundle = resolveLocalizationBundle()
         if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int,
            (0...0xFFFF).contains(intValue) {
             hotkeyKeyCode = UInt32(intValue)

@@ -34,21 +34,21 @@ enum NotificationService {
     @MainActor
     static func notifySuccess(text: String, settings: SettingsService) {
         if settings.isNotificationCenterEnabled {
-            sendNotification(text: text)
+            sendNotification(text: text, bundle: settings.localizationBundle)
         }
         if settings.isCompletionSoundEnabled {
             playSound(named: settings.completionSoundName)
         }
         if settings.isToastEnabled {
-            ToastWindow.show(text: text)
+            ToastWindow.show(text: text, bundle: settings.localizationBundle)
         }
     }
 
     // MARK: - Notification Center
 
-    private static func sendNotification(text: String) {
+    private static func sendNotification(text: String, bundle: Bundle) {
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Text Copied", comment: "Notification title when OCR text is copied")
+        content.title = String(localized: "Text Copied", bundle: bundle, comment: "Notification title when OCR text is copied")
         content.body = text.count > 100 ? String(text.prefix(100)) + "…" : text
         content.sound = nil // Sound is handled separately
 

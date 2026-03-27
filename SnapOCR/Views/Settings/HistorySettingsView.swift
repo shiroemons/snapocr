@@ -16,6 +16,7 @@ struct HistorySettingsView: View {
 
     @State private var showingDeleteConfirmation = false
 
+    private var bundle: Bundle { settingsService.localizationBundle }
     private let maxCountOptions = [50, 100, 200, 500]
 
     var body: some View {
@@ -34,6 +35,7 @@ struct HistorySettingsView: View {
             Toggle(
                 String(
                     localized: "Save OCR History",
+                    bundle: bundle,
                     comment: "Toggle for history saving"
                 ),
                 isOn: Binding(
@@ -45,6 +47,7 @@ struct HistorySettingsView: View {
             Text(
                 String(
                     localized: "Save recognized text from screen captures for later reference.",
+                    bundle: bundle,
                     comment: "History storage description"
                 )
             )
@@ -55,6 +58,7 @@ struct HistorySettingsView: View {
                 Picker(
                     String(
                         localized: "Maximum History Count",
+                        bundle: bundle,
                         comment: "Picker for max history count"
                     ),
                     selection: Binding(
@@ -75,6 +79,7 @@ struct HistorySettingsView: View {
             Text(
                 String(
                     localized: "Storage",
+                    bundle: bundle,
                     comment: "History storage section header"
                 )
             )
@@ -93,6 +98,7 @@ struct HistorySettingsView: View {
                     Text(
                         String(
                             localized: "Show All History",
+                            bundle: bundle,
                             comment: "Button to open history window from settings"
                         )
                     )
@@ -100,6 +106,7 @@ struct HistorySettingsView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Show all OCR history in a separate window",
+                        bundle: bundle,
                         comment: "Accessibility label for the button that opens the full history window"
                     )
                 )
@@ -112,6 +119,7 @@ struct HistorySettingsView: View {
                     Text(
                         String(
                             localized: "Delete All History",
+                            bundle: bundle,
                             comment: "Button to delete all history"
                         )
                     )
@@ -119,12 +127,14 @@ struct HistorySettingsView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Delete all OCR history permanently",
+                        bundle: bundle,
                         comment: "Accessibility label for the destructive button that deletes all history"
                     )
                 )
                 .confirmationDialog(
                     String(
                         localized: "Delete All History?",
+                        bundle: bundle,
                         comment: "Delete confirmation title"
                     ),
                     isPresented: $showingDeleteConfirmation
@@ -132,6 +142,7 @@ struct HistorySettingsView: View {
                     Button(
                         String(
                             localized: "Delete All",
+                            bundle: bundle,
                             comment: "Confirm delete all button"
                         ),
                         role: .destructive
@@ -142,6 +153,7 @@ struct HistorySettingsView: View {
                     Text(
                         String(
                             localized: "This action cannot be undone.",
+                            bundle: bundle,
                             comment: "Delete confirmation message"
                         )
                     )
@@ -151,6 +163,7 @@ struct HistorySettingsView: View {
             Text(
                 String(
                     localized: "Management",
+                    bundle: bundle,
                     comment: "History management section header"
                 )
             )

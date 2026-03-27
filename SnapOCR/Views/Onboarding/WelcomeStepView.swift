@@ -10,6 +10,10 @@ import SwiftUI
 /// Step 1: SnapOCR へようこそ
 @MainActor
 struct WelcomeStepView: View {
+    let settingsService: SettingsService
+
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "text.viewfinder")
@@ -20,13 +24,14 @@ struct WelcomeStepView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 8) {
-                Text(String(localized: "SnapOCR", comment: "App name shown on the Welcome step"))
+                Text(String(localized: "SnapOCR", bundle: bundle, comment: "App name shown on the Welcome step"))
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
                 Text(
                     String(
                         localized: "Capture text from anywhere on your screen.\nPress the hotkey, drag to select a region, and the recognized text is instantly copied to your clipboard.",
+                        bundle: bundle,
                         comment: "Welcome step description explaining the core workflow"
                     )
                 )
@@ -43,7 +48,7 @@ struct WelcomeStepView: View {
 
 #if DEBUG
 #Preview {
-    WelcomeStepView()
+    WelcomeStepView(settingsService: SettingsService())
         .frame(width: 500, height: 300)
         .padding()
 }

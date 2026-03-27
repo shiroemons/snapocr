@@ -15,8 +15,11 @@ struct RecentCapturesView: View {
     private static let textLineLimit = 5
     private static let hoverBackgroundColor = Color.primary.opacity(0.08)
 
+    let settingsService: SettingsService
     let historyService: HistoryService
     let onShowHistory: () -> Void
+
+    private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var copiedRecordID: PersistentIdentifier?
     @State private var hoveredRecordID: PersistentIdentifier?
@@ -28,6 +31,7 @@ struct RecentCapturesView: View {
             Text(
                 String(
                     localized: "Recent Captures",
+                    bundle: bundle,
                     comment: "Section header for recent captures"
                 )
             )
@@ -56,6 +60,7 @@ struct RecentCapturesView: View {
             Text(
                 String(
                     localized: "No captures yet",
+                    bundle: bundle,
                     comment: "Placeholder text when no capture history exists"
                 )
             )
@@ -114,7 +119,7 @@ struct RecentCapturesView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(record.text)
                 .accessibilityHint(
-                    String(localized: "Copies this text to the clipboard", comment: "Accessibility hint for recent capture item button")
+                    String(localized: "Copies this text to the clipboard", bundle: bundle, comment: "Accessibility hint for recent capture item button")
                 )
                 .onHover { hovering in
                     hoveredRecordID = hovering ? record.persistentModelID : nil
@@ -139,6 +144,7 @@ struct RecentCapturesView: View {
             Text(
                 String(
                     localized: "Show All History...",
+                    bundle: bundle,
                     comment: "Button to open full history window"
                 )
             )

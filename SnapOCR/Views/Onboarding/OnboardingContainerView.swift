@@ -18,6 +18,8 @@ struct OnboardingContainerView: View {
     private let permissionService: PermissionService
     private let onComplete: (() -> Void)?
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     @State private var currentStep = 1
     @State private var canProceedFromStep2 = false
 
@@ -61,6 +63,7 @@ struct OnboardingContainerView: View {
         .accessibilityLabel(
             String(
                 localized: "Step \(currentStep) of \(Constants.totalSteps)",
+                bundle: bundle,
                 comment: "Accessibility label for the step progress indicator"
             )
         )
@@ -72,10 +75,11 @@ struct OnboardingContainerView: View {
     private var stepContent: some View {
         switch currentStep {
         case 1:
-            WelcomeStepView()
+            WelcomeStepView(settingsService: settingsService)
         case 2:
             PermissionStepView(
                 permissionService: permissionService,
+                settingsService: settingsService,
                 canProceed: $canProceedFromStep2
             )
         case 3:
@@ -101,7 +105,7 @@ struct OnboardingContainerView: View {
             HStack {
                 backButton
                 Spacer()
-                Button(String(localized: "Skip", comment: "Button to skip the current onboarding step")) {
+                Button(String(localized: "Skip", bundle: bundle, comment: "Button to skip the current onboarding step")) {
                     advance()
                 }
                 .buttonStyle(.plain)
@@ -109,6 +113,7 @@ struct OnboardingContainerView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Skip this step",
+                        bundle: bundle,
                         comment: "Accessibility label for the button that skips the current onboarding step"
                     )
                 )
@@ -124,7 +129,7 @@ struct OnboardingContainerView: View {
         case 4:
             HStack {
                 Spacer()
-                Button(String(localized: "Get Started", comment: "Button to finish onboarding and start using the app")) {
+                Button(String(localized: "Get Started", bundle: bundle, comment: "Button to finish onboarding and start using the app")) {
                     onComplete?()
                 }
                 .buttonStyle(.borderedProminent)
@@ -132,6 +137,7 @@ struct OnboardingContainerView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Finish setup and start using SnapOCR",
+                        bundle: bundle,
                         comment: "Accessibility label for the button that completes onboarding"
                     )
                 )
@@ -142,7 +148,7 @@ struct OnboardingContainerView: View {
     }
 
     private var nextButton: some View {
-        Button(String(localized: "Next", comment: "Button to advance to the next onboarding step")) {
+        Button(String(localized: "Next", bundle: bundle, comment: "Button to advance to the next onboarding step")) {
             advance()
         }
         .buttonStyle(.borderedProminent)
@@ -150,13 +156,14 @@ struct OnboardingContainerView: View {
         .accessibilityLabel(
             String(
                 localized: "Next step",
+                bundle: bundle,
                 comment: "Accessibility label for the button that advances to the next onboarding step"
             )
         )
     }
 
     private var backButton: some View {
-        Button(String(localized: "Back", comment: "Button to go back to the previous onboarding step")) {
+        Button(String(localized: "Back", bundle: bundle, comment: "Button to go back to the previous onboarding step")) {
             retreat()
         }
         .buttonStyle(.bordered)
@@ -164,6 +171,7 @@ struct OnboardingContainerView: View {
         .accessibilityLabel(
             String(
                 localized: "Previous step",
+                bundle: bundle,
                 comment: "Accessibility label for the button that returns to the previous onboarding step"
             )
         )

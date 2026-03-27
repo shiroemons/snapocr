@@ -44,6 +44,8 @@ struct MenuBarPanelView: View {
         self.onQuit = onQuit
     }
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     private var hotkeyLabel: String {
         KeyCodeMapping.displayString(
             keyCode: settingsService.hotkeyKeyCode,
@@ -54,7 +56,7 @@ struct MenuBarPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !permissionService.isScreenCapturePermitted {
-                PermissionWarningBanner {
+                PermissionWarningBanner(settingsService: settingsService) {
                     permissionService.openSystemSettings()
                 }
 
@@ -64,6 +66,7 @@ struct MenuBarPanelView: View {
             }
 
             CaptureActionView(
+                settingsService: settingsService,
                 hotkeyLabel: hotkeyLabel,
                 isPermissionGranted: permissionService.isScreenCapturePermitted,
                 onCapture: onCapture
@@ -73,13 +76,14 @@ struct MenuBarPanelView: View {
                 .opacity(Constants.dividerOpacity)
                 .accessibilityHidden(true)
 
-            RecentCapturesView(historyService: historyService, onShowHistory: onShowHistory)
+            RecentCapturesView(settingsService: settingsService, historyService: historyService, onShowHistory: onShowHistory)
 
             Divider()
                 .opacity(Constants.dividerOpacity)
                 .accessibilityHidden(true)
 
             MenuBarFooterView(
+                settingsService: settingsService,
                 onDismissMenu: onDismissMenu,
                 onQuit: onQuit
             )
@@ -90,6 +94,7 @@ struct MenuBarPanelView: View {
             Text(
                 String(
                     localized: "SnapOCR Menu Bar Panel",
+                    bundle: bundle,
                     comment: "Accessibility label for the menu bar panel"
                 )
             )

@@ -10,8 +10,11 @@ import SwiftUI
 @MainActor
 struct MenuBarFooterView: View {
     @Environment(\.openSettings) private var openSettings
+    let settingsService: SettingsService
     let onDismissMenu: () -> Void
     let onQuit: () -> Void
+
+    private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var isHoveringSettings = false
     @State private var isHoveringQuit = false
@@ -35,8 +38,8 @@ struct MenuBarFooterView: View {
             }
             .buttonStyle(.plain)
             .onHover { isHoveringSettings = $0 }
-            .help(String(localized: "Settings", comment: "Tooltip for settings button in footer"))
-            .accessibilityLabel(String(localized: "Settings", comment: "Accessibility label for settings button"))
+            .help(String(localized: "Settings", bundle: bundle, comment: "Tooltip for settings button in footer"))
+            .accessibilityLabel(String(localized: "Settings", bundle: bundle, comment: "Accessibility label for settings button"))
 
             Spacer()
 
@@ -56,8 +59,8 @@ struct MenuBarFooterView: View {
             }
             .buttonStyle(.plain)
             .onHover { isHoveringQuit = $0 }
-            .help(String(localized: "Quit SnapOCR", comment: "Tooltip for quit button in footer"))
-            .accessibilityLabel(String(localized: "Quit SnapOCR", comment: "Accessibility label for quit button"))
+            .help(String(localized: "Quit SnapOCR", bundle: bundle, comment: "Tooltip for quit button in footer"))
+            .accessibilityLabel(String(localized: "Quit SnapOCR", bundle: bundle, comment: "Accessibility label for quit button"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -66,7 +69,7 @@ struct MenuBarFooterView: View {
 
 #if DEBUG
 #Preview {
-    MenuBarFooterView {
+    MenuBarFooterView(settingsService: SettingsService()) {
         // dismiss menu
     } onQuit: {
         // quit

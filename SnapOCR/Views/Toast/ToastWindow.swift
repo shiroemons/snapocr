@@ -21,6 +21,7 @@ private enum Constants {
 
 private struct ToastContentView: View {
     let text: String
+    let bundle: Bundle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -29,7 +30,7 @@ private struct ToastContentView: View {
                     .foregroundStyle(.green)
                     .font(.system(size: 16, weight: .medium))
 
-                Text(String(localized: "Copied to Clipboard", comment: "Toast notification title when OCR text is copied to clipboard"))
+                Text(String(localized: "Copied to Clipboard", bundle: bundle, comment: "Toast notification title when OCR text is copied to clipboard"))
                     .font(.system(size: 13, weight: .medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -62,18 +63,18 @@ final class ToastWindow {
 
     // MARK: - Public API
 
-    static func show(text: String) {
+    static func show(text: String, bundle: Bundle = .main) {
         current?.dismissImmediately()
         let toast = ToastWindow()
         current = toast
-        toast.present(text: text)
+        toast.present(text: text, bundle: bundle)
     }
 
     // MARK: - Private
 
-    private func present(text: String) {
+    private func present(text: String, bundle: Bundle) {
         let displayText = String(text.prefix(Constants.maxTextLength))
-        let contentView = ToastContentView(text: displayText)
+        let contentView = ToastContentView(text: displayText, bundle: bundle)
         let hosting = NSHostingView(rootView: contentView)
         let fittedSize = hosting.fittingSize
         let clampedSize = CGSize(width: fittedSize.width, height: min(fittedSize.height, Constants.maxWindowHeight))

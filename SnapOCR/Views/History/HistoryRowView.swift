@@ -11,11 +11,14 @@ import SwiftUI
 @MainActor
 struct HistoryRowView: View {
     let record: CaptureRecord
+    let settingsService: SettingsService
     let isCopied: Bool
     let isEditing: Bool
     let isSelected: Bool
     let onCopy: () -> Void
     let onDelete: () -> Void
+
+    private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var isHoveringDelete = false
 
@@ -86,12 +89,14 @@ struct HistoryRowView: View {
             .accessibilityLabel(
                 String(
                     localized: "Copy text",
+                    bundle: bundle,
                     comment: "Accessibility label for copy button in history row"
                 )
             )
             .accessibilityHint(
                 String(
                     localized: "Copies the recognized text to the clipboard",
+                    bundle: bundle,
                     comment: "Accessibility hint for copy button in history row"
                 )
             )
@@ -106,12 +111,14 @@ struct HistoryRowView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Delete record",
+                        bundle: bundle,
                         comment: "Accessibility label for delete button in history row"
                     )
                 )
                 .accessibilityHint(
                     String(
                         localized: "Permanently deletes this history record",
+                        bundle: bundle,
                         comment: "Accessibility hint for delete button in history row"
                     )
                 )

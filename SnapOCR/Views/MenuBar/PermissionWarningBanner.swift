@@ -9,7 +9,10 @@ import SwiftUI
 
 @MainActor
 struct PermissionWarningBanner: View {
+    let settingsService: SettingsService
     let onOpenSettings: () -> Void
+
+    private var bundle: Bundle { settingsService.localizationBundle }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -19,12 +22,12 @@ struct PermissionWarningBanner: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "Screen recording permission required", comment: "Permission warning title"))
+                Text(String(localized: "Screen recording permission required", bundle: bundle, comment: "Permission warning title"))
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
 
-                Text(String(localized: "Grant access in System Settings to use OCR capture.", comment: "Permission warning description"))
+                Text(String(localized: "Grant access in System Settings to use OCR capture.", bundle: bundle, comment: "Permission warning description"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -35,13 +38,13 @@ struct PermissionWarningBanner: View {
             Button {
                 onOpenSettings()
             } label: {
-                Text(String(localized: "Open Settings", comment: "Button to open System Settings for permission"))
+                Text(String(localized: "Open Settings", bundle: bundle, comment: "Button to open System Settings for permission"))
                     .font(.caption)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .accessibilityLabel(
-                String(localized: "Open System Settings to grant screen recording permission", comment: "Accessibility label for open settings button in permission warning")
+                String(localized: "Open System Settings to grant screen recording permission", bundle: bundle, comment: "Accessibility label for open settings button in permission warning")
             )
         }
         .padding(10)
@@ -62,7 +65,7 @@ struct PermissionWarningBanner: View {
 
 #if DEBUG
 #Preview {
-    PermissionWarningBanner {
+    PermissionWarningBanner(settingsService: SettingsService()) {
         // open settings
     }
     .frame(width: 320)

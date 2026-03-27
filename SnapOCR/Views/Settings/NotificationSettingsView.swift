@@ -12,6 +12,7 @@ import SwiftUI
 struct NotificationSettingsView: View {
     let settingsService: SettingsService
 
+    private var bundle: Bundle { settingsService.localizationBundle }
     private let availableSounds = ["Tink", "Pop", "Glass", "Purr", "Ping"]
 
     var body: some View {
@@ -31,6 +32,7 @@ struct NotificationSettingsView: View {
             Toggle(
                 String(
                     localized: "Notification Center",
+                    bundle: bundle,
                     comment: "Toggle for macOS notification center"
                 ),
                 isOn: Binding(
@@ -41,6 +43,7 @@ struct NotificationSettingsView: View {
             Text(
                 String(
                     localized: "Show a macOS notification with a preview of the recognized text.",
+                    bundle: bundle,
                     comment: "Notification center description"
                 )
             )
@@ -50,6 +53,7 @@ struct NotificationSettingsView: View {
             Text(
                 String(
                     localized: "Notification Center",
+                    bundle: bundle,
                     comment: "Notification center section header in Notification settings"
                 )
             )
@@ -63,6 +67,7 @@ struct NotificationSettingsView: View {
             Toggle(
                 String(
                     localized: "Completion Sound",
+                    bundle: bundle,
                     comment: "Toggle for completion sound"
                 ),
                 isOn: Binding(
@@ -75,6 +80,7 @@ struct NotificationSettingsView: View {
                 Picker(
                     String(
                         localized: "Sound",
+                        bundle: bundle,
                         comment: "Sound picker label"
                     ),
                     selection: Binding(
@@ -89,6 +95,7 @@ struct NotificationSettingsView: View {
                 .accessibilityLabel(
                     String(
                         localized: "Completion sound selection",
+                        bundle: bundle,
                         comment: "Accessibility label for the sound picker in notification settings"
                     )
                 )
@@ -98,6 +105,7 @@ struct NotificationSettingsView: View {
                     Button(
                         String(
                             localized: "Test Sound",
+                            bundle: bundle,
                             comment: "Button to test the selected sound"
                         )
                     ) {
@@ -106,6 +114,7 @@ struct NotificationSettingsView: View {
                     .accessibilityLabel(
                         String(
                             localized: "Preview the selected completion sound",
+                            bundle: bundle,
                             comment: "Accessibility label for the button that plays a preview of the selected sound"
                         )
                     )
@@ -115,6 +124,7 @@ struct NotificationSettingsView: View {
             Text(
                 String(
                     localized: "Sound",
+                    bundle: bundle,
                     comment: "Sound section header in Notification settings"
                 )
             )
@@ -128,6 +138,7 @@ struct NotificationSettingsView: View {
             Toggle(
                 String(
                     localized: "Screen Toast",
+                    bundle: bundle,
                     comment: "Toggle for screen toast notification"
                 ),
                 isOn: Binding(
@@ -138,6 +149,7 @@ struct NotificationSettingsView: View {
             Text(
                 String(
                     localized: "Show a floating notification at the top of the screen that auto-dismisses.",
+                    bundle: bundle,
                     comment: "Toast description"
                 )
             )
@@ -147,6 +159,7 @@ struct NotificationSettingsView: View {
             Text(
                 String(
                     localized: "Toast",
+                    bundle: bundle,
                     comment: "Toast section header in Notification settings"
                 )
             )

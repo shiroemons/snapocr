@@ -16,6 +16,8 @@ struct SettingsView: View {
     let onShowOnboarding: () -> Void
     let onShowHistory: () -> Void
 
+    private var bundle: Bundle { settingsService.localizationBundle }
+
     var body: some View {
         TabView {
             GeneralSettingsView(
@@ -26,7 +28,7 @@ struct SettingsView: View {
             )
             .tabItem {
                 Label(
-                    String(localized: "General", comment: "General settings tab title"),
+                    String(localized: "General", bundle: bundle, comment: "General settings tab title"),
                     systemImage: "gearshape"
                 )
             }
@@ -34,7 +36,7 @@ struct SettingsView: View {
             OCRSettingsView(settingsService: settingsService)
                 .tabItem {
                     Label(
-                        String(localized: "OCR", comment: "OCR settings tab title"),
+                        String(localized: "OCR", bundle: bundle, comment: "OCR settings tab title"),
                         systemImage: "text.viewfinder"
                     )
                 }
@@ -42,7 +44,7 @@ struct SettingsView: View {
             NotificationSettingsView(settingsService: settingsService)
                 .tabItem {
                     Label(
-                        String(localized: "Notifications", comment: "Notifications settings tab title"),
+                        String(localized: "Notifications", bundle: bundle, comment: "Notifications settings tab title"),
                         systemImage: "bell"
                     )
                 }
@@ -50,15 +52,15 @@ struct SettingsView: View {
             HistorySettingsView(settingsService: settingsService, historyService: historyService, onShowHistory: onShowHistory)
                 .tabItem {
                     Label(
-                        String(localized: "History", comment: "History settings tab title"),
+                        String(localized: "History", bundle: bundle, comment: "History settings tab title"),
                         systemImage: "clock.arrow.circlepath"
                     )
                 }
 
-            UpdateSettingsView()
+            UpdateSettingsView(settingsService: settingsService)
                 .tabItem {
                     Label(
-                        String(localized: "Updates", comment: "Updates settings tab title"),
+                        String(localized: "Updates", bundle: bundle, comment: "Updates settings tab title"),
                         systemImage: "arrow.triangle.2.circlepath"
                     )
                 }

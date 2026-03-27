@@ -48,7 +48,7 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
         )
         win.contentMinSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
         win.contentMaxSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
-        win.title = String(localized: "Welcome to SnapOCR", comment: "Onboarding window title")
+        win.title = String(localized: "Welcome to SnapOCR", bundle: settingsService.localizationBundle, comment: "Onboarding window title")
         win.isReleasedWhenClosed = false
         win.contentView = hosting
         win.center()
