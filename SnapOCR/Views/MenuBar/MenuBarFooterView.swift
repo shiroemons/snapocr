@@ -55,7 +55,8 @@ struct MenuBarFooterView: View {
 
             Spacer()
 
-            footerButton(.about, systemImage: "info.circle", label: "About SnapOCR", comment: "About button in footer") {
+            footerButton(.about, systemImage: "info.circle", label: "About SnapOCR",
+                         comment: "About button in footer") {
                 onDismissMenu()
                 NSApp.activate()
                 NSApp.orderFrontStandardAboutPanel(options: [.version: ""])
