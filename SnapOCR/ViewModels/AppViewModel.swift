@@ -17,6 +17,11 @@ final class AppViewModel {
     private let hotkeyService: HotkeyService
     private let settingsService: SettingsService
     private let historyService: HistoryService?
+    private let ocrService: any OCRServiceProtocol
+    private let captureService: any CaptureServiceProtocol
+    private let clipboardService: any ClipboardServiceProtocol
+    private let notificationService: any NotificationServiceProtocol
+    private let regionSelector: any RegionSelectorProtocol
 
     private var isTrackingActive = true
 
@@ -31,12 +36,22 @@ final class AppViewModel {
         permissionService: PermissionService = PermissionService(),
         hotkeyService: HotkeyService = HotkeyService(),
         settingsService: SettingsService = SettingsService(),
-        historyService: HistoryService? = nil
+        historyService: HistoryService? = nil,
+        ocrService: any OCRServiceProtocol = DefaultOCRService(),
+        captureService: any CaptureServiceProtocol = DefaultCaptureService(),
+        clipboardService: any ClipboardServiceProtocol = DefaultClipboardService(),
+        notificationService: any NotificationServiceProtocol = DefaultNotificationService(),
+        regionSelector: any RegionSelectorProtocol = DefaultRegionSelector()
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
         self.settingsService = settingsService
         self.historyService = historyService
+        self.ocrService = ocrService
+        self.captureService = captureService
+        self.clipboardService = clipboardService
+        self.notificationService = notificationService
+        self.regionSelector = regionSelector
     }
 
     func setup() {
@@ -98,13 +113,13 @@ final class AppViewModel {
 
         do {
             Self.logger.info("Starting region selection")
-            guard let selection = await SelectionOverlayWindow.selectRegion() else {
+            guard let selection = await regionSelector.selectRegion() else {
                 Self.logger.info("Region selection cancelled by user")
                 return
             }
             Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .private)")
 
-            let image = try await CaptureService.captureRegion(
+            let image = try await captureService.captureRegion(
                 selection.rect,
                 displayID: selection.displayID,
                 screenSize: selection.screenSize,
@@ -112,7 +127,7 @@ final class AppViewModel {
             )
             Self.logger.info("Screen capture completed")
 
-            let text = try await OCRService.recognizeText(from: image)
+            let text = try await ocrService.recognizeText(from: image)
             Self.logger.info("OCR completed: \(text.count) characters recognized")
 
             guard !text.isEmpty else {
@@ -153,9 +168,9 @@ final class AppViewModel {
     }
 
     private func handleRecognizedText(_ text: String) {
-        if ClipboardService.copy(text) {
+        if clipboardService.copy(text) {
             Self.logger.info("Text copied to clipboard successfully")
-            NotificationService.notifySuccess(text: text, settings: settingsService)
+            notificationService.notifySuccess(text: text, settings: settingsService)
             if settingsService.isHistoryEnabled {
                 historyService?.addRecord(
                     text: text,

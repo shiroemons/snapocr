@@ -26,7 +26,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8E491C601B2F72C453000F546A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		8E491C601B2F72C453000F546A /* Exceptions for "SnapOCR" folder in "SnapOCR" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -39,7 +39,7 @@
 		8E491C1B2F72C453000F546A /* SnapOCR */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8E491C601B2F72C453000F546A /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				8E491C601B2F72C453000F546A /* Exceptions for "SnapOCR" folder in "SnapOCR" target */,
 			);
 			path = SnapOCR;
 			sourceTree = "<group>";

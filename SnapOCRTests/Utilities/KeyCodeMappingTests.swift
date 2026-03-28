@@ -42,7 +42,8 @@ struct KeyCodeMappingTests {
     // MARK: - string(for:) — special keys
 
     @Test func spaceKey() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Space)) == "Space")
+        let expected = String(localized: "Space", bundle: .main, comment: "Space key display name")
+        #expect(KeyCodeMapping.string(for: UInt32(kVK_Space)) == expected)
     }
 
     @Test func tabKey() {
