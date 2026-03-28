@@ -163,12 +163,6 @@ jobs:
           mkdir -p "$RELEASES_DIR"
           cp "$DMG_PATH" "$RELEASES_DIR/"
 
-          # Download previous release DMGs to enable delta update generation
-          gh release list --limit 5 --json tagName -q '.[].tagName' | while read -r tag; do
-            [ "$tag" = "${GITHUB_REF_NAME}" ] && continue
-            gh release download "$tag" -D "$RELEASES_DIR" -p "*.dmg" 2>/dev/null || true
-          done
-
           # Fetch release notes from the GitHub Release body
           gh release view "${GITHUB_REF_NAME}" --json body -q '.body' \
             > "$RELEASES_DIR/$APP_NAME-$VERSION.html" 2>/dev/null || true
@@ -184,13 +178,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Re-create release with assets
           gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag 2>/dev/null || true
-          ASSETS=("$DMG_PATH")
-          for delta in "$RELEASES_DIR"/*.delta; do
-            [ -f "$delta" ] && ASSETS+=("$delta")
-          done
-          gh release create "${GITHUB_REF_NAME}" "${ASSETS[@]}" --generate-notes
+          gh release create "${GITHUB_REF_NAME}" "$DMG_PATH" --generate-notes
 
       - name: Deploy appcast
         env:
