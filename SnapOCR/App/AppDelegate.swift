@@ -54,6 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
+            NSApplication.shared.applicationIconImage = NSImage(contentsOf: iconURL)
+        }
         NotificationService.requestPermission()
         permissionService.requestPermission()
         setupMenuBar()
