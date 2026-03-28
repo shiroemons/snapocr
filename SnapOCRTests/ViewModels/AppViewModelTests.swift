@@ -1,8 +1,8 @@
 import CoreGraphics
 import Foundation
+@testable import SnapOCR
 import SwiftData
 import Testing
-@testable import SnapOCR
 
 @Suite("AppViewModel Tests")
 @MainActor
@@ -380,6 +380,11 @@ struct AppViewModelTests {
         #expect(result.viewModel.lastError != nil)
     }
 
+}
+
+// MARK: - Guard Paths
+
+extension AppViewModelTests {
     @Test func captureCancel_selectionCancelled_noError() async throws {
         guard isPermissionGranted() else { return }
 
@@ -396,11 +401,6 @@ struct AppViewModelTests {
         #expect(result.viewModel.isCapturing == false)
     }
 
-}
-
-// MARK: - Guard Paths
-
-extension AppViewModelTests {
     @Test func startCapture_ignoresDuplicateCapture() async throws {
         guard isPermissionGranted() else { return }
 
