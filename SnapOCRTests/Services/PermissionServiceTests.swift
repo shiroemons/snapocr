@@ -35,4 +35,10 @@ struct PermissionServiceTests {
         let second: Bool = service.isScreenCapturePermitted
         #expect(first == second, "isScreenCapturePermitted must return a consistent value across successive reads")
     }
+
+    @Test func requestPermissionIfNeededIsCallable() {
+        let service = PermissionService()
+        service.requestPermissionIfNeeded()
+        service.requestPermissionIfNeeded()
+    }
 }

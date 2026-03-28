@@ -261,7 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
-        permissionService.checkPermission()
+        permissionService.requestPermissionIfNeeded()
         updateStatusItemIcon()
 
         if let hostingView, let panelItem {

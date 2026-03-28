@@ -16,9 +16,6 @@
         }
       }
     },
-    "About SnapOCR" : {
-      "comment" : "Accessibility label for about button\nTooltip for about button in footer"
-    },
     "Appearance" : {
       "comment" : "Appearance picker label in General settings",
       "localizations" : {
@@ -142,6 +139,7 @@
     },
     "Check for Updates" : {
       "comment" : "Accessibility label for check for updates button\nTooltip for check for updates button in footer",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -470,17 +468,6 @@
         }
       }
     },
-    "Every 12 hours" : {
-      "comment" : "Update check interval option",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "12時間ごと"
-          }
-        }
-      }
-    },
     "Every 6 hours" : {
       "comment" : "Update check interval option",
       "localizations" : {
@@ -488,6 +475,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "6時間ごと"
+          }
+        }
+      }
+    },
+    "Every 12 hours" : {
+      "comment" : "Update check interval option",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12時間ごと"
           }
         }
       }
@@ -937,6 +935,7 @@
     },
     "Quit SnapOCR" : {
       "comment" : "Accessibility label for quit button\nTooltip for quit button in footer",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1179,6 +1178,7 @@
     },
     "Settings" : {
       "comment" : "Accessibility label for settings button\nTooltip for settings button in footer",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

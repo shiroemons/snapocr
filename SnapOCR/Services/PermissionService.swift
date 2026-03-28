@@ -23,6 +23,13 @@ final class PermissionService {
         checkPermission()
     }
 
+    func requestPermissionIfNeeded() {
+        checkPermission()
+        guard !isScreenCapturePermitted else { return }
+        Self.logger.info("Requesting screen capture access")
+        requestPermission()
+    }
+
     func openSystemSettings() {
         requestPermission()
         let settingsURLString =
