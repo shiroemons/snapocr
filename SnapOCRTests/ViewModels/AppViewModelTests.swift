@@ -379,7 +379,6 @@ struct AppViewModelTests {
 
         #expect(result.viewModel.lastError != nil)
     }
-
 }
 
 // MARK: - Guard Paths
