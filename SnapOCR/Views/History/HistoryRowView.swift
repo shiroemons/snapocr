@@ -55,32 +55,14 @@ struct HistoryRowView: View {
                                 alignment: .leading
                             )
 
-                        HStack(spacing: 8) {
-                            Text(
-                                record.timestamp,
-                                format: .relative(
-                                    presentation: .named
-                                )
+                        Text(
+                            record.timestamp,
+                            format: .relative(
+                                presentation: .named
                             )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                            if !record.recognizedLanguages.isEmpty {
-                                Text(
-                                    record.recognizedLanguages
-                                        .joined(separator: ", ")
-                                )
-                                .font(.caption2)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
-                                .background(
-                                    .quaternary,
-                                    in: RoundedRectangle(
-                                        cornerRadius: 3
-                                    )
-                                )
-                            }
-                        }
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                 }
                 .contentShape(Rectangle())
