@@ -1,15 +1,25 @@
 import CoreGraphics
 import Foundation
 import SwiftData
-@testable import SnapOCR
 import Testing
+@testable import SnapOCR
 
 @Suite("AppViewModel Tests")
 @MainActor
 struct AppViewModelTests {
     // MARK: - Helpers
 
-    private func makeSettingsService() -> SettingsService {
+    struct ViewModelResult {
+        let viewModel: AppViewModel
+        let ocrService: MockOCRService
+        let captureService: MockCaptureService
+        let clipboardService: MockClipboardService
+        let notificationService: MockNotificationService
+        let regionSelector: MockRegionSelector
+        let settingsService: SettingsService
+    }
+
+    func makeSettingsService() -> SettingsService {
         let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
         guard let testDefaults = UserDefaults(suiteName: suiteName) else {
             Issue.record("Failed to create test UserDefaults")
@@ -18,7 +28,7 @@ struct AppViewModelTests {
         return SettingsService(userDefaults: testDefaults)
     }
 
-    private func makeViewModel(
+    func makeViewModel(
         ocrService: MockOCRService = MockOCRService(),
         captureService: MockCaptureService = MockCaptureService(),
         clipboardService: MockClipboardService = MockClipboardService(),
@@ -26,15 +36,7 @@ struct AppViewModelTests {
         regionSelector: MockRegionSelector = MockRegionSelector(),
         settingsService: SettingsService? = nil,
         historyService: HistoryService? = nil
-    ) -> (
-        AppViewModel,
-        MockOCRService,
-        MockCaptureService,
-        MockClipboardService,
-        MockNotificationService,
-        MockRegionSelector,
-        SettingsService
-    ) {
+    ) -> ViewModelResult {
         let settings = settingsService ?? makeSettingsService()
         let vm = AppViewModel(
             settingsService: settings,
@@ -45,17 +47,25 @@ struct AppViewModelTests {
             notificationService: notificationService,
             regionSelector: regionSelector
         )
-        return (vm, ocrService, captureService, clipboardService, notificationService, regionSelector, settings)
+        return ViewModelResult(
+            viewModel: vm,
+            ocrService: ocrService,
+            captureService: captureService,
+            clipboardService: clipboardService,
+            notificationService: notificationService,
+            regionSelector: regionSelector,
+            settingsService: settings
+        )
     }
 
-    private func waitForCaptureCompletion(_ vm: AppViewModel) async throws {
+    func waitForCaptureCompletion(_ vm: AppViewModel) async throws {
         for _ in 0..<100 {
             if !vm.isCapturing { return }
             try await Task.sleep(for: .milliseconds(10))
         }
     }
 
-    private func validSelectionResult() -> SelectionResult {
+    func validSelectionResult() -> SelectionResult {
         SelectionResult(
             rect: CGRect(x: 0, y: 0, width: 100, height: 100),
             displayID: 1,
@@ -64,7 +74,7 @@ struct AppViewModelTests {
         )
     }
 
-    private func isPermissionGranted() -> Bool {
+    func isPermissionGranted() -> Bool {
         let permissionService = PermissionService()
         permissionService.checkPermission()
         return permissionService.isScreenCapturePermitted
@@ -144,16 +154,16 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, clipboard, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(clipboard.copyCallCount == 1)
-        #expect(clipboard.lastCopiedText == "Hello")
+        #expect(result.clipboardService.copyCallCount == 1)
+        #expect(result.clipboardService.lastCopiedText == "Hello")
     }
 
     @Test func captureSuccess_sendsNotification() async throws {
@@ -164,15 +174,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, notification, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(notification.notifySuccessCallCount == 1)
+        #expect(result.notificationService.notifySuccessCallCount == 1)
     }
 
     @Test func captureSuccess_addsHistoryRecord_whenEnabled() async throws {
@@ -190,15 +200,15 @@ struct AppViewModelTests {
         let container = try ModelContainer(for: CaptureRecord.self, configurations: config)
         let historyService = HistoryService(modelContainer: container)
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector,
             settingsService: settings,
             historyService: historyService
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         #expect(!historyService.recentRecords.isEmpty)
     }
@@ -218,15 +228,15 @@ struct AppViewModelTests {
         let container = try ModelContainer(for: CaptureRecord.self, configurations: config)
         let historyService = HistoryService(modelContainer: container)
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector,
             settingsService: settings,
             historyService: historyService
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         #expect(historyService.recentRecords.isEmpty)
     }
@@ -239,15 +249,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector,
             historyService: nil
         )
 
         // Must not crash when historyService is nil
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
     }
 
     @Test func captureSuccess_doesNotNotify_whenCopyFails() async throws {
@@ -260,17 +270,17 @@ struct AppViewModelTests {
         let clipboard = MockClipboardService()
         clipboard.copyResult = false
 
-        let (vm, _, _, _, notification, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             captureService: MockCaptureService(),
             clipboardService: clipboard,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(notification.notifySuccessCallCount == 0)
+        #expect(result.notificationService.notifySuccessCallCount == 0)
     }
 
     // MARK: - performCapture Error Paths
@@ -283,15 +293,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError != nil)
+        #expect(result.viewModel.lastError != nil)
     }
 
     @Test func captureError_invalidRegion_setsLastError() async throws {
@@ -302,15 +312,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             captureService: capture,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError != nil)
+        #expect(result.viewModel.lastError != nil)
     }
 
     @Test func captureError_noDisplay_setsLastError() async throws {
@@ -321,15 +331,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             captureService: capture,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError != nil)
+        #expect(result.viewModel.lastError != nil)
     }
 
     @Test func captureError_captureFailure_setsLastError() async throws {
@@ -340,15 +350,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             captureService: capture,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError != nil)
+        #expect(result.viewModel.lastError != nil)
     }
 
     @Test func captureError_ocrThrows_setsLastError() async throws {
@@ -359,15 +369,15 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = validSelectionResult()
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(
+        let result = makeViewModel(
             ocrService: ocr,
             regionSelector: regionSelector
         )
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError != nil)
+        #expect(result.viewModel.lastError != nil)
     }
 
     @Test func captureCancel_selectionCancelled_noError() async throws {
@@ -377,34 +387,37 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = nil
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(regionSelector: regionSelector)
+        let result = makeViewModel(regionSelector: regionSelector)
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
-        #expect(vm.lastError == nil)
-        #expect(vm.isCapturing == false)
+        #expect(result.viewModel.lastError == nil)
+        #expect(result.viewModel.isCapturing == false)
     }
 
-    // MARK: - Guard Paths
+}
 
+// MARK: - Guard Paths
+
+extension AppViewModelTests {
     @Test func startCapture_ignoresDuplicateCapture() async throws {
         guard isPermissionGranted() else { return }
 
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = nil
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(regionSelector: regionSelector)
+        let result = makeViewModel(regionSelector: regionSelector)
 
         // First capture — completes quickly since regionSelector returns nil
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         let countAfterFirst = regionSelector.selectRegionCallCount
 
         // Immediate second call — cooldown (500ms) should block it
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         #expect(regionSelector.selectRegionCallCount == countAfterFirst)
     }
@@ -415,14 +428,14 @@ struct AppViewModelTests {
         let regionSelector = MockRegionSelector()
         regionSelector.selectRegionResult = nil
 
-        let (vm, _, _, _, _, _, _) = makeViewModel(regionSelector: regionSelector)
+        let result = makeViewModel(regionSelector: regionSelector)
 
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         // Immediately try a second capture — within 500ms cooldown
-        vm.startCapture()
-        try await waitForCaptureCompletion(vm)
+        result.viewModel.startCapture()
+        try await waitForCaptureCompletion(result.viewModel)
 
         // Only one selectRegion call should have occurred due to cooldown
         #expect(regionSelector.selectRegionCallCount == 1)
