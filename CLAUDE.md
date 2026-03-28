@@ -75,6 +75,7 @@ swift package plugin lint
 
 ## Workflow
 
+- Before committing, always run SwiftLint via `xcodebuild build -scheme SnapOCR -destination 'platform=macOS'` and check for SwiftLint warnings/errors in the build output. Fix all violations before creating the commit.
 - Delegate all code implementation tasks to `code-simplifier:code-simplifier` subagent (`subagent_type: "code-simplifier:code-simplifier"`, `model: "sonnet"`) — research and planning can be done directly, but code changes must go through the subagent
 - Run `/simplify` after each implementation task to review code for reuse, quality, and efficiency, and fix any issues found
 - Use Swift LSP (`LSP` tool) for code navigation — prefer semantic operations (goToDefinition, findReferences, hover, documentSymbol) over text-based Grep/Glob searches
