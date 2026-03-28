@@ -17,10 +17,11 @@ struct MenuBarFooterView: View {
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
-    @State private var isHoveringSettings = false
-    @State private var isHoveringAbout = false
-    @State private var isHoveringUpdate = false
-    @State private var isHoveringQuit = false
+    private enum FooterButton {
+        case settings, update, about, quit
+    }
+
+    @State private var hoveredButton: FooterButton?
 
     // Version strings are technical identifiers and are intentionally not localized.
     private static let versionString: String = {
@@ -29,62 +30,21 @@ struct MenuBarFooterView: View {
     }()
 
     var body: some View {
-        HStack(spacing: 4) {
-            Button {
+        HStack(spacing: 12) {
+            footerButton(.settings, systemImage: "gear", label: "Settings", comment: "Settings button in footer") {
                 onDismissMenu()
                 openSettings()
-            } label: {
-                Image(systemName: "gear")
-                    .font(.body)
-                    .foregroundStyle(isHoveringSettings ? .primary : .secondary)
             }
-            .buttonStyle(.plain)
-            .onHover { isHoveringSettings = $0 }
-            .help(String(localized: "Settings", bundle: bundle, comment: "Tooltip for settings button in footer"))
-            .accessibilityLabel(String(
-                localized: "Settings",
-                bundle: bundle,
-                comment: "Accessibility label for settings button"
-            ))
 
-            Button {
-                onDismissMenu()
-                NSApp.activate()
-                NSApp.orderFrontStandardAboutPanel(options: [.version: ""])
-            } label: {
-                Image(systemName: "info.circle")
-                    .font(.body)
-                    .foregroundStyle(isHoveringAbout ? .primary : .secondary)
-            }
-            .buttonStyle(.plain)
-            .onHover { isHoveringAbout = $0 }
-            .help(String(localized: "About SnapOCR", bundle: bundle, comment: "Tooltip for about button in footer"))
-            .accessibilityLabel(String(
-                localized: "About SnapOCR",
-                bundle: bundle,
-                comment: "Accessibility label for about button"
-            ))
-
-            Button {
+            footerButton(
+                .update,
+                systemImage: "arrow.triangle.2.circlepath",
+                label: "Check for Updates",
+                comment: "Check for updates button in footer"
+            ) {
                 onDismissMenu()
                 onCheckForUpdates()
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.body)
-                    .foregroundStyle(isHoveringUpdate ? .primary : .secondary)
             }
-            .buttonStyle(.plain)
-            .onHover { isHoveringUpdate = $0 }
-            .help(String(
-                localized: "Check for Updates",
-                bundle: bundle,
-                comment: "Tooltip for check for updates button in footer"
-            ))
-            .accessibilityLabel(String(
-                localized: "Check for Updates",
-                bundle: bundle,
-                comment: "Accessibility label for check for updates button"
-            ))
 
             Spacer()
 
@@ -95,35 +55,45 @@ struct MenuBarFooterView: View {
 
             Spacer()
 
-            Button {
-                onQuit()
-            } label: {
-                Image(systemName: "power")
-                    .font(.body)
-                    .foregroundStyle(isHoveringQuit ? .primary : .secondary)
+            footerButton(.about, systemImage: "info.circle", label: "About SnapOCR", comment: "About button in footer") {
+                onDismissMenu()
+                NSApp.activate()
+                NSApp.orderFrontStandardAboutPanel(options: [.version: ""])
             }
-            .buttonStyle(.plain)
-            .onHover { isHoveringQuit = $0 }
-            .help(String(localized: "Quit SnapOCR", bundle: bundle, comment: "Tooltip for quit button in footer"))
-            .accessibilityLabel(String(
-                localized: "Quit SnapOCR",
-                bundle: bundle,
-                comment: "Accessibility label for quit button"
-            ))
+
+            footerButton(.quit, systemImage: "power", label: "Quit SnapOCR", comment: "Quit button in footer") {
+                onQuit()
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    private func footerButton(
+        _ id: FooterButton,
+        systemImage: String,
+        label: String,
+        comment: StaticString,
+        action: @escaping () -> Void
+    ) -> some View {
+        let localizedLabel = String(localized: String.LocalizationValue(label), bundle: bundle, comment: comment)
+        return Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body)
+                .foregroundStyle(hoveredButton == id ? .primary : .secondary)
+        }
+        .buttonStyle(.plain)
+        .onHover { hoveredButton = $0 ? id : nil }
+        .help(localizedLabel)
+        .accessibilityLabel(localizedLabel)
     }
 }
 
 #if DEBUG
 #Preview {
     MenuBarFooterView(settingsService: SettingsService()) {
-        // dismiss menu
     } onCheckForUpdates: {
-        // check for updates
     } onQuit: {
-        // quit
     }
     .frame(width: 320)
     .background(Color(NSColor.windowBackgroundColor))
