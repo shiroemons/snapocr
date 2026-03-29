@@ -75,9 +75,7 @@ struct HistoryRowView: View {
 
                     if hasMoreThanThreeLines {
                         Button {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                isExpanded.toggle()
-                            }
+                            isExpanded.toggle()
                         } label: {
                             Text(
                                 isExpanded
@@ -108,6 +106,7 @@ struct HistoryRowView: View {
                     .foregroundStyle(.secondary)
                     .onTapGesture(perform: onCopy)
                 }
+                .animation(.easeInOut(duration: 0.25), value: isExpanded)
             }
             .accessibilityLabel(
                 String(
