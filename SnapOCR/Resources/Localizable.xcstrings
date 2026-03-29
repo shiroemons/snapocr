@@ -27,8 +27,33 @@
         }
       }
     },
+    "Arabic" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アラビア語"
+          }
+        }
+      }
+    },
+    "Arabic Script" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アラビア文字"
+          }
+        }
+      }
+    },
     "At least one language must be selected." : {
       "comment" : "OCR language selection footer note",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -78,6 +103,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "戻る"
+          }
+        }
+      }
+    },
+    "Cantonese (Simplified)" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "広東語（簡体字）"
+          }
+        }
+      }
+    },
+    "Cantonese (Traditional)" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "広東語（繁体字）"
           }
         }
       }
@@ -167,6 +216,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "チェック間隔"
+          }
+        }
+      }
+    },
+    "Chinese (Simplified)" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中国語（簡体字）"
+          }
+        }
+      }
+    },
+    "Chinese (Traditional)" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中国語（繁体字）"
           }
         }
       }
@@ -288,6 +361,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現在のショートカット: %@"
+          }
+        }
+      }
+    },
+    "Cyrillic" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キリル文字"
+          }
+        }
+      }
+    },
+    "Czech" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェコ語"
+          }
+        }
+      }
+    },
+    "Danish" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デンマーク語"
           }
         }
       }
@@ -457,6 +566,42 @@
         }
       }
     },
+    "Dutch" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オランダ語"
+          }
+        }
+      }
+    },
+    "East Asian" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "東アジア"
+          }
+        }
+      }
+    },
+    "Eastern European" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "東ヨーロッパ"
+          }
+        }
+      }
+    },
     "Enable or disable %@ text recognition. At least one language must remain enabled." : {
       "comment" : "Accessibility hint for OCR language toggle describing its effect",
       "localizations" : {
@@ -468,8 +613,21 @@
         }
       }
     },
+    "Enabling many languages simultaneously may reduce overall accuracy." : {
+      "comment" : "OCR language count warning",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多くの言語を同時に有効にすると、全体的な認識精度が低下する場合があります。"
+          }
+        }
+      }
+    },
     "English" : {
       "comment" : "English language option in OCR settings",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -545,6 +703,18 @@
         }
       }
     },
+    "French" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フランス語"
+          }
+        }
+      }
+    },
     "General" : {
       "comment" : "General section header in General settings\nGeneral settings tab title",
       "localizations" : {
@@ -552,6 +722,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一般"
+          }
+        }
+      }
+    },
+    "German" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドイツ語"
           }
         }
       }
@@ -611,6 +793,18 @@
         }
       }
     },
+    "Indonesian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インドネシア語"
+          }
+        }
+      }
+    },
     "Invalid capture region" : {
       "comment" : "Error when capture region has invalid dimensions",
       "localizations" : {
@@ -622,13 +816,50 @@
         }
       }
     },
+    "Italian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "イタリア語"
+          }
+        }
+      }
+    },
     "Japanese" : {
       "comment" : "Japanese language option in OCR settings",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "日本語"
+          }
+        }
+      }
+    },
+    "Japanese and Chinese enabled together may cause Kanji misrecognition." : {
+      "comment" : "OCR language CJK warning",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語と中国語を同時に有効にすると、漢字の誤認識が発生する可能性があります。"
+          }
+        }
+      }
+    },
+    "Korean" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "韓国語"
           }
         }
       }
@@ -677,6 +908,18 @@
         }
       }
     },
+    "Malay" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マレー語"
+          }
+        }
+      }
+    },
     "Management" : {
       "comment" : "History management section header",
       "localizations" : {
@@ -695,6 +938,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最大履歴数"
+          }
+        }
+      }
+    },
+    "Multiple Latin-script languages may cause accent and diacritic confusion." : {
+      "comment" : "OCR language Latin warning",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数のラテン文字言語を有効にすると、アクセントや発音区別符号の混同が起きる場合があります。"
+          }
+        }
+      }
+    },
+    "Najdi Arabic" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ナジュド・アラビア語"
+          }
+        }
+      }
+    },
+    "Narrowing recognition languages improves accuracy." : {
+      "comment" : "OCR language settings recommendation note",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認識対象の言語を絞ることで精度が向上します。"
+          }
+        }
+      }
+    },
+    "Narrowing recognition languages improves accuracy. At least one language must be selected." : {
+      "comment" : "OCR language settings recommendation and minimum selection note",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認識対象の言語を絞ることで精度が向上します。少なくとも1つの言語を選択してください。"
           }
         }
       }
@@ -772,6 +1062,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "テキストが認識されませんでした。"
+          }
+        }
+      }
+    },
+    "Nordic" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "北欧"
+          }
+        }
+      }
+    },
+    "Norwegian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノルウェー語"
+          }
+        }
+      }
+    },
+    "Norwegian Bokmal" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノルウェー語（ブークモール）"
+          }
+        }
+      }
+    },
+    "Norwegian Nynorsk" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノルウェー語（ニーノシュク）"
           }
         }
       }
@@ -900,6 +1238,30 @@
         }
       }
     },
+    "Polish" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポーランド語"
+          }
+        }
+      }
+    },
+    "Portuguese" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポルトガル語"
+          }
+        }
+      }
+    },
     "Press %@ (or your custom shortcut) to activate capture mode." : {
       "comment" : "Usage step 1 description",
       "localizations" : {
@@ -969,6 +1331,7 @@
     },
     "Recognition Languages" : {
       "comment" : "OCR language selection section header",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1007,6 +1370,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "デフォルトにリセット"
+          }
+        }
+      }
+    },
+    "Romanian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ルーマニア語"
+          }
+        }
+      }
+    },
+    "Russian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロシア語"
           }
         }
       }
@@ -1345,6 +1732,18 @@
         }
       }
     },
+    "Southeast Asian" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "東南アジア"
+          }
+        }
+      }
+    },
     "Space" : {
       "comment" : "Space key display name",
       "localizations" : {
@@ -1352,6 +1751,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スペース"
+          }
+        }
+      }
+    },
+    "Spanish" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペイン語"
           }
         }
       }
@@ -1385,6 +1796,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ストレージ"
+          }
+        }
+      }
+    },
+    "Swedish" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スウェーデン語"
           }
         }
       }
@@ -1433,6 +1856,18 @@
         }
       }
     },
+    "Thai" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイ語"
+          }
+        }
+      }
+    },
     "The recognized text is instantly copied to your clipboard and ready to paste." : {
       "comment" : "Usage step 3 description",
       "localizations" : {
@@ -1477,6 +1912,18 @@
         }
       }
     },
+    "Turkish" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トルコ語"
+          }
+        }
+      }
+    },
     "Type shortcut..." : {
       "comment" : "Prompt shown in hotkey recorder while waiting for key input",
       "localizations" : {
@@ -1484,6 +1931,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ショートカットを入力..."
+          }
+        }
+      }
+    },
+    "Ukrainian" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウクライナ語"
           }
         }
       }
@@ -1499,6 +1958,18 @@
         }
       }
     },
+    "Vietnamese" : {
+      "comment" : "OCR language option",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ベトナム語"
+          }
+        }
+      }
+    },
     "Welcome to SnapOCR" : {
       "comment" : "Onboarding window title",
       "localizations" : {
@@ -1506,6 +1977,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SnapOCR へようこそ"
+          }
+        }
+      }
+    },
+    "Western European" : {
+      "comment" : "OCR language group header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "西ヨーロッパ"
           }
         }
       }

@@ -282,9 +282,11 @@ struct AppViewModelTests {
 
         #expect(result.notificationService.notifySuccessCallCount == 0)
     }
+}
 
-    // MARK: - performCapture Error Paths
+// MARK: - performCapture Error Paths
 
+extension AppViewModelTests {
     @Test func captureError_emptyOCRResult_setsLastError() async throws {
         guard isPermissionGranted() else { return }
 

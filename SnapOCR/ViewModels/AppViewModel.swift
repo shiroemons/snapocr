@@ -2,8 +2,6 @@
 //  AppViewModel.swift
 //  SnapOCR
 //
-//  Created by 森田悟史 on 2026/03/24.
-//
 
 import Foundation
 import Observation
@@ -127,7 +125,7 @@ final class AppViewModel {
             )
             Self.logger.info("Screen capture completed")
 
-            let text = try await ocrService.recognizeText(from: image)
+            let text = try await ocrService.recognizeText(from: image, languages: settingsService.ocrLanguages)
             Self.logger.info("OCR completed: \(text.count) characters recognized")
 
             guard !text.isEmpty else {

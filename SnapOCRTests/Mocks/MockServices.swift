@@ -8,9 +8,11 @@ final class MockOCRService: OCRServiceProtocol, @unchecked Sendable {
     var recognizeTextResult: String = "Mocked OCR text"
     var recognizeTextError: (any Error)?
     var recognizeTextCallCount = 0
+    var lastRecognizeLanguages: [String]?
 
-    func recognizeText(from image: CGImage) async throws -> String {
+    func recognizeText(from image: CGImage, languages: [String]) async throws -> String {
         recognizeTextCallCount += 1
+        lastRecognizeLanguages = languages
         if let error = recognizeTextError { throw error }
         return recognizeTextResult
     }

@@ -8,14 +8,18 @@ enum OCRService {
     /// ImageAnalyzer is documented as safe to reuse across multiple analysis calls.
     private static let analyzer = ImageAnalyzer()
 
-    static func recognizeText(from image: CGImage) async throws -> String {
+    static func recognizeText(from image: CGImage, languages: [String]) async throws -> String {
         logger.info("Image size: \(image.width, privacy: .public)x\(image.height, privacy: .public)")
+        logger.info("Recognition languages: \(languages, privacy: .public)")
 
         let nsImage = NSImage(
             cgImage: image,
             size: NSSize(width: image.width, height: image.height)
         )
-        let configuration = ImageAnalyzer.Configuration([.text])
+        var configuration = ImageAnalyzer.Configuration([.text])
+        if !languages.isEmpty {
+            configuration.locales = languages
+        }
 
         let analysis = try await analyzer.analyze(nsImage, orientation: .up, configuration: configuration)
         let transcript = analysis.transcript

@@ -2,20 +2,18 @@
 //  ServiceProtocols.swift
 //  SnapOCR
 //
-//  Created by 森田悟史 on 2026/03/28.
-//
 
 import CoreGraphics
 
 // MARK: - OCRServiceProtocol
 
 protocol OCRServiceProtocol: Sendable {
-    func recognizeText(from image: CGImage) async throws -> String
+    func recognizeText(from image: CGImage, languages: [String]) async throws -> String
 }
 
 struct DefaultOCRService: OCRServiceProtocol {
-    func recognizeText(from image: CGImage) async throws -> String {
-        try await OCRService.recognizeText(from: image)
+    func recognizeText(from image: CGImage, languages: [String]) async throws -> String {
+        try await OCRService.recognizeText(from: image, languages: languages)
     }
 }
 
