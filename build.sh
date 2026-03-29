@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_NAME="SnapOCR"
+APP_NAME="SnapOCR Dev"
 SCHEME="SnapOCR"
 DEST="platform=macOS"
 CONFIG="Debug"

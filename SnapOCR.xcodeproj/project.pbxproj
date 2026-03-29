@@ -367,6 +367,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SnapOCR/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "SnapOCR Dev";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 shiroemons. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -374,8 +375,9 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.10;
-				PRODUCT_BUNDLE_IDENTIFIER = com.shiroemons.snapocr;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.shiroemons.snapocr.dev;
+				PRODUCT_MODULE_NAME = SnapOCR;
+				PRODUCT_NAME = "SnapOCR Dev";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -441,7 +443,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.3;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SnapOCR.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SnapOCR";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SnapOCR Dev.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SnapOCR Dev";
 			};
 			name = Debug;
 		};
