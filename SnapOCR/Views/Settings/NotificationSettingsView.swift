@@ -13,7 +13,11 @@ struct NotificationSettingsView: View {
     let settingsService: SettingsService
 
     private var bundle: Bundle { settingsService.localizationBundle }
-    private let availableSounds = ["Tink", "Pop", "Glass", "Purr", "Ping"]
+    private let availableSounds = [
+        "Basso", "Blow", "Bottle", "Frog", "Funk",
+        "Glass", "Hero", "Morse", "Ping", "Pop",
+        "Purr", "Sosumi", "Submarine", "Tink",
+    ]
 
     var body: some View {
         Form {
