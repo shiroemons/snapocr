@@ -2,8 +2,6 @@
 //  NotificationSettingsView.swift
 //  SnapOCR
 //
-//  Created by 森田悟史 on 2026/03/25.
-//
 
 import SwiftUI
 

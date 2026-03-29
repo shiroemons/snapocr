@@ -2,8 +2,6 @@
 //  UpdateService.swift
 //  SnapOCR
 //
-//  Created by 森田悟史 on 2026/03/27.
-//
 
 import os
 @preconcurrency import Sparkle
