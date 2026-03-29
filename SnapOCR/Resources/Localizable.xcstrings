@@ -193,6 +193,17 @@
         }
       }
     },
+    "Close" : {
+      "comment" : "Button to collapse expanded history text",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
     "Completion Sound" : {
       "comment" : "Toggle for completion sound",
       "localizations" : {
@@ -1217,6 +1228,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "認識されたテキストのプレビューとともにmacOS通知を表示します。"
+          }
+        }
+      }
+    },
+    "Show all" : {
+      "comment" : "Button to expand truncated history text",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてを表示"
           }
         }
       }

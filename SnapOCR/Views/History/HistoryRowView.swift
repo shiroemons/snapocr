@@ -20,7 +20,17 @@ struct HistoryRowView: View {
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
+    @State private var isExpanded = false
     @State private var isHoveringDelete = false
+
+    private var hasMoreThanThreeLines: Bool {
+        var count = 0
+        for char in record.text where char.isNewline {
+            count += 1
+            if count >= 3 { return true }
+        }
+        return false
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -34,40 +44,71 @@ struct HistoryRowView: View {
                 .frame(width: 16)
             }
 
-            Button(action: onCopy) {
-                HStack(alignment: .top, spacing: 8) {
-                    if !isEditing {
-                        Image(
-                            systemName: isCopied
-                                ? "checkmark.circle.fill"
-                                : "doc.on.clipboard"
-                        )
-                        .foregroundStyle(isCopied ? .green : .secondary)
-                        .frame(width: 16)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(record.text)
-                            .lineLimit(3)
-                            .font(.body)
-                            .frame(
-                                maxWidth: .infinity,
-                                alignment: .leading
-                            )
-
-                        Text(
-                            record.timestamp,
-                            format: .relative(
-                                presentation: .named
-                            )
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+            HStack(alignment: .top, spacing: 8) {
+                if !isEditing {
+                    Image(
+                        systemName: isCopied
+                            ? "checkmark.circle.fill"
+                            : "doc.on.clipboard"
+                    )
+                    .foregroundStyle(
+                        isCopied ? .green : .secondary
+                    )
+                    .frame(width: 16)
+                    .onTapGesture(perform: onCopy)
                 }
-                .contentShape(Rectangle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(record.text)
+                        .lineLimit(isExpanded ? nil : 3)
+                        .fixedSize(
+                            horizontal: false,
+                            vertical: isExpanded
+                        )
+                        .font(.body)
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onCopy)
+
+                    if hasMoreThanThreeLines {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isExpanded.toggle()
+                            }
+                        } label: {
+                            Text(
+                                isExpanded
+                                    ? String(
+                                        localized: "Close",
+                                        bundle: bundle,
+                                        comment: "Button to collapse expanded history text"
+                                    )
+                                    : String(
+                                        localized: "Show all",
+                                        bundle: bundle,
+                                        comment: "Button to expand truncated history text"
+                                    )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text(
+                        record.timestamp,
+                        format: .relative(
+                            presentation: .named
+                        )
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .onTapGesture(perform: onCopy)
+                }
             }
-            .buttonStyle(.plain)
             .accessibilityLabel(
                 String(
                     localized: "Copy text",
