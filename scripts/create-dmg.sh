@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: create-dmg.sh <APP_PATH> <APP_NAME> <VERSION> <OUTPUT_DMG_PATH>
+# Usage: create-dmg.sh <APP_PATH> <APP_NAME> <OUTPUT_DMG_PATH>
 APP_PATH="${1:?APP_PATH is required}"
 APP_NAME="${2:?APP_NAME is required}"
-VERSION="${3:?VERSION is required}"
-OUTPUT_DMG_PATH="${4:?OUTPUT_DMG_PATH is required}"
+OUTPUT_DMG_PATH="${3:?OUTPUT_DMG_PATH is required}"
 
 VOLUME_NAME="$APP_NAME"
 MOUNT_POINT="/Volumes/$VOLUME_NAME"
