@@ -58,9 +58,9 @@
 | スクリーンキャプチャ | ScreenCaptureKit | macOS 12.3+ のモダンな画面キャプチャ API |
 | ホットキー | Carbon API (`RegisterEventHotKey`) | レガシーだが最も確実。アクセシビリティ権限不要、多数の実績あり |
 | データ永続化 | SwiftData | macOS 26 で安定した Apple 純正 ORM。OCR 履歴の保存に最適 |
-| リンター | SwiftLint (SPM Build Tool Plugin) | Swift 6 対応、Xcode ビルドフェーズ統合、CI でも利用 |
+| リンター | SwiftLint (Homebrew) | `.swiftlint.yml` の設定を使い、CI で strict モードを実行 |
 | テスト | Swift Testing (`@Test` / `@Suite` / `#expect`) | Swift 6 ツールチェーン同梱、XCTest 不要。並列実行・パラメタライズドテスト対応 |
-| 自動アップデート | Sparkle 2.9+ (SPM) | macOS Tahoe 対応済み、EdDSA 署名、Sandbox 対応、Markdown リリースノート |
+| 自動アップデート | Sparkle 2.10+ (SPM) | macOS Tahoe 対応済み、EdDSA 署名、Sandbox 対応、Markdown リリースノート |
 | CI/CD | GitHub Actions (macOS runner) | ビルド・署名・公証・appcast 生成・リリースの完全自動化 |
 | パッケージ配布 | Homebrew Cask (自前 tap) | `brew install` でのインストールをサポート |
 | ビルドシステム | Xcode 26.3+ / Swift Package Manager | 最新の macOS 26 SDK・agentic coding 対応 |
@@ -159,7 +159,7 @@
 
 #### 3.5.1 アップデート基盤
 
-- Sparkle 2.9+ を Swift Package Manager で導入
+- Sparkle 2.10+ を Swift Package Manager で導入
 - EdDSA (Ed25519) 署名によるアップデートの検証
 - Apple Code Signing（Developer ID）によるノータリゼーション
 - HTTPS 経由の appcast フィード配信
@@ -168,7 +168,7 @@
 
 - アプリ起動時にバックグラウンドでアップデートチェック（デフォルト: 24時間ごと）
 - 新バージョン検出時にリリースノート付きのアップデートダイアログを表示
-- リリースノートは Markdown 形式で記述（Sparkle 2.9 の `.md` サポートを活用）
+- リリースノートは Markdown 形式で記述（Sparkle の Markdown サポートを活用）
 - ユーザーの任意でアップデートをインストール（自動インストールは設定で切替可能）
 - デルタアップデート対応（変更部分のみダウンロード）
 
@@ -354,10 +354,10 @@ GitHub Release のタグ作成（`v*.*.*`）をトリガーに、以下を完全
 
 PR / push 時に実行する品質保証ワークフロー:
 
-- **SwiftLint**: SPM Build Tool Plugin として統合。ビルド時に自動実行 + CI でも `swift package plugin lint` で実行。violation があれば CI を fail
+- **SwiftLint**: Homebrew で導入し、CI で `swiftlint --strict` を実行。violation があれば CI を fail
 - **ビルド確認**: `xcodebuild build` で Release / Debug 両構成のビルドを検証
 - **テスト実行**: `xcodebuild test` で Swift Testing ベースのテストを実行（`--parallel-testing-enabled YES`）
-- macOS runner: `macos-15`（Xcode 26.3+ プリインストール）
+- macOS runner: `macos-26`
 
 #### 3.9.5 リリース手順（開発者向け）
 
@@ -657,7 +657,7 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 - Mac App Store 配布の場合、App Sandbox が必須
 - グローバルホットキーや画面収録との互換性を確認する必要あり
 - 直接配布（Sparkle）のため App Sandbox は任意だが、セキュリティ向上のため Sandbox 化を推奨
-- Sparkle 2.9 は XPC Services による Sandbox 対応済み
+- Sparkle 2.10 は XPC Services による Sandbox 対応済み
 - ノータリゼーション（公証）は必須。Developer ID で署名 + `xcrun notarytool` で公証
 - macOS 27 以降は Intel Mac 非サポートとなるため、Apple Silicon 専用ビルドで問題なし
 

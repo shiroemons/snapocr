@@ -64,8 +64,8 @@ The hotkey can be customized in Settings.
 | Screen Capture | ScreenCaptureKit |
 | Global Hotkey | Carbon API (RegisterEventHotKey) |
 | Data | SwiftData |
-| Auto-Update | Sparkle 2.9+ |
-| Linter | SwiftLint (SPM Build Tool Plugin) |
+| Auto-Update | Sparkle 2.10+ |
+| Linter | SwiftLint (Homebrew) |
 | Testing | Swift Testing |
 | CI/CD | GitHub Actions |
 
@@ -94,10 +94,11 @@ xcodebuild test -scheme SnapOCR -destination 'platform=macOS'
 
 ### Lint
 
-SwiftLint runs automatically as an Xcode build phase. To run manually:
+CI installs SwiftLint with Homebrew and runs it in strict mode. To run it locally:
 
 ```bash
-swift package plugin lint
+brew install swiftlint
+swiftlint --strict
 ```
 
 ## Documentation

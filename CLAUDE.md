@@ -17,7 +17,7 @@ SnapOCR is a macOS menu bar utility app that captures screen text via OCR and co
 - **Screen Capture**: ScreenCaptureKit (`SCContentFilter` + `SCScreenshotManager`)
 - **Global Hotkey**: Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`)
 - **Data**: SwiftData for OCR history
-- **Auto-Update**: Sparkle 2.9+ via SPM
+- **Auto-Update**: Sparkle 2.10+ via SPM
 - **Menu Bar**: NSMenu with NSHostingView (NOT NSPopover — see docs/requirements.md §7.4)
 
 ## Project Structure
@@ -45,7 +45,7 @@ SnapOCR/
 
 ## Coding Conventions
 
-- **Linter**: SwiftLint via SPM Build Tool Plugin (`.swiftlint.yml` at project root)
+- **Linter**: SwiftLint installed with Homebrew (`.swiftlint.yml` at project root)
 - **Testing**: Swift Testing (`@Test`, `@Suite`, `#expect`) — no XCTest
 - **Localization**: String Catalog (`.xcstrings`), use `String(localized:)` — no hardcoded strings
 - **Line length**: 120 warning, 160 error
@@ -61,7 +61,7 @@ xcodebuild build -scheme SnapOCR -destination 'platform=macOS'
 xcodebuild test -scheme SnapOCR -destination 'platform=macOS'
 
 # Lint
-swift package plugin lint
+swiftlint --strict
 ```
 
 ## Important Implementation Notes
@@ -75,7 +75,7 @@ swift package plugin lint
 
 ## Workflow
 
-- Before committing, always run SwiftLint via `xcodebuild build -scheme SnapOCR -destination 'platform=macOS'` and check for SwiftLint warnings/errors in the build output. Fix all violations before creating the commit.
+- Before committing, always run `swiftlint --strict` and fix all violations.
 - Delegate all code implementation tasks to `code-simplifier:code-simplifier` subagent (`subagent_type: "code-simplifier:code-simplifier"`, `model: "sonnet"`) — research and planning can be done directly, but code changes must go through the subagent
 - Run `/simplify` after each implementation task to review code for reuse, quality, and efficiency, and fix any issues found
 - Use Swift LSP (`LSP` tool) for code navigation — prefer semantic operations (goToDefinition, findReferences, hover, documentSymbol) over text-based Grep/Glob searches

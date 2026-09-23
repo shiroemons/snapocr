@@ -18,7 +18,6 @@ build/
 .build/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .swiftpm/xcode/package.xcworkspace/xcuserdata
-Package.resolved
 
 # CocoaPods (not used, but just in case)
 Pods/

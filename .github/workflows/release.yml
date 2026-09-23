@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.1
 
       - name: Select Xcode
         run: |
@@ -35,7 +35,7 @@ jobs:
 
       - name: Setup Sparkle
         run: |
-          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.9.0/Sparkle-2.9.0.tar.xz \
+          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz \
             -o "$RUNNER_TEMP/Sparkle.tar.xz"
           mkdir -p "$RUNNER_TEMP/sparkle-tools"
           tar xf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle-tools"
