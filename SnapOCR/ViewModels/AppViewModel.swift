@@ -35,7 +35,7 @@ final class AppViewModel {
         hotkeyService: HotkeyService = HotkeyService(),
         settingsService: SettingsService = SettingsService(),
         historyService: HistoryService? = nil,
-        ocrService: any OCRServiceProtocol = DefaultOCRService(),
+        ocrService: any OCRServiceProtocol = OCRService(),
         captureService: any CaptureServiceProtocol = CaptureService(),
         clipboardService: any ClipboardServiceProtocol = DefaultClipboardService(),
         notificationService: any NotificationServiceProtocol = DefaultNotificationService(),

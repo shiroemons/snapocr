@@ -7,14 +7,8 @@ import CoreGraphics
 
 // MARK: - OCRServiceProtocol
 
-protocol OCRServiceProtocol: Sendable {
+protocol OCRServiceProtocol {
     func recognizeText(from image: CGImage, languages: [String]) async throws -> String
-}
-
-struct DefaultOCRService: OCRServiceProtocol {
-    func recognizeText(from image: CGImage, languages: [String]) async throws -> String {
-        try await OCRService.recognizeText(from: image, languages: languages)
-    }
 }
 
 // MARK: - CaptureServiceProtocol
