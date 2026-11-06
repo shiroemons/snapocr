@@ -57,8 +57,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
             NSApplication.shared.applicationIconImage = NSImage(contentsOf: iconURL)
         }
-        NotificationService.requestPermission()
-        permissionService.requestPermission()
         setupMenuBar()
         viewModel.setup()
         applyAppearance(settingsService.appearanceMode)
@@ -66,9 +64,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateService.startUpdater()
         reportHistoryStoreFailureIfNeeded()
 
-        if settingsService.shouldShowOnboarding {
+        // 権限が未付与なら、前回スキップしていても次回起動時に再表示する
+        if settingsService.shouldShowOnboarding || !permissionService.isScreenCapturePermitted {
             showOnboarding()
         }
+    }
+
+    /// システム設定で権限を変更して戻ってきたときに、表示を実際の状態へ合わせる。
+    func applicationDidBecomeActive(_ notification: Notification) {
+        permissionService.checkPermission()
     }
 
     private func reportHistoryStoreFailureIfNeeded() {
@@ -251,7 +255,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
-        permissionService.requestPermissionIfNeeded()
+        permissionService.checkPermission()
 
         if let hostingView, let panelItem {
             let height = hostingView.fittingSize.height

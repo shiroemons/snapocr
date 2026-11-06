@@ -146,7 +146,7 @@ struct GeneralSettingsView: View {
         .formStyle(.grouped)
         .padding()
         .onAppear {
-            permissionService.requestPermissionIfNeeded()
+            permissionService.checkPermission()
         }
     }
 }

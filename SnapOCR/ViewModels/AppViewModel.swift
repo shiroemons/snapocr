@@ -10,7 +10,7 @@ import os
 @MainActor
 final class AppViewModel {
     private static let logger = Logger(category: "AppViewModel")
-    private let permissionService: PermissionService
+    private let permissionService: any PermissionServiceProtocol
     private let hotkeyService: any HotkeyServiceProtocol
     private let settingsService: SettingsService
     private let historyService: HistoryService?
@@ -38,7 +38,7 @@ final class AppViewModel {
     private var lastCaptureEndTime: ContinuousClock.Instant?
 
     init(
-        permissionService: PermissionService = PermissionService(),
+        permissionService: any PermissionServiceProtocol = PermissionService(),
         hotkeyService: any HotkeyServiceProtocol = HotkeyService(),
         settingsService: SettingsService = SettingsService(),
         historyService: HistoryService? = nil,

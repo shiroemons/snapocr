@@ -15,7 +15,7 @@ struct PermissionWarningBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.yellow)
+                .foregroundStyle(.orange)
                 .font(.title3)
                 .accessibilityHidden(true)
 
@@ -53,23 +53,19 @@ struct PermissionWarningBanner: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .accessibilityLabel(
+            .accessibilityHint(
                 String(
                     localized: "Open System Settings to grant screen recording permission",
                     bundle: bundle,
-                    comment: "Accessibility label for open settings button in permission warning"
+                    comment: "Accessibility hint for open settings button in permission warning"
                 )
             )
         }
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.yellow.opacity(0.15))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 1)
-                        .accessibilityHidden(true)
-                )
+                .fill(Color.orange.opacity(0.15))
+                .strokeBorder(Color.orange.opacity(0.4), lineWidth: 1)
                 .accessibilityHidden(true)
         )
         .padding(.horizontal, 12)

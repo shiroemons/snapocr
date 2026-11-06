@@ -5,7 +5,7 @@
 
 import AppKit
 import os
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// OCR完了時の通知を配信するサービス。
 /// 設定に応じて通知センター・完了音・トーストの3種類の通知を発火する。
@@ -13,20 +13,6 @@ import UserNotifications
 struct NotificationService: NotificationServiceProtocol {
     private static let notificationCategoryID = "com.shiroemons.snapocr.ocrComplete"
     nonisolated private static let logger = Logger(category: "NotificationService")
-
-    // MARK: - Permission
-
-    @MainActor
-    static func requestPermission() {
-        let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if let error {
-                logger.error("Notification authorization failed: \(error.localizedDescription, privacy: .public)")
-            } else {
-                logger.info("Notification authorization \(granted ? "granted" : "denied", privacy: .public)")
-            }
-        }
-    }
 
     // MARK: - Notify
 
@@ -63,11 +49,24 @@ struct NotificationService: NotificationServiceProtocol {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request) { error in
+        let center = UNUserNotificationCenter.current()
+        // 許可の要求は、通知が初めて必要になるときまで遅らせる（既に判断済みならダイアログは出ない）
+        center.requestAuthorization(options: [.alert]) { granted, error in
             if let error {
-                logger.error("Failed to add notification: \(error.localizedDescription, privacy: .public)")
+                logger.error("Notification authorization failed: \(error.localizedDescription, privacy: .public)")
+            }
+            guard granted else { return }
+            center.add(request) { error in
+                if let error {
+                    logger.error("Failed to add notification: \(error.localizedDescription, privacy: .public)")
+                }
             }
         }
+    }
+
+    /// システム設定で通知が拒否されているか。設定画面の案内に使う。
+    static func isAuthorizationDenied() async -> Bool {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .denied
     }
 
     // MARK: - Sound
