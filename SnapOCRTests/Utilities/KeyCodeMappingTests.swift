@@ -3,174 +3,148 @@ import Carbon.HIToolbox
 @testable import SnapOCR
 import Testing
 
+private let shift = UInt32(shiftKey)
+private let control = UInt32(controlKey)
+private let option = UInt32(optionKey)
+private let command = UInt32(cmdKey)
+private let noModifiers: UInt32 = 0
+/// Carbon の修飾キーに割り当てられていないビット。
+private let unknownModifierBit: UInt32 = 0x1
+
 @Suite("KeyCodeMapping Tests")
 struct KeyCodeMappingTests {
-    // MARK: - string(for:) — letters
+    // MARK: - string(for:bundle:)
 
-    @Test func letterA() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_ANSI_A)) == "A")
+    @Test(arguments: [
+        (kVK_ANSI_A, "A"), (kVK_ANSI_O, "O"), (kVK_ANSI_Z, "Z"),
+        (kVK_ANSI_0, "0"), (kVK_ANSI_9, "9"),
+        (kVK_F1, "F1"), (kVK_F12, "F12"),
+        (kVK_Tab, "⇥"), (kVK_Return, "↩"), (kVK_Delete, "⌫"), (kVK_Escape, "⎋"),
+        (kVK_LeftArrow, "←"), (kVK_RightArrow, "→"), (kVK_UpArrow, "↑"), (kVK_DownArrow, "↓"),
+    ])
+    func keyIsDisplayedAsSymbol(keyCode: Int, expected: String) {
+        #expect(KeyCodeMapping.string(for: UInt32(keyCode), bundle: .main) == expected)
     }
 
-    @Test func letterO() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_ANSI_O)) == "O")
+    @Test(arguments: [
+        (kVK_ANSI_Minus, "-"), (kVK_ANSI_Backslash, "\\"), (kVK_ANSI_Grave, "`"),
+        (kVK_F13, "F13"), (kVK_F20, "F20"),
+        (kVK_ANSI_Keypad0, "KP0"), (kVK_ANSI_KeypadPlus, "KP+"),
+        (kVK_Home, "↖"), (kVK_End, "↘"), (kVK_PageUp, "⇞"), (kVK_PageDown, "⇟"), (kVK_ForwardDelete, "⌦"),
+        (kVK_JIS_Yen, "¥"), (kVK_JIS_Underscore, "_"),
+    ])
+    func additionalKeyIsDisplayed(keyCode: Int, expected: String) {
+        #expect(KeyCodeMapping.string(for: UInt32(keyCode), bundle: .main) == expected)
     }
 
-    @Test func letterZ() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_ANSI_Z)) == "Z")
-    }
-
-    // MARK: - string(for:) — digits
-
-    @Test func digit0() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_ANSI_0)) == "0")
-    }
-
-    @Test func digit9() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_ANSI_9)) == "9")
-    }
-
-    // MARK: - string(for:) — function keys
-
-    @Test func functionKeyF1() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_F1)) == "F1")
-    }
-
-    @Test func functionKeyF12() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_F12)) == "F12")
-    }
-
-    // MARK: - string(for:) — special keys
-
-    @Test func spaceKey() {
-        let expected = String(localized: "Space", bundle: .main, comment: "Space key display name")
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Space)) == expected)
-    }
-
-    @Test func tabKey() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Tab)) == "⇥")
-    }
-
-    @Test func returnKey() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Return)) == "↩")
-    }
-
-    @Test func deleteKey() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Delete)) == "⌫")
-    }
-
-    @Test func escapeKey() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_Escape)) == "⎋")
-    }
-
-    // MARK: - string(for:) — arrow keys
-
-    @Test func leftArrow() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_LeftArrow)) == "←")
-    }
-
-    @Test func rightArrow() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_RightArrow)) == "→")
-    }
-
-    @Test func upArrow() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_UpArrow)) == "↑")
-    }
-
-    @Test func downArrow() {
-        #expect(KeyCodeMapping.string(for: UInt32(kVK_DownArrow)) == "↓")
+    @Test(arguments: [
+        (kVK_Space, "ja", "スペース"), (kVK_Space, "en", "Space"),
+        (kVK_JIS_Eisu, "ja", "英数"), (kVK_JIS_Eisu, "en", "Eisu"),
+        (kVK_JIS_Kana, "ja", "かな"), (kVK_JIS_Kana, "en", "Kana"),
+    ])
+    func namedKeyFollowsAppLanguage(keyCode: Int, languageCode: String, expected: String) throws {
+        let bundle = try localizationBundle(for: languageCode)
+        #expect(KeyCodeMapping.string(for: UInt32(keyCode), bundle: bundle) == expected)
     }
 
     @Test func unknownKeyCode() {
-        #expect(KeyCodeMapping.string(for: 0xFFFF) == "?")
+        #expect(KeyCodeMapping.string(for: 0xFFFF, bundle: .main) == "?")
     }
 
     // MARK: - modifierString(for:)
 
-    @Test func modifierControl() {
-        let mods = UInt32(controlKey)
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⌃")
-    }
-
-    @Test func modifierShift() {
-        let mods = UInt32(shiftKey)
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⇧")
-    }
-
-    @Test func modifierOption() {
-        let mods = UInt32(optionKey)
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⌥")
-    }
-
-    @Test func modifierCommand() {
-        let mods = UInt32(cmdKey)
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⌘")
-    }
-
-    @Test func modifierControlShift() {
-        let mods = UInt32(controlKey) | UInt32(shiftKey)
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⌃⇧")
-    }
-
-    @Test func modifierControlOptionShiftCommand() {
-        let mods = UInt32(controlKey) | UInt32(optionKey) | UInt32(shiftKey) | UInt32(cmdKey)
-        // Apple standard order: ⌃⌥⇧⌘
-        #expect(KeyCodeMapping.modifierString(for: mods) == "⌃⌥⇧⌘")
+    @Test(arguments: [
+        (control, "⌃"),
+        (shift, "⇧"),
+        (option, "⌥"),
+        (command, "⌘"),
+        (control | shift, "⌃⇧"),
+        // Apple 標準の並び順
+        (command | shift | option | control, "⌃⌥⇧⌘"),
+    ])
+    func modifiersAreDisplayedInStandardOrder(modifiers: UInt32, expected: String) {
+        #expect(KeyCodeMapping.modifierString(for: modifiers) == expected)
     }
 
     @Test func modifierNone() {
         #expect(KeyCodeMapping.modifierString(for: 0).isEmpty)
     }
 
-    // MARK: - displayString(keyCode:modifiers:)
+    // MARK: - displayString(keyCode:modifiers:bundle:)
 
-    @Test func displayStringControlShiftO() {
-        let keyCode = UInt32(kVK_ANSI_O)
-        let mods = UInt32(controlKey) | UInt32(shiftKey)
-        #expect(KeyCodeMapping.displayString(keyCode: keyCode, modifiers: mods) == "⌃⇧O")
+    @Test func displayStringCombinesModifiersAndKey() {
+        func display(_ keyCode: Int, _ modifiers: UInt32) -> String {
+            KeyCodeMapping.displayString(keyCode: UInt32(keyCode), modifiers: modifiers, bundle: .main)
+        }
+        #expect(display(kVK_ANSI_O, control | shift) == "⌃⇧O")
+        #expect(display(kVK_ANSI_A, command) == "⌘A")
+        #expect(display(kVK_F5, 0) == "F5")
+        #expect(display(kVK_ANSI_Z, control | option | shift | command) == "⌃⌥⇧⌘Z")
     }
 
-    @Test func displayStringCommandA() {
-        let keyCode = UInt32(kVK_ANSI_A)
-        let mods = UInt32(cmdKey)
-        #expect(KeyCodeMapping.displayString(keyCode: keyCode, modifiers: mods) == "⌘A")
+    @Test func displayStringUsesBundleForSpaceKey() throws {
+        let bundle = try localizationBundle(for: "ja")
+        let display = KeyCodeMapping.displayString(keyCode: UInt32(kVK_Space), modifiers: control, bundle: bundle)
+        #expect(display == "⌃スペース")
     }
 
-    @Test func displayStringNoModifiers() {
-        let keyCode = UInt32(kVK_F5)
-        #expect(KeyCodeMapping.displayString(keyCode: keyCode, modifiers: 0) == "F5")
+    // MARK: - isValidHotkey(keyCode:modifiers:)
+
+    @Test(arguments: [
+        (kVK_ANSI_O, control | shift), // ⌃⇧O
+        (kVK_ANSI_O, control), // ⌃O
+        (kVK_ANSI_A, command | shift), // ⌘⇧A
+        (kVK_ANSI_K, control | command), // ⌃⌘K
+        (kVK_ANSI_K, command | option), // ⌘⌥K
+        (kVK_F13, noModifiers),
+        (kVK_F20, noModifiers),
+        (127, control),
+    ])
+    func hotkeyIsAccepted(keyCode: Int, modifiers: UInt32) {
+        #expect(KeyCodeMapping.isValidHotkey(keyCode: UInt32(keyCode), modifiers: modifiers))
     }
 
-    @Test func displayStringControlOptionShiftCommandZ() {
-        let keyCode = UInt32(kVK_ANSI_Z)
-        let mods = UInt32(controlKey) | UInt32(optionKey) | UInt32(shiftKey) | UInt32(cmdKey)
-        #expect(KeyCodeMapping.displayString(keyCode: keyCode, modifiers: mods) == "⌃⌥⇧⌘Z")
+    @Test(arguments: [
+        (kVK_ANSI_C, command), // ⌘C
+        (kVK_ANSI_A, shift), // ⇧A
+        (kVK_ANSI_O, option), // ⌥O
+        (kVK_ANSI_O, option | shift), // ⌥⇧O
+        (kVK_ANSI_O, noModifiers),
+        (kVK_F5, noModifiers),
+        (128, control),
+        (0xFFFF, control),
+        (kVK_ANSI_O, control | unknownModifierBit),
+        (kVK_F13, unknownModifierBit),
+    ])
+    func hotkeyIsRejected(keyCode: Int, modifiers: UInt32) {
+        #expect(!KeyCodeMapping.isValidHotkey(keyCode: UInt32(keyCode), modifiers: modifiers))
     }
 
     // MARK: - carbonModifiers(from:)
 
     @Test func carbonModifiersControl() {
         let result = KeyCodeMapping.carbonModifiers(from: .control)
-        #expect(result == UInt32(controlKey))
+        #expect(result == control)
     }
 
     @Test func carbonModifiersShift() {
         let result = KeyCodeMapping.carbonModifiers(from: .shift)
-        #expect(result == UInt32(shiftKey))
+        #expect(result == shift)
     }
 
     @Test func carbonModifiersOption() {
         let result = KeyCodeMapping.carbonModifiers(from: .option)
-        #expect(result == UInt32(optionKey))
+        #expect(result == option)
     }
 
     @Test func carbonModifiersCommand() {
         let result = KeyCodeMapping.carbonModifiers(from: .command)
-        #expect(result == UInt32(cmdKey))
+        #expect(result == command)
     }
 
     @Test func carbonModifiersControlShift() {
         let result = KeyCodeMapping.carbonModifiers(from: [.control, .shift])
-        #expect(result == UInt32(controlKey) | UInt32(shiftKey))
+        #expect(result == control | shift)
     }
 
     @Test func carbonModifiersEmpty() {

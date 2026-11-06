@@ -1,444 +1,264 @@
 import CoreGraphics
 import Foundation
 @testable import SnapOCR
-import SwiftData
 import Testing
 
 @Suite("AppViewModel Tests")
 @MainActor
 struct AppViewModelTests {
-    // MARK: - Helpers
+    private let env = AppViewModelTestEnvironment()
 
-    struct ViewModelResult {
-        let viewModel: AppViewModel
-        let ocrService: MockOCRService
-        let captureService: MockCaptureService
-        let clipboardService: MockClipboardService
-        let notificationService: MockNotificationService
-        let regionSelector: MockRegionSelector
-        let settingsService: SettingsService
+    private func makeHistoryService() throws -> HistoryService {
+        try HistoryService(modelContainer: makeInMemoryModelContainer())
     }
 
-    func makeSettingsService() -> SettingsService {
-        let suiteName = "com.shiroemons.snapocr.tests.\(UUID().uuidString)"
-        guard let testDefaults = UserDefaults(suiteName: suiteName) else {
-            Issue.record("Failed to create test UserDefaults")
-            return SettingsService()
-        }
-        return SettingsService(userDefaults: testDefaults)
-    }
-
-    func makeViewModel(
-        ocrService: MockOCRService = MockOCRService(),
-        captureService: MockCaptureService = MockCaptureService(),
-        clipboardService: MockClipboardService = MockClipboardService(),
-        notificationService: MockNotificationService = MockNotificationService(),
-        regionSelector: MockRegionSelector = MockRegionSelector(),
-        settingsService: SettingsService? = nil,
-        historyService: HistoryService? = nil
-    ) -> ViewModelResult {
-        let settings = settingsService ?? makeSettingsService()
-        let vm = AppViewModel(
-            settingsService: settings,
-            historyService: historyService,
-            ocrService: ocrService,
-            captureService: captureService,
-            clipboardService: clipboardService,
-            notificationService: notificationService,
-            regionSelector: regionSelector
-        )
-        return ViewModelResult(
-            viewModel: vm,
-            ocrService: ocrService,
-            captureService: captureService,
-            clipboardService: clipboardService,
-            notificationService: notificationService,
-            regionSelector: regionSelector,
-            settingsService: settings
-        )
-    }
-
-    func waitForCaptureCompletion(_ vm: AppViewModel) async throws {
-        for _ in 0..<100 {
-            if !vm.isCapturing { return }
-            try await Task.sleep(for: .milliseconds(10))
-        }
-    }
-
-    func validSelectionResult() -> SelectionResult {
-        SelectionResult(
-            rect: CGRect(x: 0, y: 0, width: 100, height: 100),
-            displayID: 1,
-            screenSize: CGSize(width: 1920, height: 1080),
-            scaleFactor: 2.0
-        )
-    }
-
-    func isPermissionGranted() -> Bool {
-        let permissionService = PermissionService()
-        permissionService.checkPermission()
-        return permissionService.isScreenCapturePermitted
+    private func expectNotCopiedOrNotified(sourceLocation: SourceLocation = #_sourceLocation) {
+        #expect(env.clipboard.copyCallCount == 0, sourceLocation: sourceLocation)
+        #expect(env.notification.notifySuccessCallCount == 0, sourceLocation: sourceLocation)
     }
 
     // MARK: - Initial State
 
-    @Test func appViewModelInitialState() {
-        let viewModel = AppViewModel()
+    @Test func doesNotStartCapturingUntilAsked() {
+        let viewModel = env.makeViewModel()
         #expect(viewModel.isCapturing == false)
-        #expect(viewModel.lastError == nil)
-    }
 
-    // MARK: - Setup / Teardown
+        viewModel.setup()
+        defer { viewModel.teardown() }
 
-    @Test func setupRegistersHotkeyCallback() {
-        let hotkeyService = HotkeyService()
-        let viewModel = AppViewModel(
-            hotkeyService: hotkeyService,
-            settingsService: makeSettingsService()
-        )
-        #expect(hotkeyService.onHotkeyPressed == nil)
-        viewModel.setup()
-        #expect(hotkeyService.onHotkeyPressed != nil)
-        viewModel.teardown()
-    }
-
-    @Test func teardownUnregistersHotkey() {
-        let hotkeyService = HotkeyService()
-        let viewModel = AppViewModel(
-            hotkeyService: hotkeyService,
-            settingsService: makeSettingsService()
-        )
-        viewModel.setup()
-        viewModel.teardown()
-        // teardown unregisters the Carbon hotkey but does not clear onHotkeyPressed
-        #expect(hotkeyService.onHotkeyPressed != nil)
-    }
-
-    @Test func teardownFollowedBySetupDoesNotCrash() {
-        let hotkeyService = HotkeyService()
-        let viewModel = AppViewModel(
-            hotkeyService: hotkeyService,
-            settingsService: makeSettingsService()
-        )
-        viewModel.setup()
-        viewModel.teardown()
-        viewModel.setup()
-        viewModel.teardown()
-    }
-
-    @Test func isCapturingIsFalseAfterSetup() {
-        let viewModel = AppViewModel(settingsService: makeSettingsService())
-        viewModel.setup()
         #expect(viewModel.isCapturing == false)
+        #expect(env.regionSelector.selectRegionCallCount == 0)
+    }
+
+    // MARK: - Permission
+
+    @Test func captureWithoutPermissionReportsAndOpensSettings() async {
+        env.permission.isScreenCapturePermitted = false
+        env.settings.appLanguage = .japanese
+        let viewModel = env.makeViewModel()
+
+        await viewModel.captureAndWait()
+
+        #expect(env.notification.failureMessages == ["画面収録の権限が必要です。"])
+        #expect(env.permission.openSystemSettingsCallCount == 1)
+        #expect(env.regionSelector.selectRegionCallCount == 0)
+        #expect(viewModel.isCapturing == false)
+    }
+
+    @Test func captureWithPermissionProceedsToSelection() async {
+        env.permission.isScreenCapturePermitted = true
+
+        await env.makeViewModel().captureAndWait()
+
+        #expect(env.regionSelector.selectRegionCallCount == 1)
+        #expect(env.permission.openSystemSettingsCallCount == 0)
+        #expect(env.notification.failureMessages.isEmpty)
+    }
+
+    // MARK: - Handoff Between Steps
+
+    @Test func selectionAndImageAreHandedToNextSteps() async {
+        await env.makeViewModel().captureAndWait()
+
+        let expectedArguments = MockCaptureService.Arguments(
+            rect: CGRect(x: 10, y: 20, width: 30, height: 40),
+            displayID: 7,
+            screenSize: CGSize(width: 1920, height: 1080),
+            scaleFactor: 2.0
+        )
+        #expect(env.capture.lastArguments == expectedArguments)
+        #expect(env.ocr.lastRecognizeImage === env.capture.captureRegionResult)
+    }
+
+    @Test func cancelledSelectionStopsWithoutReporting() async {
+        env.regionSelector.selectRegionResult = nil
+        let viewModel = env.makeViewModel()
+
+        await viewModel.captureAndWait()
+
+        #expect(env.capture.captureRegionCallCount == 0)
+        #expect(env.ocr.recognizeTextCallCount == 0)
+        expectNotCopiedOrNotified()
+        #expect(env.notification.failureMessages.isEmpty)
+        #expect(viewModel.isCapturing == false)
+    }
+
+    // MARK: - Success
+
+    @Test func recognizedTextIsCopiedAndNotified() async {
+        env.ocr.recognizeTextResult = "Hello"
+
+        await env.makeViewModel().captureAndWait()
+
+        #expect(env.clipboard.copyCallCount == 1)
+        #expect(env.clipboard.lastCopiedText == "Hello")
+        #expect(env.notification.notifySuccessCallCount == 1)
+        #expect(env.notification.lastNotifiedText == "Hello")
+        #expect(env.notification.failureMessages.isEmpty)
+    }
+
+    @Test func recognizedTextIsSavedToHistoryWhenEnabled() async throws {
+        env.ocr.recognizeTextResult = "Hello"
+        env.settings.isHistoryEnabled = true
+        env.settings.ocrLanguages = ["en"]
+        let history = try makeHistoryService()
+
+        await env.makeViewModel(historyService: history).captureAndWait()
+
+        #expect(history.recentRecords.map(\.text) == ["Hello"])
+        #expect(history.recentRecords.first?.recognizedLanguages == ["en"])
+    }
+
+    @Test func historyIsTrimmedToConfiguredLimit() async throws {
+        env.settings.maxHistoryCount = 1
+        let history = try makeHistoryService()
+        history.addRecord(text: "Old", languages: [], timestamp: Date(timeIntervalSince1970: 0))
+        env.ocr.recognizeTextResult = "New"
+
+        await env.makeViewModel(historyService: history).captureAndWait()
+
+        #expect(history.fetchAll().map(\.text) == ["New"])
+    }
+
+    @Test func recognizedTextIsNotSavedWhenHistoryDisabled() async throws {
+        env.settings.isHistoryEnabled = false
+        let history = try makeHistoryService()
+
+        await env.makeViewModel(historyService: history).captureAndWait()
+
+        #expect(history.recordCount() == 0)
+        #expect(env.notification.notifySuccessCallCount == 1)
+    }
+
+    @Test func captureSucceedsWithoutHistoryService() async {
+        await env.makeViewModel(historyService: nil).captureAndWait()
+
+        #expect(env.clipboard.copyCallCount == 1)
+        #expect(env.notification.notifySuccessCallCount == 1)
+    }
+
+    // MARK: - Copy Failure
+
+    @Test func copyFailureIsReportedAndTextStaysInHistory() async throws {
+        env.ocr.recognizeTextResult = "Hello"
+        env.clipboard.copyResult = false
+        env.settings.appLanguage = .english
+        let history = try makeHistoryService()
+
+        await env.makeViewModel(historyService: history).captureAndWait()
+
+        #expect(env.notification.failureMessages == ["Could not copy the text to the clipboard."])
+        #expect(env.notification.notifySuccessCallCount == 0)
+        #expect(history.fetchAll().map(\.text) == ["Hello"])
+    }
+
+    // MARK: - Failures Before Copy
+
+    @Test(arguments: ["", " \n\t "])
+    func blankResultIsReportedAsNoText(recognizedText: String) async throws {
+        env.ocr.recognizeTextResult = recognizedText
+        env.settings.appLanguage = .japanese
+        let history = try makeHistoryService()
+
+        await env.makeViewModel(historyService: history).captureAndWait()
+
+        #expect(env.notification.failureMessages == ["テキストが認識されませんでした。"])
+        expectNotCopiedOrNotified()
+        #expect(history.recordCount() == 0)
+    }
+
+    @Test(arguments: [
+        (CaptureError.invalidRegion, "無効なキャプチャ領域です"),
+        (CaptureError.noDisplay, "ディスプレイが見つかりません"),
+        (CaptureError.captureFailure, "画面キャプチャに失敗しました"),
+    ])
+    func captureErrorIsReportedAndStopsFlow(error: CaptureError, expectedMessage: String) async {
+        env.capture.captureRegionError = error
+        env.settings.appLanguage = .japanese
+
+        await env.makeViewModel().captureAndWait()
+
+        #expect(env.notification.failureMessages == [expectedMessage])
+        #expect(env.ocr.recognizeTextCallCount == 0)
+        expectNotCopiedOrNotified()
+    }
+
+    @Test func ocrErrorIsReportedAndStopsFlow() async {
+        env.ocr.recognizeTextError = NSError(
+            domain: "test",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "認識エラー"]
+        )
+
+        await env.makeViewModel().captureAndWait()
+
+        #expect(env.notification.failureMessages == ["認識エラー"])
+        expectNotCopiedOrNotified()
+    }
+
+    // MARK: - Cancellation
+
+    @Test func cancellationErrorIsNotReported() async {
+        env.ocr.recognizeTextError = CancellationError()
+
+        await env.makeViewModel().captureAndWait()
+
+        #expect(env.notification.failureMessages.isEmpty)
+        expectNotCopiedOrNotified()
+    }
+
+    @Test func teardownDuringCaptureSuppressesNotifications() async throws {
+        env.regionSelector.suspendsSelection = true
+        let viewModel = env.makeViewModel()
+        viewModel.startCapture()
+        let task = try #require(viewModel.captureTask)
+        await waitUntil("範囲選択の開始") { env.regionSelector.isWaitingForSelection }
+
         viewModel.teardown()
+        env.regionSelector.finishSelection(with: AppViewModelTestEnvironment.sampleSelection)
+        await task.value
+
+        expectNotCopiedOrNotified()
+        #expect(env.notification.failureMessages.isEmpty)
+        #expect(viewModel.isCapturing == false)
     }
 
-    @Test func teardownBeforeSetupDoesNotCrash() {
-        let hotkeyService = HotkeyService()
-        let viewModel = AppViewModel(
-            hotkeyService: hotkeyService,
-            settingsService: makeSettingsService()
-        )
-        viewModel.teardown()
-        viewModel.setup()
-        viewModel.teardown()
+    // MARK: - Duplicate Prevention
+
+    @Test func startCaptureIsIgnoredWhileRunning() async throws {
+        env.regionSelector.suspendsSelection = true
+        let viewModel = env.makeViewModel()
+        viewModel.startCapture()
+        let task = try #require(viewModel.captureTask)
+        await waitUntil("範囲選択の開始") { env.regionSelector.isWaitingForSelection }
+        #expect(viewModel.isCapturing)
+
+        viewModel.startCapture()
+        // 2 回目が動いていれば、この間に範囲選択まで進む
+        await Task.yield()
+
+        #expect(env.regionSelector.selectRegionCallCount == 1)
+        #expect(viewModel.captureTask == task)
+        env.regionSelector.finishSelection(with: nil)
+        await task.value
+        #expect(viewModel.isCapturing == false)
     }
 
-    // MARK: - handleRecognizedText Flow
+    @Test func startCaptureIsIgnoredDuringCooldown() async {
+        let viewModel = env.makeViewModel(captureCooldown: .seconds(3600))
 
-    @Test func captureSuccess_copiesTextToClipboard() async throws {
-        guard isPermissionGranted() else { return }
+        await viewModel.captureAndWait()
+        await viewModel.captureAndWait()
 
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.clipboardService.copyCallCount == 1)
-        #expect(result.clipboardService.lastCopiedText == "Hello")
+        #expect(env.regionSelector.selectRegionCallCount == 1)
     }
 
-    @Test func captureSuccess_sendsNotification() async throws {
-        guard isPermissionGranted() else { return }
+    @Test func startCaptureRunsAgainAfterCooldown() async {
+        let viewModel = env.makeViewModel(captureCooldown: .zero)
 
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
+        await viewModel.captureAndWait()
+        await viewModel.captureAndWait()
 
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.notificationService.notifySuccessCallCount == 1)
-    }
-
-    @Test func captureSuccess_addsHistoryRecord_whenEnabled() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let settings = makeSettingsService()
-        settings.isHistoryEnabled = true
-
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: CaptureRecord.self, configurations: config)
-        let historyService = HistoryService(modelContainer: container)
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector,
-            settingsService: settings,
-            historyService: historyService
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(!historyService.recentRecords.isEmpty)
-    }
-
-    @Test func captureSuccess_skipsHistory_whenDisabled() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let settings = makeSettingsService()
-        settings.isHistoryEnabled = false
-
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: CaptureRecord.self, configurations: config)
-        let historyService = HistoryService(modelContainer: container)
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector,
-            settingsService: settings,
-            historyService: historyService
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(historyService.recentRecords.isEmpty)
-    }
-
-    @Test func captureSuccess_skipsHistory_whenHistoryServiceNil() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector,
-            historyService: nil
-        )
-
-        // Must not crash when historyService is nil
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-    }
-
-    @Test func captureSuccess_doesNotNotify_whenCopyFails() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = "Hello"
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-        let clipboard = MockClipboardService()
-        clipboard.copyResult = false
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            captureService: MockCaptureService(),
-            clipboardService: clipboard,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.notificationService.notifySuccessCallCount == 0)
-    }
-}
-
-// MARK: - performCapture Error Paths
-
-extension AppViewModelTests {
-    @Test func captureError_emptyOCRResult_setsLastError() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextResult = ""
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError != nil)
-    }
-
-    @Test func captureError_invalidRegion_setsLastError() async throws {
-        guard isPermissionGranted() else { return }
-
-        let capture = MockCaptureService()
-        capture.captureRegionError = CaptureError.invalidRegion
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            captureService: capture,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError != nil)
-    }
-
-    @Test func captureError_noDisplay_setsLastError() async throws {
-        guard isPermissionGranted() else { return }
-
-        let capture = MockCaptureService()
-        capture.captureRegionError = CaptureError.noDisplay
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            captureService: capture,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError != nil)
-    }
-
-    @Test func captureError_captureFailure_setsLastError() async throws {
-        guard isPermissionGranted() else { return }
-
-        let capture = MockCaptureService()
-        capture.captureRegionError = CaptureError.captureFailure
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            captureService: capture,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError != nil)
-    }
-
-    @Test func captureError_ocrThrows_setsLastError() async throws {
-        guard isPermissionGranted() else { return }
-
-        let ocr = MockOCRService()
-        ocr.recognizeTextError = NSError(domain: "test", code: 1)
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = validSelectionResult()
-
-        let result = makeViewModel(
-            ocrService: ocr,
-            regionSelector: regionSelector
-        )
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError != nil)
-    }
-}
-
-// MARK: - Guard Paths
-
-extension AppViewModelTests {
-    @Test func captureCancel_selectionCancelled_noError() async throws {
-        guard isPermissionGranted() else { return }
-
-        // regionSelector returns nil (default) — simulates user cancellation
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = nil
-
-        let result = makeViewModel(regionSelector: regionSelector)
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(result.viewModel.lastError == nil)
-        #expect(result.viewModel.isCapturing == false)
-    }
-
-    @Test func startCapture_ignoresDuplicateCapture() async throws {
-        guard isPermissionGranted() else { return }
-
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = nil
-
-        let result = makeViewModel(regionSelector: regionSelector)
-
-        // First capture — completes quickly since regionSelector returns nil
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        let countAfterFirst = regionSelector.selectRegionCallCount
-
-        // Immediate second call — cooldown (500ms) should block it
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        #expect(regionSelector.selectRegionCallCount == countAfterFirst)
-    }
-
-    @Test func startCapture_respectsCooldownPeriod() async throws {
-        guard isPermissionGranted() else { return }
-
-        let regionSelector = MockRegionSelector()
-        regionSelector.selectRegionResult = nil
-
-        let result = makeViewModel(regionSelector: regionSelector)
-
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        // Immediately try a second capture — within 500ms cooldown
-        result.viewModel.startCapture()
-        try await waitForCaptureCompletion(result.viewModel)
-
-        // Only one selectRegion call should have occurred due to cooldown
-        #expect(regionSelector.selectRegionCallCount == 1)
+        #expect(env.regionSelector.selectRegionCallCount == 2)
     }
 }
