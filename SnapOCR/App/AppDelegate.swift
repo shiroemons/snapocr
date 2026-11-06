@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import Observation
 import os
 @preconcurrency import Sparkle
 import SwiftData
@@ -46,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsService: settingsService,
         historyService: historyService
     )
-    private var isTrackingActive = true
+    private var observationTasks: [Task<Void, Never>] = []
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
@@ -60,11 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionService.requestPermission()
         setupMenuBar()
         viewModel.setup()
-        updateStatusItemIcon()
-        applyAppearance()
-        trackAppearanceChanges()
-        trackLanguageChanges()
-        trackPermissionChanges()
+        applyAppearance(settingsService.appearanceMode)
+        startObservingSettings()
         updateService.startUpdater()
         reportHistoryStoreFailureIfNeeded()
 
@@ -98,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        isTrackingActive = false
+        observationTasks.forEach { $0.cancel() }
         permissionService.stopMonitoring()
         viewModel.teardown()
     }
@@ -220,51 +218,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return composited
     }
 
-    // MARK: - Appearance
+    // MARK: - Settings Observation
 
-    private func applyAppearance() {
-        NSApplication.shared.appearance = switch settingsService.appearanceMode {
+    private func startObservingSettings() {
+        let settings = settingsService
+        let permission = permissionService
+        observationTasks = [
+            Task { [weak self] in
+                for await mode in Observations({ settings.appearanceMode }) {
+                    self?.applyAppearance(mode)
+                }
+            },
+            Task { [weak self] in
+                // アイコンの読み上げ文は言語に、形は権限の状態に依存する
+                for await _ in Observations({ (settings.appLanguage, permission.isScreenCapturePermitted) }) {
+                    self?.updateStatusItemIcon()
+                }
+            },
+        ]
+    }
+
+    private func applyAppearance(_ mode: AppearanceMode) {
+        NSApplication.shared.appearance = switch mode {
         case .system: nil
         case .light: NSAppearance(named: .aqua)
         case .dark: NSAppearance(named: .darkAqua)
-        }
-    }
-
-    private func trackAppearanceChanges() {
-        withObservationTracking {
-            _ = settingsService.appearanceMode
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.applyAppearance()
-                self.trackAppearanceChanges()
-            }
-        }
-    }
-
-    private func trackLanguageChanges() {
-        withObservationTracking {
-            _ = settingsService.appLanguage
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.updateStatusItemIcon()
-                self.trackLanguageChanges()
-            }
-        }
-    }
-
-    // MARK: - Permission Observation
-
-    private func trackPermissionChanges() {
-        withObservationTracking {
-            _ = permissionService.isScreenCapturePermitted
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.updateStatusItemIcon()
-                self.trackPermissionChanges()
-            }
         }
     }
 }
@@ -274,7 +252,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         permissionService.requestPermissionIfNeeded()
-        updateStatusItemIcon()
 
         if let hostingView, let panelItem {
             let height = hostingView.fittingSize.height
