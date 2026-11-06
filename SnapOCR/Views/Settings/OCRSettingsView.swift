@@ -15,22 +15,16 @@ struct OCRSettingsView: View {
         OCRLanguageWarnings.warnings(for: settingsService.ocrLanguages)
     }
 
-    // swiftlint:disable:next line_length
-    private static let recommendationKey: String.LocalizationValue = "Narrowing recognition languages improves accuracy. At least one language must be selected."
-
-    private var recommendationText: String {
-        String(
-            localized: Self.recommendationKey,
-            bundle: bundle,
-            comment: "OCR settings recommendation"
-        )
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 8) {
                 Label {
-                    Text(recommendationText)
+                    Text(String(
+                        // swiftlint:disable:next line_length
+                        localized: "Narrowing recognition languages improves accuracy. At least one language must be selected.",
+                        bundle: bundle,
+                        comment: "OCR settings recommendation"
+                    ))
                 } icon: {
                     Image(systemName: "info.circle")
                 }
@@ -49,7 +43,7 @@ struct OCRSettingsView: View {
                             ))
                         } icon: {
                             Image(systemName: warning.iconName)
-                                .foregroundStyle(.yellow)
+                                .foregroundStyle(.orange)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
@@ -62,7 +56,11 @@ struct OCRSettingsView: View {
 
             Form {
                 ForEach(OCRLanguageGroup.allCases) { group in
-                    Section {
+                    Section(String(
+                        localized: String.LocalizationValue(group.displayNameKey),
+                        bundle: bundle,
+                        comment: "OCR language group header"
+                    )) {
                         ForEach(OCRLanguageDefinition.languages(for: group)) { language in
                             let languageName = String(
                                 localized: String.LocalizationValue(language.displayNameKey),
@@ -73,14 +71,9 @@ struct OCRSettingsView: View {
                                 languageName,
                                 isOn: languageBinding(for: language)
                             )
+                            .disabled(settingsService.ocrLanguages == [language.code])
                             .accessibilityHint(languageToggleHint(for: languageName))
                         }
-                    } header: {
-                        Text(String(
-                            localized: String.LocalizationValue(group.displayNameKey),
-                            bundle: bundle,
-                            comment: "OCR language group header"
-                        ))
                     }
                 }
             }
