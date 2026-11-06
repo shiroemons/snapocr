@@ -7,10 +7,10 @@ import Foundation
 
 struct OCRLanguageWarning: Identifiable, Sendable {
     let id: String
-    /// SF Symbol name for the warning icon.
-    let iconName: String
     /// Localization key for the warning message.
     let messageKey: String
+    /// SF Symbol name for the warning icon.
+    let iconName = "exclamationmark.triangle.fill"
 }
 
 enum OCRLanguageWarnings {
@@ -30,7 +30,6 @@ enum OCRLanguageWarnings {
         if hasJapanese && hasChinese {
             result.append(OCRLanguageWarning(
                 id: "cjk",
-                iconName: "exclamationmark.triangle.fill",
                 messageKey: "Japanese and Chinese enabled together may cause Kanji misrecognition."
             ))
         }
@@ -38,7 +37,6 @@ enum OCRLanguageWarnings {
         if latinCount >= 3 {
             result.append(OCRLanguageWarning(
                 id: "latin",
-                iconName: "exclamationmark.triangle.fill",
                 messageKey: "Multiple Latin-script languages may cause accent and diacritic confusion."
             ))
         }
@@ -46,7 +44,6 @@ enum OCRLanguageWarnings {
         if selectedCodes.count >= 6 {
             result.append(OCRLanguageWarning(
                 id: "tooMany",
-                iconName: "exclamationmark.triangle.fill",
                 messageKey: "Enabling many languages simultaneously may reduce overall accuracy."
             ))
         }
