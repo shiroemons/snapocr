@@ -6,13 +6,13 @@
 import AppKit
 import Observation
 import os
-@preconcurrency import Sparkle
 import SwiftData
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let logger = Logger(category: "AppDelegate")
+
     private var statusItem: NSStatusItem?
     let permissionService = PermissionService()
     let settingsService = SettingsService()
@@ -54,9 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var historyWindow: HistoryWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
-            NSApplication.shared.applicationIconImage = NSImage(contentsOf: iconURL)
-        }
         setupMenuBar()
         viewModel.setup()
         applyAppearance(settingsService.appearanceMode)
@@ -74,6 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         permissionService.checkPermission()
         loginItemService.refresh()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        observationTasks.forEach { $0.cancel() }
+        permissionService.stopMonitoring()
+        viewModel.teardown()
     }
 
     private func reportHistoryStoreFailureIfNeeded() {
@@ -100,12 +103,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         onboardingWindow = window
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        observationTasks.forEach { $0.cancel() }
-        permissionService.stopMonitoring()
-        viewModel.teardown()
-    }
-
     // MARK: - Menu Bar Setup
 
     private func setupMenuBar() {
@@ -122,18 +119,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsService: settingsService,
             historyService: historyService,
             onCapture: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.viewModel.startCapture()
             },
             onDismissMenu: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
             },
             onShowHistory: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.showHistoryWindow()
             },
             onCheckForUpdates: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.updateService.checkForUpdates()
             },
             onQuit: {
@@ -141,18 +138,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         let view = NSHostingView(rootView: panelView)
-        view.frame = CGRect(
-            x: 0,
-            y: 0,
-            width: 320,
-            height: view.fittingSize.height
-        )
+        fitPanelToContent(view)
         item.view = view
         menu.addItem(item)
 
         panelItem = item
         hostingView = view
         statusItem?.menu = menu
+    }
+
+    private func closeMenu() {
+        statusItem?.menu?.cancelTracking()
+    }
+
+    private func fitPanelToContent(_ view: NSView) {
+        view.frame = CGRect(x: 0, y: 0, width: MenuBarPanelView.panelWidth, height: view.fittingSize.height)
     }
 
     // MARK: - History Window
@@ -259,8 +259,7 @@ extension AppDelegate: NSMenuDelegate {
         permissionService.checkPermission()
 
         if let hostingView, let panelItem {
-            let height = hostingView.fittingSize.height
-            hostingView.frame = CGRect(x: 0, y: 0, width: 320, height: height)
+            fitPanelToContent(hostingView)
             panelItem.view = hostingView
         }
     }
