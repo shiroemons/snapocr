@@ -2,9 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://xn--xckxf.jp/appcast/snapocr/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>1AdG0un/J5hcpoyPEKw7/M4U/oA5mLZ8j6K9+xFtFpg=</string>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

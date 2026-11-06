@@ -116,6 +116,7 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # 既定では Release でも get-task-allow が entitlements に入り、公証に通らない。
           set -o pipefail && xcodebuild build \
             -scheme "$SCHEME" \
             -destination 'platform=macOS,arch=arm64' \
@@ -126,6 +127,7 @@ jobs:
             "CODE_SIGN_IDENTITY=$SIGNING_IDENTITY" \
             "DEVELOPMENT_TEAM=$APPLE_TEAM_ID" \
             "OTHER_CODE_SIGN_FLAGS=--keychain $KEYCHAIN_PATH" \
+            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
             | xcbeautify
 
           APP_PATH="$RUNNER_TEMP/DerivedData/Build/Products/Release/$APP_NAME.app"
@@ -136,22 +138,8 @@ jobs:
           fi
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
 
-      - name: Code sign
-        run: |
-          # Remove extended attributes that may interfere with signing
-          xattr -cr "$APP_PATH"
-
-          # Deep sign the entire app bundle (signs all nested components recursively)
-          codesign --deep --force --verify --verbose \
-            --sign "$SIGNING_IDENTITY" \
-            --options runtime \
-            --timestamp \
-            --entitlements "$SCHEME/$SCHEME.entitlements" \
-            --keychain "$KEYCHAIN_PATH" \
-            "$APP_PATH"
-
-      - name: Verify signature
-        run: codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+      - name: Code sign and verify
+        run: bash scripts/sign-app.sh "$APP_PATH" "$SIGNING_IDENTITY" "$KEYCHAIN_PATH"
 
       - name: Notarize
         env:
@@ -285,9 +273,11 @@ jobs:
             app "SnapOCR.app"
 
             zap trash: [
-              "~/Library/Application Support/SnapOCR",
-              "~/Library/Preferences/com.shiroemons.snapocr.plist",
+              "~/Library/Application Scripts/com.shiroemons.snapocr",
               "~/Library/Caches/com.shiroemons.snapocr",
+              "~/Library/Containers/com.shiroemons.snapocr",
+              "~/Library/HTTPStorages/com.shiroemons.snapocr",
+              "~/Library/Preferences/com.shiroemons.snapocr.plist",
             ]
           end
           EOF
