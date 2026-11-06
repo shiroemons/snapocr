@@ -36,7 +36,7 @@ final class AppViewModel {
         settingsService: SettingsService = SettingsService(),
         historyService: HistoryService? = nil,
         ocrService: any OCRServiceProtocol = DefaultOCRService(),
-        captureService: any CaptureServiceProtocol = DefaultCaptureService(),
+        captureService: any CaptureServiceProtocol = CaptureService(),
         clipboardService: any ClipboardServiceProtocol = DefaultClipboardService(),
         notificationService: any NotificationServiceProtocol = DefaultNotificationService(),
         regionSelector: any RegionSelectorProtocol = DefaultRegionSelector()

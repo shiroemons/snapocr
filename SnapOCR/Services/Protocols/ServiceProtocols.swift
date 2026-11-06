@@ -19,29 +19,13 @@ struct DefaultOCRService: OCRServiceProtocol {
 
 // MARK: - CaptureServiceProtocol
 
-protocol CaptureServiceProtocol: Sendable {
+protocol CaptureServiceProtocol {
     func captureRegion(
         _ rect: CGRect,
         displayID: CGDirectDisplayID,
         screenSize: CGSize,
         scaleFactor: CGFloat
     ) async throws -> CGImage
-}
-
-struct DefaultCaptureService: CaptureServiceProtocol {
-    func captureRegion(
-        _ rect: CGRect,
-        displayID: CGDirectDisplayID,
-        screenSize: CGSize,
-        scaleFactor: CGFloat
-    ) async throws -> CGImage {
-        try await CaptureService.captureRegion(
-            rect,
-            displayID: displayID,
-            screenSize: screenSize,
-            scaleFactor: scaleFactor
-        )
-    }
 }
 
 // MARK: - ClipboardServiceProtocol
