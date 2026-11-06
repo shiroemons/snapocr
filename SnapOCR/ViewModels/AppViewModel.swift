@@ -11,7 +11,7 @@ import os
 final class AppViewModel {
     private static let logger = Logger(category: "AppViewModel")
     private let permissionService: PermissionService
-    private let hotkeyService: HotkeyService
+    private let hotkeyService: any HotkeyServiceProtocol
     private let settingsService: SettingsService
     private let historyService: HistoryService?
     private let ocrService: any OCRServiceProtocol
@@ -21,17 +21,25 @@ final class AppViewModel {
     private let regionSelector: any RegionSelectorProtocol
     private let captureCooldown: Duration
 
-    private var isTrackingActive = true
+    private struct Hotkey: Equatable {
+        let keyCode: UInt32
+        let modifiers: UInt32
+    }
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
     private(set) var isCapturing = false
     private(set) var captureTask: Task<Void, Never>?
+    private var hotkeyObservationTask: Task<Void, Never>?
+    /// 最後に登録を試みたキー。記録中は nil にして、記録の終了時に必ず登録し直す。
+    private var appliedHotkey: Hotkey?
+    /// 最後に登録に成功したキー。登録に失敗したときの戻し先。
+    private var registeredHotkey: Hotkey?
     private var lastCaptureEndTime: ContinuousClock.Instant?
 
     init(
         permissionService: PermissionService = PermissionService(),
-        hotkeyService: HotkeyService = HotkeyService(),
+        hotkeyService: any HotkeyServiceProtocol = HotkeyService(),
         settingsService: SettingsService = SettingsService(),
         historyService: HistoryService? = nil,
         ocrService: any OCRServiceProtocol = OCRService(),
@@ -54,41 +62,77 @@ final class AppViewModel {
     }
 
     func setup() {
-        isTrackingActive = true
         permissionService.checkPermission()
         hotkeyService.onHotkeyPressed = { [weak self] in
             self?.startCapture()
         }
-        hotkeyService.updateHotkey(
-            keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers
-        )
-        trackHotkeySettingsChanges()
+        applyHotkeySettings()
+        observeHotkeySettings()
     }
 
-    // MARK: - Settings Observation
+    func teardown() {
+        hotkeyObservationTask?.cancel()
+        hotkeyObservationTask = nil
+        captureTask?.cancel()
+        captureTask = nil
+        hotkeyService.unregister()
+        appliedHotkey = nil
+    }
 
-    private func trackHotkeySettingsChanges() {
-        withObservationTracking {
-            _ = settingsService.hotkeyKeyCode
-            _ = settingsService.hotkeyModifiers
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.hotkeyService.updateHotkey(
-                    keyCode: self.settingsService.hotkeyKeyCode,
-                    modifiers: self.settingsService.hotkeyModifiers
-                )
-                self.trackHotkeySettingsChanges()
+    // MARK: - Hotkey
+
+    private func observeHotkeySettings() {
+        hotkeyObservationTask?.cancel()
+        let settings = settingsService
+        hotkeyObservationTask = Task { [weak self] in
+            for await _ in Observations({
+                (settings.hotkeyKeyCode, settings.hotkeyModifiers, settings.isRecordingHotkey)
+            }) {
+                self?.applyHotkeySettings()
             }
         }
     }
 
-    func teardown() {
-        isTrackingActive = false
-        captureTask?.cancel()
-        captureTask = nil
-        hotkeyService.unregister()
+    private func applyHotkeySettings() {
+        guard !settingsService.isRecordingHotkey else {
+            hotkeyService.unregister()
+            appliedHotkey = nil
+            return
+        }
+        let hotkey = Hotkey(keyCode: settingsService.hotkeyKeyCode, modifiers: settingsService.hotkeyModifiers)
+        // Observations は開始時にも現在の値を流すので、同じ値で失敗を二重に通知しない
+        guard hotkey != appliedHotkey else { return }
+        appliedHotkey = hotkey
+
+        if hotkeyService.updateHotkey(keyCode: hotkey.keyCode, modifiers: hotkey.modifiers) {
+            registeredHotkey = hotkey
+        } else {
+            handleHotkeyRegistrationFailure(of: hotkey)
+        }
+    }
+
+    private func handleHotkeyRegistrationFailure(of hotkey: Hotkey) {
+        let attempted = settingsService.hotkeyDisplayString
+        Self.logger.error("Failed to register hotkey: \(attempted, privacy: .public)")
+
+        // 戻す先がないときは設定を残す。起動時の一時的な競合で、保存済みのキーを失わないようにする
+        guard let registeredHotkey, registeredHotkey != hotkey else {
+            reportFailure(String(
+                localized: "The shortcut \(attempted) could not be registered.",
+                bundle: bundle,
+                comment: "Error message when a global shortcut cannot be registered and no other shortcut is active"
+            ))
+            return
+        }
+
+        reportFailure(String(
+            localized: "The shortcut \(attempted) could not be registered. The previous shortcut is still active.",
+            bundle: bundle,
+            comment: "Error message when a global shortcut cannot be registered"
+        ))
+        // 画面の表示と実際に効くキーをずらさない。変更通知で旧キーが登録し直される
+        settingsService.hotkeyKeyCode = registeredHotkey.keyCode
+        settingsService.hotkeyModifiers = registeredHotkey.modifiers
     }
 
     // MARK: - Capture

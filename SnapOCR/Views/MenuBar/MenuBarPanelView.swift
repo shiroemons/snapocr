@@ -47,13 +47,6 @@ struct MenuBarPanelView: View {
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
-    private var hotkeyLabel: String {
-        KeyCodeMapping.displayString(
-            keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers
-        )
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             if !permissionService.isScreenCapturePermitted {
@@ -68,7 +61,7 @@ struct MenuBarPanelView: View {
 
             CaptureActionView(
                 settingsService: settingsService,
-                hotkeyLabel: hotkeyLabel,
+                hotkeyLabel: settingsService.hotkeyDisplayString,
                 isPermissionGranted: permissionService.isScreenCapturePermitted,
                 onCapture: onCapture
             )

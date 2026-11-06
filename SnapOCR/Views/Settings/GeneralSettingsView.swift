@@ -71,17 +71,7 @@ struct GeneralSettingsView: View {
                         comment: "Capture hotkey label in General settings"
                     ))
                     Spacer()
-                    HotkeyRecorderView(
-                        settingsService: settingsService,
-                        keyCode: Binding(
-                            get: { settingsService.hotkeyKeyCode },
-                            set: { settingsService.hotkeyKeyCode = $0 }
-                        ),
-                        modifiers: Binding(
-                            get: { settingsService.hotkeyModifiers },
-                            set: { settingsService.hotkeyModifiers = $0 }
-                        )
-                    )
+                    HotkeyRecorderView(settingsService: settingsService)
                 }
                 Toggle(
                     String(

@@ -112,6 +112,18 @@ final class SettingsService {
         didSet { defaults.set(Int(hotkeyModifiers), forKey: Keys.hotkeyModifiers) }
     }
 
+    /// ホットキーの記録中かどうか（永続化しない）。
+    /// 記録中は現在のキーの登録を外し、同じキーも記録できるようにする。
+    var isRecordingHotkey = false
+
+    var hotkeyDisplayString: String {
+        KeyCodeMapping.displayString(
+            keyCode: hotkeyKeyCode,
+            modifiers: hotkeyModifiers,
+            bundle: localizationBundle
+        )
+    }
+
     var ocrLanguages: [String] = ["ja", "en"] {
         didSet {
             guard !ocrLanguages.isEmpty else { ocrLanguages = ["ja", "en"]; return }
@@ -183,13 +195,15 @@ final class SettingsService {
     }
 
     private func restoreHotkeySettings(from userDefaults: UserDefaults) {
-        if let intValue = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int,
-           (0...0xFFFF).contains(intValue) {
-            hotkeyKeyCode = UInt32(intValue)
-        }
-        if let intValue = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int,
-           (0...0xFFFF).contains(intValue) {
-            hotkeyModifiers = UInt32(intValue)
+        let storedKeyCode = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int ?? Int(Self.defaultHotkeyKeyCode)
+        let storedModifiers = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int
+            ?? Int(Self.defaultHotkeyModifiers)
+        // 記録時と同じ規則で検証する。通過しない値は登録も表示もできないので既定のキーを使う
+        if let keyCode = UInt32(exactly: storedKeyCode),
+           let modifiers = UInt32(exactly: storedModifiers),
+           KeyCodeMapping.isValidHotkey(keyCode: keyCode, modifiers: modifiers) {
+            hotkeyKeyCode = keyCode
+            hotkeyModifiers = modifiers
         }
         if let languages = userDefaults.stringArray(forKey: Keys.ocrLanguages) {
             ocrLanguages = languages

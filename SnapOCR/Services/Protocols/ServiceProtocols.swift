@@ -48,3 +48,12 @@ struct DefaultRegionSelector: RegionSelectorProtocol {
         await SelectionOverlayWindow.selectRegion()
     }
 }
+
+// MARK: - HotkeyServiceProtocol
+
+protocol HotkeyServiceProtocol: AnyObject {
+    var onHotkeyPressed: (@MainActor () -> Void)? { get set }
+    @discardableResult
+    func updateHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool
+    func unregister()
+}

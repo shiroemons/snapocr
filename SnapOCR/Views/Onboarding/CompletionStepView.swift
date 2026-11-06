@@ -19,14 +19,6 @@ struct CompletionStepView: View {
         let description: String
     }
 
-    private var hotkeyDisplayString: String {
-        KeyCodeMapping.displayString(
-            keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers,
-            bundle: bundle
-        )
-    }
-
     private var allSteps: [UsageStep] {
         [
             UsageStep(
@@ -34,7 +26,7 @@ struct CompletionStepView: View {
                 symbol: "keyboard",
                 title: String(localized: "Press the hotkey", bundle: bundle, comment: "Usage step 1 title"),
                 description: String(
-                    localized: "Press \(hotkeyDisplayString) (or your custom shortcut) to activate capture mode.",
+                    localized: "Press \(settingsService.hotkeyDisplayString) to activate capture mode.",
                     bundle: bundle,
                     comment: "Usage step 1 description"
                 )
