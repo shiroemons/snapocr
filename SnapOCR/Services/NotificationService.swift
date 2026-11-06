@@ -23,6 +23,7 @@ private final class ForegroundNotificationPresenter: NSObject, UNUserNotificatio
 struct NotificationService: NotificationServiceProtocol {
     /// 通知を積み重ねず、機微情報を含み得る古い本文を通知センターに残さないよう固定の ID を使う。
     private static let requestID = "com.shiroemons.snapocr.ocrComplete"
+    private static let previewLength = 100
     nonisolated private static let logger = Logger(category: "NotificationService")
     /// `UNUserNotificationCenter.delegate` は弱参照なので、ここで保持する。
     private static let foregroundPresenter = ForegroundNotificationPresenter()
@@ -31,7 +32,14 @@ struct NotificationService: NotificationServiceProtocol {
 
     func notifySuccess(text: String, settings: SettingsService) {
         if settings.isNotificationCenterEnabled {
-            Self.sendNotification(text: text, bundle: settings.localizationBundle)
+            Self.sendNotification(
+                body: Self.notificationBody(
+                    for: text,
+                    previewEnabled: settings.isNotificationPreviewEnabled,
+                    bundle: settings.localizationBundle
+                ),
+                bundle: settings.localizationBundle
+            )
         }
         if settings.isCompletionSoundEnabled {
             Self.playSound(named: settings.completionSoundName)
@@ -47,14 +55,26 @@ struct NotificationService: NotificationServiceProtocol {
 
     // MARK: - Notification Center
 
-    private static func sendNotification(text: String, bundle: Bundle) {
+    /// 通知の本文。OCR テキストは機微情報を含み得るので、プレビューが有効なときだけ載せる。
+    static func notificationBody(for text: String, previewEnabled: Bool, bundle: Bundle) -> String {
+        guard previewEnabled else {
+            return String(
+                localized: "Characters copied: \(text.count)",
+                bundle: bundle,
+                comment: "Notification body showing the number of copied characters"
+            )
+        }
+        return text.count > previewLength ? String(text.prefix(previewLength)) + "…" : text
+    }
+
+    private static func sendNotification(body: String, bundle: Bundle) {
         let content = UNMutableNotificationContent()
         content.title = String(
             localized: "Text Copied",
             bundle: bundle,
             comment: "Notification title when OCR text is copied"
         )
-        content.body = text.count > 100 ? String(text.prefix(100)) + "…" : text
+        content.body = body
         content.sound = nil // Sound is handled separately
 
         let request = UNNotificationRequest(identifier: requestID, content: content, trigger: nil)
@@ -81,7 +101,6 @@ struct NotificationService: NotificationServiceProtocol {
 
     // MARK: - Sound
 
-    @MainActor
     static func playSound(named name: String) {
         guard let sound = NSSound(named: NSSound.Name(name)) else {
             logger.warning("Sound not found: \(name, privacy: .public)")

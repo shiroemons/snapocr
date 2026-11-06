@@ -54,6 +54,7 @@ final class SettingsService {
         static let ocrLanguages = "ocrLanguages"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let isNotificationCenterEnabled = "isNotificationCenterEnabled"
+        static let isNotificationPreviewEnabled = "isNotificationPreviewEnabled"
         static let isCompletionSoundEnabled = "isCompletionSoundEnabled"
         static let completionSoundName = "completionSoundName"
         static let isToastEnabled = "isToastEnabled"
@@ -145,6 +146,11 @@ final class SettingsService {
         didSet { defaults.set(isNotificationCenterEnabled, forKey: Keys.isNotificationCenterEnabled) }
     }
 
+    /// 通知本文に OCR テキストの先頭を載せるか。機微情報が画面共有や通知履歴に残るので既定はオフ。
+    var isNotificationPreviewEnabled: Bool = false {
+        didSet { defaults.set(isNotificationPreviewEnabled, forKey: Keys.isNotificationPreviewEnabled) }
+    }
+
     var isCompletionSoundEnabled: Bool = true {
         didSet { defaults.set(isCompletionSoundEnabled, forKey: Keys.isCompletionSoundEnabled) }
     }
@@ -216,6 +222,7 @@ final class SettingsService {
     private func restoreFeatureSettings() {
         restore(\.hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding)
         restore(\.isNotificationCenterEnabled, forKey: Keys.isNotificationCenterEnabled)
+        restore(\.isNotificationPreviewEnabled, forKey: Keys.isNotificationPreviewEnabled)
         restore(\.isCompletionSoundEnabled, forKey: Keys.isCompletionSoundEnabled)
         restore(\.completionSoundName, forKey: Keys.completionSoundName)
         restore(\.isToastEnabled, forKey: Keys.isToastEnabled)
