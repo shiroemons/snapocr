@@ -23,8 +23,13 @@ final class UpdateService {
     }
 
     func startUpdater() {
+        #if DEBUG
+        // 開発ビルドが本番の appcast を取得して更新を試みないようにする
+        Self.logger.info("Sparkle updater is disabled in Debug builds")
+        #else
         updaterController.startUpdater()
         Self.logger.info("Sparkle updater started")
+        #endif
     }
 
     func checkForUpdates() {
