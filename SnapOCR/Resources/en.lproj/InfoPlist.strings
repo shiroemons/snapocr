@@ -1,0 +1,5 @@
+/*
+  ソース言語の文字列は Localizable.strings として出力されないため、このファイルがないと en.lproj がバンドルに入らない。
+  en.lproj がないと、日本語環境で English を選んでも Bundle.main 経由で日本語が表示される。
+  SettingsService.resolveLocalizationBundle() がこのディレクトリを参照している。
+*/
