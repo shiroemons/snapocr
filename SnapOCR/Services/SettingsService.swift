@@ -124,9 +124,9 @@ final class SettingsService {
         )
     }
 
-    var ocrLanguages: [String] = ["ja", "en"] {
+    var ocrLanguages: [String] = OCRLanguageDefinition.defaultLanguageCodes {
         didSet {
-            guard !ocrLanguages.isEmpty else { ocrLanguages = ["ja", "en"]; return }
+            guard !ocrLanguages.isEmpty else { ocrLanguages = OCRLanguageDefinition.defaultLanguageCodes; return }
             defaults.set(ocrLanguages, forKey: Keys.ocrLanguages)
         }
     }
@@ -176,61 +176,56 @@ final class SettingsService {
 
     init(userDefaults: UserDefaults = .standard) {
         self.defaults = userDefaults
-        // didSet is not triggered during init, so restoring here won't re-persist.
-        restoreAppearanceSettings(from: userDefaults)
+        // 復元はメソッド経由の代入なので didSet が発火し、値の検証と再保存が走る。
+        // 不正な保存値（範囲外の件数、空の言語リスト）の補正はこの発火に依存している。
+        restoreAppearanceSettings()
         localizationBundle = resolveLocalizationBundle()
-        restoreHotkeySettings(from: userDefaults)
-        restoreFeatureSettings(from: userDefaults)
+        restoreHotkeySettings()
+        restoreOCRLanguages()
+        restoreFeatureSettings()
     }
 
-    private func restoreAppearanceSettings(from userDefaults: UserDefaults) {
-        if let rawValue = userDefaults.string(forKey: Keys.appearanceMode),
+    private func restoreAppearanceSettings() {
+        if let rawValue = defaults.string(forKey: Keys.appearanceMode),
            let mode = AppearanceMode(rawValue: rawValue) {
             appearanceMode = mode
         }
-        if let rawValue = userDefaults.string(forKey: Keys.appLanguage),
+        if let rawValue = defaults.string(forKey: Keys.appLanguage),
            let language = AppLanguage(rawValue: rawValue) {
             appLanguage = language
         }
     }
 
-    private func restoreHotkeySettings(from userDefaults: UserDefaults) {
-        let storedKeyCode = userDefaults.object(forKey: Keys.hotkeyKeyCode) as? Int ?? Int(Self.defaultHotkeyKeyCode)
-        let storedModifiers = userDefaults.object(forKey: Keys.hotkeyModifiers) as? Int
-            ?? Int(Self.defaultHotkeyModifiers)
+    private func restoreHotkeySettings() {
+        let storedKeyCode = defaults.object(forKey: Keys.hotkeyKeyCode) as? Int ?? Int(Self.defaultHotkeyKeyCode)
+        let storedModifiers = defaults.object(forKey: Keys.hotkeyModifiers) as? Int ?? Int(Self.defaultHotkeyModifiers)
         // 記録時と同じ規則で検証する。通過しない値は登録も表示もできないので既定のキーを使う
-        if let keyCode = UInt32(exactly: storedKeyCode),
-           let modifiers = UInt32(exactly: storedModifiers),
-           KeyCodeMapping.isValidHotkey(keyCode: keyCode, modifiers: modifiers) {
-            hotkeyKeyCode = keyCode
-            hotkeyModifiers = modifiers
-        }
-        if let languages = userDefaults.stringArray(forKey: Keys.ocrLanguages) {
-            ocrLanguages = languages
-        }
+        guard let keyCode = UInt32(exactly: storedKeyCode),
+              let modifiers = UInt32(exactly: storedModifiers),
+              KeyCodeMapping.isValidHotkey(keyCode: keyCode, modifiers: modifiers) else { return }
+        hotkeyKeyCode = keyCode
+        hotkeyModifiers = modifiers
     }
 
-    private func restoreFeatureSettings(from userDefaults: UserDefaults) {
-        if let value = userDefaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool {
-            hasCompletedOnboarding = value
-        }
-        if let value = userDefaults.object(forKey: Keys.isNotificationCenterEnabled) as? Bool {
-            isNotificationCenterEnabled = value
-        }
-        if let value = userDefaults.object(forKey: Keys.isCompletionSoundEnabled) as? Bool {
-            isCompletionSoundEnabled = value
-        }
-        if let value = userDefaults.string(forKey: Keys.completionSoundName) {
-            completionSoundName = value
-        }
-        if let value = userDefaults.object(forKey: Keys.isToastEnabled) as? Bool {
-            isToastEnabled = value
-        }
-        if let value = userDefaults.object(forKey: Keys.isHistoryEnabled) as? Bool {
-            isHistoryEnabled = value
-        }
-        if let value = userDefaults.object(forKey: Keys.maxHistoryCount) as? Int {
-            maxHistoryCount = value
+    private func restoreOCRLanguages() {
+        guard let languages = defaults.stringArray(forKey: Keys.ocrLanguages) else { return }
+        let knownCodes = Set(OCRLanguageDefinition.allLanguages.map(\.code))
+        ocrLanguages = languages.filter(knownCodes.contains)
+    }
+
+    private func restoreFeatureSettings() {
+        restore(\.hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding)
+        restore(\.isNotificationCenterEnabled, forKey: Keys.isNotificationCenterEnabled)
+        restore(\.isCompletionSoundEnabled, forKey: Keys.isCompletionSoundEnabled)
+        restore(\.completionSoundName, forKey: Keys.completionSoundName)
+        restore(\.isToastEnabled, forKey: Keys.isToastEnabled)
+        restore(\.isHistoryEnabled, forKey: Keys.isHistoryEnabled)
+        restore(\.maxHistoryCount, forKey: Keys.maxHistoryCount)
+    }
+
+    private func restore<Value>(_ keyPath: ReferenceWritableKeyPath<SettingsService, Value>, forKey key: String) {
+        if let value = defaults.object(forKey: key) as? Value {
+            self[keyPath: keyPath] = value
         }
     }
 }
