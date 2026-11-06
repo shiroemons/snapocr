@@ -24,16 +24,8 @@ protocol CaptureServiceProtocol {
 
 // MARK: - ClipboardServiceProtocol
 
-@MainActor
-protocol ClipboardServiceProtocol: Sendable {
+protocol ClipboardServiceProtocol {
     func copy(_ text: String) -> Bool
-}
-
-@MainActor
-struct DefaultClipboardService: ClipboardServiceProtocol {
-    func copy(_ text: String) -> Bool {
-        ClipboardService.copy(text)
-    }
 }
 
 // MARK: - NotificationServiceProtocol

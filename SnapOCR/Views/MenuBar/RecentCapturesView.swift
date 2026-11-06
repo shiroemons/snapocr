@@ -163,7 +163,7 @@ struct RecentCapturesView: View {
     // MARK: - Actions
 
     private func copyRecord(_ record: CaptureRecord) {
-        guard ClipboardService.copy(record.text) else { return }
+        guard ClipboardService().copy(record.text) else { return }
         copiedRecordID = record.persistentModelID
         copyResetTask?.cancel()
         copyResetTask = Task {
