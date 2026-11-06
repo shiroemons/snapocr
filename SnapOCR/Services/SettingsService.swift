@@ -81,18 +81,23 @@ final class SettingsService {
 
     private(set) var localizationBundle: Bundle = .main
 
-    private func resolveLocalizationBundle() -> Bundle {
-        let languageCode: String
+    /// 日付などの書式に使うロケール。表示言語に揃える。
+    var locale: Locale { Locale(identifier: resolvedLanguageCode) }
+
+    private var resolvedLanguageCode: String {
         switch appLanguage {
         case .system:
             let preferred = Locale.preferredLanguages.first ?? "en"
-            languageCode = preferred.hasPrefix("ja") ? "ja" : "en"
+            return preferred.hasPrefix("ja") ? "ja" : "en"
         case .japanese:
-            languageCode = "ja"
+            return "ja"
         case .english:
-            languageCode = "en"
+            return "en"
         }
-        if let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
+    }
+
+    private func resolveLocalizationBundle() -> Bundle {
+        if let path = Bundle.main.path(forResource: resolvedLanguageCode, ofType: "lproj"),
            let bundle = Bundle(path: path) {
             return bundle
         }

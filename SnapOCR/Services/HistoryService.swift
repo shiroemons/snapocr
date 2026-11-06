@@ -46,13 +46,9 @@ final class HistoryService {
             recognizedLanguages: languages
         )
         modelContext.insert(record)
-        guard saveContext() else {
-            Self.logger.error("Failed to save new record, rolling back")
-            modelContext.delete(record)
-            return
-        }
+        guard saveContext() else { return }
         if let maxCount {
-            trimToLimit(maxCount)
+            removeOverflow(beyond: maxCount)
         }
         refreshRecentRecords()
     }
@@ -60,9 +56,9 @@ final class HistoryService {
     // MARK: - Read
 
     func fetchAll(searchText: String = "") -> [CaptureRecord] {
-        var descriptor = FetchDescriptor<CaptureRecord>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
+        // 変更のたびに差し替わる recentRecords を読み、呼び出し元の SwiftUI ビューが履歴の変更で再評価されるようにする
+        _ = recentRecords
+        var descriptor = Self.newestFirstDescriptor()
         if !searchText.isEmpty {
             descriptor.predicate = #Predicate<CaptureRecord> {
                 $0.text.localizedStandardContains(searchText)
@@ -76,53 +72,76 @@ final class HistoryService {
         }
     }
 
+    /// 保存されているレコードの総数。レコード本体を読み込まずに数える。
+    func recordCount() -> Int {
+        do {
+            return try modelContext.fetchCount(FetchDescriptor<CaptureRecord>())
+        } catch {
+            Self.logger.error("Failed to count records: \(error.localizedDescription, privacy: .public)")
+            return 0
+        }
+    }
+
     // MARK: - Delete
 
     func delete(_ record: CaptureRecord) {
         modelContext.delete(record)
-        if !saveContext() {
-            Self.logger.error("Failed to save after deleting record")
-        }
+        saveContext()
         refreshRecentRecords()
     }
 
     func delete(ids: Set<PersistentIdentifier>) {
         guard !ids.isEmpty else { return }
-        for id in ids {
-            if let record = modelContext.model(for: id) as? CaptureRecord {
-                modelContext.delete(record)
-            }
+        // model(for:) は削除済みの ID にも無効なモデルを返し、保存時にプロセスが落ちるので、存在するものだけを取得する
+        let targetIDs = Array(ids)
+        let descriptor = FetchDescriptor<CaptureRecord>(
+            predicate: #Predicate { targetIDs.contains($0.persistentModelID) }
+        )
+        let records: [CaptureRecord]
+        do {
+            records = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch records to delete: \(error.localizedDescription, privacy: .public)")
+            return
         }
-        if !saveContext() {
-            Self.logger.error("Failed to save after batch delete")
+        for record in records {
+            modelContext.delete(record)
         }
+        saveContext()
         refreshRecentRecords()
     }
 
     func deleteAll() {
-        let descriptor = FetchDescriptor<CaptureRecord>()
-        let all: [CaptureRecord]
+        let records: [CaptureRecord]
         do {
-            all = try modelContext.fetch(descriptor)
+            records = try modelContext.fetch(FetchDescriptor<CaptureRecord>())
         } catch {
             Self.logger.error("Failed to fetch records for deletion: \(error.localizedDescription, privacy: .public)")
             return
         }
-        for record in all {
+        // 一括削除だと読み込み済みのモデルが行を失ったまま残るので、コンテキストに削除を把握させる
+        for record in records {
             modelContext.delete(record)
         }
-        if !saveContext() {
-            Self.logger.error("Failed to save after deleting all records")
-        }
+        saveContext()
         refreshRecentRecords()
     }
 
     // MARK: - Trimming
 
     func trimToLimit(_ limit: Int) {
-        var descriptor = FetchDescriptor<CaptureRecord>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
+        removeOverflow(beyond: limit)
+        refreshRecentRecords()
+    }
+
+    // MARK: - Private
+
+    private static func newestFirstDescriptor() -> FetchDescriptor<CaptureRecord> {
+        FetchDescriptor<CaptureRecord>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+    }
+
+    private func removeOverflow(beyond limit: Int) {
+        var descriptor = Self.newestFirstDescriptor()
         descriptor.fetchOffset = limit
         let overflow: [CaptureRecord]
         do {
@@ -135,17 +154,11 @@ final class HistoryService {
         for record in overflow {
             modelContext.delete(record)
         }
-        if !saveContext() {
-            Self.logger.error("Failed to save after trimming records")
-        }
+        saveContext()
     }
 
-    // MARK: - Private
-
     private func refreshRecentRecords() {
-        var descriptor = FetchDescriptor<CaptureRecord>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
+        var descriptor = Self.newestFirstDescriptor()
         descriptor.fetchLimit = Self.recentRecordsLimit
         do {
             recentRecords = try modelContext.fetch(descriptor)
@@ -155,6 +168,7 @@ final class HistoryService {
         }
     }
 
+    /// 失敗したら未保存の変更を取り消し、画面とディスクの内容がずれないようにする。
     @discardableResult
     private func saveContext() -> Bool {
         do {
@@ -162,6 +176,7 @@ final class HistoryService {
             return true
         } catch {
             Self.logger.error("ModelContext save failed: \(error.localizedDescription, privacy: .public)")
+            modelContext.rollback()
             return false
         }
     }
