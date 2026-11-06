@@ -8,7 +8,7 @@
   <a href="https://github.com/shiroemons/snapocr/releases/latest"><img src="https://img.shields.io/github/v/release/shiroemons/snapocr?style=flat-square" alt="Latest Release"></a>
   <a href="https://github.com/shiroemons/snapocr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/shiroemons/snapocr?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/platform-macOS%2026%2B-blue?style=flat-square" alt="macOS 26+">
-  <img src="https://img.shields.io/badge/swift-6.3-orange?style=flat-square" alt="Swift 6.3">
+  <img src="https://img.shields.io/badge/swift-6-orange?style=flat-square" alt="Swift 6">
 </p>
 
 SnapOCR is a lightweight macOS menu bar app that captures any text on your screen and copies it to your clipboard. Press a global hotkey, select a region, and the recognized text is instantly ready to paste.
@@ -17,7 +17,7 @@ SnapOCR is a lightweight macOS menu bar app that captures any text on your scree
 
 - **Global Hotkey** — Press `⌃⇧O` from anywhere to start capturing
 - **Rectangle Selection** — Select any region on screen, just like a screenshot
-- **Instant OCR** — Powered by Apple Vision (VNRecognizeTextRequest), runs entirely on-device
+- **Instant OCR** — Powered by Apple VisionKit (ImageAnalyzer), runs entirely on-device
 - **Vertical Text Support** — Handles Japanese vertical writing (縦書き) natively
 - **Clipboard Copy** — Recognized text is copied to clipboard automatically
 - **Capture History** — Browse and re-copy past OCR results
@@ -40,7 +40,7 @@ Download the latest `.dmg` from [Releases](https://github.com/shiroemons/snapocr
 
 ## Requirements
 
-- macOS 26 (Tahoe) or later
+- macOS 26.0 (Tahoe) or later
 - Apple Silicon (arm64)
 
 ## Usage
@@ -57,10 +57,10 @@ The hotkey can be customized in Settings.
 
 | Component | Technology |
 |-----------|-----------|
-| Language | Swift 6.3 |
+| Language | Swift 6 (language mode 6.0, Swift 6.4 toolchain in Xcode 27) |
 | Architecture | MVVM + Service layer |
-| UI | SwiftUI (macOS 26 SDK) + NSMenu/NSHostingView hybrid |
-| OCR | Apple Vision (VNRecognizeTextRequest) |
+| UI | SwiftUI + NSMenu/NSHostingView hybrid (deployment target macOS 26.0) |
+| OCR | Apple VisionKit (ImageAnalyzer) |
 | Screen Capture | ScreenCaptureKit |
 | Global Hotkey | Carbon API (RegisterEventHotKey) |
 | Data | SwiftData |
@@ -73,8 +73,9 @@ The hotkey can be customized in Settings.
 
 ### Prerequisites
 
-- Xcode 26.3+
-- macOS 26 (Tahoe)
+- Xcode 27.1+
+
+`xcodebuild` and `swiftlint` do not work while `xcode-select` points to the Command Line Tools. Check with `xcode-select -p`, and if needed set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for the command or switch with `sudo xcode-select -s`.
 
 ### Build
 
@@ -124,4 +125,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 - [Sparkle](https://sparkle-project.org/) — Software update framework for macOS
 - [SwiftLint](https://github.com/realm/SwiftLint) — Swift style and conventions enforcer
-- Apple Vision Framework — On-device OCR engine
+- Apple VisionKit — On-device OCR engine
