@@ -13,36 +13,37 @@ private enum Constants {
     static let maxTextLength: Int = 500
     static let margin: CGFloat = 20
     static let dismissDelay: Duration = .seconds(2.5)
+    static let errorDismissDelay: Duration = .seconds(4)
 }
 
 // MARK: - SwiftUI Content View
 
 private struct ToastContentView: View {
-    let text: String
-    let bundle: Bundle
+    let systemImage: String
+    let tint: Color
+    let title: String
+    let detail: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(tint)
                     .font(.system(size: 16, weight: .medium))
 
-                Text(String(
-                    localized: "Copied to Clipboard",
-                    bundle: bundle,
-                    comment: "Toast notification title when OCR text is copied to clipboard"
-                ))
+                Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Text(text)
-                .font(.system(size: 12))
-                .lineLimit(Constants.maxTextLines)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(.secondary)
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 12))
+                    .lineLimit(Constants.maxTextLines)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -65,19 +66,49 @@ final class ToastWindow {
 
     // MARK: - Public API
 
-    static func show(text: String, bundle: Bundle = .main) {
-        current?.dismissImmediately()
-        let toast = ToastWindow()
-        current = toast
-        toast.present(text: text, bundle: bundle)
+    static func show(text: String, bundle: Bundle) {
+        let title = String(
+            localized: "Copied to Clipboard",
+            bundle: bundle,
+            comment: "Toast notification title when OCR text is copied to clipboard"
+        )
+        present(
+            ToastContentView(
+                systemImage: "checkmark.circle.fill",
+                tint: .green,
+                title: title,
+                detail: String(text.prefix(Constants.maxTextLength))
+            ),
+            dismissDelay: Constants.dismissDelay
+        )
+        AccessibilityNotification.Announcement(title).post()
+    }
+
+    /// 失敗をユーザーに伝える。トーストの設定に関係なく表示する。
+    static func showError(message: String) {
+        present(
+            ToastContentView(
+                systemImage: "exclamationmark.triangle.fill",
+                tint: .orange,
+                title: message,
+                detail: nil
+            ),
+            dismissDelay: Constants.errorDismissDelay
+        )
+        AccessibilityNotification.Announcement(message).post()
     }
 
     // MARK: - Private
 
-    private func present(text: String, bundle: Bundle) {
-        let displayText = String(text.prefix(Constants.maxTextLength))
-        let contentView = ToastContentView(text: displayText, bundle: bundle)
-        let hosting = NSHostingView(rootView: contentView)
+    private static func present(_ content: ToastContentView, dismissDelay: Duration) {
+        current?.dismissImmediately()
+        let toast = ToastWindow()
+        current = toast
+        toast.show(content, dismissDelay: dismissDelay)
+    }
+
+    private func show(_ content: ToastContentView, dismissDelay: Duration) {
+        let hosting = NSHostingView(rootView: content)
         let fittedSize = hosting.fittingSize
         let clampedSize = CGSize(width: fittedSize.width, height: min(fittedSize.height, Constants.maxWindowHeight))
         hosting.frame = CGRect(origin: .zero, size: clampedSize)
@@ -93,6 +124,8 @@ final class ToastWindow {
         win.backgroundColor = .clear
         win.hasShadow = true
         win.level = .floating
+        // フルスクリーンの Space でも結果やエラーが見えるようにする
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         win.ignoresMouseEvents = true
         win.contentView = hosting
 
@@ -107,13 +140,13 @@ final class ToastWindow {
         win.orderFrontRegardless()
         self.window = win
 
-        scheduleDismiss()
+        scheduleDismiss(after: dismissDelay)
     }
 
-    private func scheduleDismiss() {
+    private func scheduleDismiss(after delay: Duration) {
         dismissTask = Task { [weak self] in
             do {
-                try await Task.sleep(for: Constants.dismissDelay)
+                try await Task.sleep(for: delay)
             } catch {
                 return
             }

@@ -7,7 +7,6 @@ import Foundation
 import Observation
 import os
 
-@Observable
 @MainActor
 final class AppViewModel {
     private static let logger = Logger(category: "AppViewModel")
@@ -20,15 +19,15 @@ final class AppViewModel {
     private let clipboardService: any ClipboardServiceProtocol
     private let notificationService: any NotificationServiceProtocol
     private let regionSelector: any RegionSelectorProtocol
+    private let captureCooldown: Duration
 
     private var isTrackingActive = true
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
     private(set) var isCapturing = false
-    private(set) var lastError: String?
-    private var captureTask: Task<Void, Never>?
-    private var lastCaptureEndTime: ContinuousClock.Instant = .now - .seconds(10)
+    private(set) var captureTask: Task<Void, Never>?
+    private var lastCaptureEndTime: ContinuousClock.Instant?
 
     init(
         permissionService: PermissionService = PermissionService(),
@@ -38,8 +37,9 @@ final class AppViewModel {
         ocrService: any OCRServiceProtocol = OCRService(),
         captureService: any CaptureServiceProtocol = CaptureService(),
         clipboardService: any ClipboardServiceProtocol = ClipboardService(),
-        notificationService: any NotificationServiceProtocol = DefaultNotificationService(),
-        regionSelector: any RegionSelectorProtocol = DefaultRegionSelector()
+        notificationService: any NotificationServiceProtocol = NotificationService(),
+        regionSelector: any RegionSelectorProtocol = DefaultRegionSelector(),
+        captureCooldown: Duration = .milliseconds(500)
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
@@ -50,6 +50,7 @@ final class AppViewModel {
         self.clipboardService = clipboardService
         self.notificationService = notificationService
         self.regionSelector = regionSelector
+        self.captureCooldown = captureCooldown
     }
 
     func setup() {
@@ -90,14 +91,20 @@ final class AppViewModel {
         hotkeyService.unregister()
     }
 
+    // MARK: - Capture
+
     func startCapture() {
-        guard !isCapturing,
-              ContinuousClock.Instant.now - lastCaptureEndTime > .milliseconds(500) else { return }
+        guard !isCapturing, isCooldownElapsed else { return }
         isCapturing = true
 
         captureTask = Task {
             await performCapture()
         }
+    }
+
+    private var isCooldownElapsed: Bool {
+        guard let lastCaptureEndTime else { return true }
+        return ContinuousClock.Instant.now - lastCaptureEndTime > captureCooldown
     }
 
     private func performCapture() async {
@@ -107,7 +114,6 @@ final class AppViewModel {
         }
 
         guard checkScreenCapturePermission() else { return }
-        lastError = nil
 
         do {
             Self.logger.info("Starting region selection")
@@ -115,7 +121,6 @@ final class AppViewModel {
                 Self.logger.info("Region selection cancelled by user")
                 return
             }
-            Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .private)")
 
             let image = try await captureService.captureRegion(
                 selection.rect,
@@ -127,38 +132,41 @@ final class AppViewModel {
 
             let text = try await ocrService.recognizeText(from: image, languages: settingsService.ocrLanguages)
             Self.logger.info("OCR completed: \(text.count) characters recognized")
+            try Task.checkCancellation()
 
-            guard !text.isEmpty else {
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 Self.logger.warning("OCR result is empty")
-                lastError = String(
+                reportFailure(String(
                     localized: "No text was recognized.",
                     bundle: bundle,
                     comment: "Error message when OCR produces empty result"
-                )
+                ))
                 return
             }
 
             handleRecognizedText(text)
+        } catch is CancellationError {
+            Self.logger.info("Capture cancelled")
         } catch {
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
             if let captureError = error as? CaptureError {
-                lastError = captureError.localizedDescription(bundle: bundle)
+                reportFailure(captureError.localizedDescription(bundle: bundle))
             } else {
-                lastError = error.localizedDescription
+                reportFailure(error.localizedDescription)
             }
         }
     }
 
-    /// Returns `true` if screen capture permission is granted; sets `lastError` and opens settings if not.
+    /// Returns `true` if screen capture permission is granted; reports the failure and opens settings if not.
     private func checkScreenCapturePermission() -> Bool {
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             Self.logger.warning("Screen capture permission not granted")
-            lastError = String(
+            reportFailure(String(
                 localized: "Screen recording permission is required.",
                 bundle: bundle,
                 comment: "Error message when screen recording permission is not granted"
-            )
+            ))
             permissionService.openSystemSettings()
             return false
         }
@@ -169,15 +177,25 @@ final class AppViewModel {
         if clipboardService.copy(text) {
             Self.logger.info("Text copied to clipboard successfully")
             notificationService.notifySuccess(text: text, settings: settingsService)
-            if settingsService.isHistoryEnabled {
-                historyService?.addRecord(
-                    text: text,
-                    languages: settingsService.ocrLanguages,
-                    maxCount: settingsService.maxHistoryCount
-                )
-            }
         } else {
             Self.logger.warning("Failed to copy text to clipboard")
+            reportFailure(String(
+                localized: "Could not copy the text to the clipboard.",
+                bundle: bundle,
+                comment: "Error message when writing to the clipboard fails"
+            ))
         }
+        // コピーに失敗しても認識結果を失わないよう、履歴には残す
+        if settingsService.isHistoryEnabled {
+            historyService?.addRecord(
+                text: text,
+                languages: settingsService.ocrLanguages,
+                maxCount: settingsService.maxHistoryCount
+            )
+        }
+    }
+
+    private func reportFailure(_ message: String) {
+        notificationService.notifyFailure(message: message)
     }
 }

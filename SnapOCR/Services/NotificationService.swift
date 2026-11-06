@@ -9,7 +9,8 @@ import UserNotifications
 
 /// OCR完了時の通知を配信するサービス。
 /// 設定に応じて通知センター・完了音・トーストの3種類の通知を発火する。
-enum NotificationService {
+/// 失敗は設定に関係なくトーストで必ず表示する。
+struct NotificationService: NotificationServiceProtocol {
     private static let notificationCategoryID = "com.shiroemons.snapocr.ocrComplete"
     nonisolated private static let logger = Logger(category: "NotificationService")
 
@@ -29,17 +30,20 @@ enum NotificationService {
 
     // MARK: - Notify
 
-    @MainActor
-    static func notifySuccess(text: String, settings: SettingsService) {
+    func notifySuccess(text: String, settings: SettingsService) {
         if settings.isNotificationCenterEnabled {
-            sendNotification(text: text, bundle: settings.localizationBundle)
+            Self.sendNotification(text: text, bundle: settings.localizationBundle)
         }
         if settings.isCompletionSoundEnabled {
-            playSound(named: settings.completionSoundName)
+            Self.playSound(named: settings.completionSoundName)
         }
         if settings.isToastEnabled {
             ToastWindow.show(text: text, bundle: settings.localizationBundle)
         }
+    }
+
+    func notifyFailure(message: String) {
+        ToastWindow.showError(message: message)
     }
 
     // MARK: - Notification Center

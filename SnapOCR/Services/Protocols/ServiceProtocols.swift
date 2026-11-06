@@ -30,16 +30,9 @@ protocol ClipboardServiceProtocol {
 
 // MARK: - NotificationServiceProtocol
 
-@MainActor
-protocol NotificationServiceProtocol: Sendable {
+protocol NotificationServiceProtocol {
     func notifySuccess(text: String, settings: SettingsService)
-}
-
-@MainActor
-struct DefaultNotificationService: NotificationServiceProtocol {
-    func notifySuccess(text: String, settings: SettingsService) {
-        NotificationService.notifySuccess(text: text, settings: settings)
-    }
+    func notifyFailure(message: String)
 }
 
 // MARK: - RegionSelectorProtocol

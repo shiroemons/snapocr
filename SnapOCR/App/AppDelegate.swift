@@ -17,22 +17,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
     private(set) lazy var updateService = UpdateService()
-    private(set) lazy var historyService = HistoryService(
-        modelContainer: Self.makeModelContainer(logger: Self.logger)
-    )
+    private(set) lazy var historyService = HistoryService(modelContainer: makeModelContainer())
+    private var isHistoryPersistent = true
 
-    private static func makeModelContainer(logger: Logger) -> ModelContainer {
+    private func makeModelContainer() -> ModelContainer {
         do {
             return try ModelContainer(for: CaptureRecord.self)
         } catch {
             let description = error.localizedDescription
-            logger.error("ModelContainer failed, falling back to in-memory store: \(description, privacy: .public)")
+            Self.logger.error("ModelContainer failed, falling back to in-memory: \(description, privacy: .public)")
+            isHistoryPersistent = false
         }
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(for: CaptureRecord.self, configurations: config)
         } catch {
-            logger.critical("In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.critical(
+                "In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)"
+            )
             // This path is not reachable in practice: an in-memory store with no
             // migration or file I/O cannot fail. If it somehow does, the process
             // cannot run without a persistence layer, so we surface a clear message.
@@ -65,10 +67,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         trackLanguageChanges()
         trackPermissionChanges()
         updateService.startUpdater()
+        reportHistoryStoreFailureIfNeeded()
 
         if settingsService.shouldShowOnboarding {
             showOnboarding()
         }
+    }
+
+    private func reportHistoryStoreFailureIfNeeded() {
+        guard !isHistoryPersistent else { return }
+        ToastWindow.showError(message: String(
+            localized: "History could not be loaded. New captures will be lost when you quit.",
+            bundle: settingsService.localizationBundle,
+            comment: "Error message when the history store cannot be opened"
+        ))
     }
 
     // MARK: - Onboarding Window
