@@ -167,7 +167,7 @@
 - EdDSA (Ed25519) 署名によるアップデートの検証
 - Apple Code Signing（Developer ID）によるノータリゼーション
 - HTTPS 経由の appcast フィード配信
-- appcast.xml も `sign_update` で署名して配信する（`SURequireSignedFeed` は署名付きフィードを配信した次のリリースで有効にする）
+- appcast.xml も `sign_update` で署名して配信し、`SURequireSignedFeed` で署名の検証を必須にする
 
 #### 3.5.2 アップデートの振る舞い
 

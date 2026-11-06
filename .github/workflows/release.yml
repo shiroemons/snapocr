@@ -210,7 +210,7 @@ jobs:
             --download-url-prefix "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/" \
             "$RELEASES_DIR"
 
-          # SURequireSignedFeed を有効にする前に、署名付きフィードを 1 リリース分配信しておく。
+          # アプリは SURequireSignedFeed で署名を必須にしているので、署名なしで配信すると更新を確認できなくなる。
           printf '%s' "$SPARKLE_PRIVATE_KEY" | "$SPARKLE_BIN/sign_update" \
             --ed-key-file - \
             "$RELEASES_DIR/appcast.xml"
