@@ -73,6 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// システム設定で権限を変更して戻ってきたときに、表示を実際の状態へ合わせる。
     func applicationDidBecomeActive(_ notification: Notification) {
         permissionService.checkPermission()
+        loginItemService.refresh()
     }
 
     private func reportHistoryStoreFailureIfNeeded() {
