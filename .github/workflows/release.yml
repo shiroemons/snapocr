@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write
@@ -15,38 +15,78 @@ concurrency:
 env:
   APP_NAME: SnapOCR
   SCHEME: SnapOCR
+  SIGNING_IDENTITY: Developer ID Application
+  SPARKLE_VERSION: 2.10.1
+  SPARKLE_SHA256: 1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27
+
+defaults:
+  run:
+    # パイプの途中の失敗も止めるため、pipefail が付く bash を明示する。
+    shell: bash
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 60
+    environment: release
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # origin/main との関係と既存タグを調べるため、全履歴を取得する。
+          fetch-depth: 0
 
-      - name: Select Xcode
+      - name: Validate tag
         run: |
-          XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "$XCODE_PATH" ]; then
-            sudo xcode-select -s "$XCODE_PATH"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "::error::Release must be triggered by a tag push"
+            exit 1
           fi
-          xcodebuild -version
 
-      - name: Setup Sparkle
-        run: |
-          curl -sL https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz \
-            -o "$RUNNER_TEMP/Sparkle.tar.xz"
-          mkdir -p "$RUNNER_TEMP/sparkle-tools"
-          tar xf "$RUNNER_TEMP/Sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle-tools"
-          echo "$RUNNER_TEMP/sparkle-tools/bin" >> $GITHUB_PATH
-
-      - name: Extract version
-        id: version
-        run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag must be in the form vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          TAG="v$VERSION"
+
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG does not point to a commit on main"
+            exit 1
+          fi
+
+          # フィードと Cask は最新版だけを配信するので、古いタグの再実行で巻き戻さない。
+          LATEST_TAG="$(git tag --list --sort=v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | tail -n 1)"
+          if [ "$TAG" != "$LATEST_TAG" ]; then
+            echo "::error::$TAG is not the latest release tag ($LATEST_TAG)"
+            exit 1
+          fi
+
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Setup Sparkle tools
+        run: |
+          RESOLVED_VERSION="$(jq -er '.pins[] | select(.identity == "sparkle") | .state.version' \
+            SnapOCR.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)"
+          if [ "$RESOLVED_VERSION" != "$SPARKLE_VERSION" ]; then
+            echo "::error::Package.resolved pins Sparkle $RESOLVED_VERSION but SPARKLE_VERSION is $SPARKLE_VERSION"
+            exit 1
+          fi
+
+          SPARKLE_ARCHIVE="$RUNNER_TEMP/Sparkle.tar.xz"
+          curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
+            -o "$SPARKLE_ARCHIVE"
+          echo "$SPARKLE_SHA256  $SPARKLE_ARCHIVE" | shasum -a 256 -c -
+
+          SPARKLE_TOOLS_DIR="$RUNNER_TEMP/sparkle-tools"
+          mkdir -p "$SPARKLE_TOOLS_DIR"
+          tar xf "$SPARKLE_ARCHIVE" -C "$SPARKLE_TOOLS_DIR"
+          echo "SPARKLE_BIN=$SPARKLE_TOOLS_DIR/bin" >> "$GITHUB_ENV"
 
       - name: Setup keychain
         env:
@@ -55,54 +95,60 @@ jobs:
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(uuidgen)"
+          P12_PATH="$RUNNER_TEMP/certificate.p12"
+          trap 'rm -f "$P12_PATH"' EXIT
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          # 以降で失敗しても Cleanup が削除できるよう、作成の直後に渡す。
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          echo "$DEVELOPER_ID_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-          security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN_PATH" \
+          (umask 077 && printf '%s' "$DEVELOPER_ID_P12" | base64 --decode > "$P12_PATH")
+          security import "$P12_PATH" -k "$KEYCHAIN_PATH" \
             -P "$DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign
-          rm "$RUNNER_TEMP/certificate.p12"
 
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-
       - name: Build
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -o pipefail && xcodebuild build \
             -scheme "$SCHEME" \
             -destination 'platform=macOS,arch=arm64' \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -disableAutomaticPackageResolution \
             CODE_SIGN_STYLE=Manual \
-            "CODE_SIGN_IDENTITY=Developer ID Application" \
-            "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" \
+            "CODE_SIGN_IDENTITY=$SIGNING_IDENTITY" \
+            "DEVELOPMENT_TEAM=$APPLE_TEAM_ID" \
             "OTHER_CODE_SIGN_FLAGS=--keychain $KEYCHAIN_PATH" \
-            -skipPackagePluginValidation \
             | xcbeautify
+
+          APP_PATH="$RUNNER_TEMP/DerivedData/Build/Products/Release/$APP_NAME.app"
+          BUILT_VERSION="$(plutil -extract CFBundleShortVersionString raw -o - "$APP_PATH/Contents/Info.plist")"
+          if [ "$BUILT_VERSION" != "$VERSION" ]; then
+            echo "::error::Built version $BUILT_VERSION does not match tag version $VERSION"
+            exit 1
+          fi
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
 
       - name: Code sign
         run: |
-          APP_PATH="$RUNNER_TEMP/DerivedData/Build/Products/Release/$APP_NAME.app"
-          IDENTITY="Developer ID Application"
-
           # Remove extended attributes that may interfere with signing
           xattr -cr "$APP_PATH"
 
           # Deep sign the entire app bundle (signs all nested components recursively)
           codesign --deep --force --verify --verbose \
-            --sign "$IDENTITY" \
+            --sign "$SIGNING_IDENTITY" \
             --options runtime \
             --timestamp \
             --entitlements "$SCHEME/$SCHEME.entitlements" \
             --keychain "$KEYCHAIN_PATH" \
             "$APP_PATH"
-
-          echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
 
       - name: Verify signature
         run: codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -130,12 +176,12 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           DMG_PATH="$RUNNER_TEMP/$APP_NAME.dmg"
 
           bash scripts/create-dmg.sh "$APP_PATH" "$APP_NAME" "$DMG_PATH"
 
-          # Notarize the DMG
+          codesign --sign "$SIGNING_IDENTITY" --timestamp --keychain "$KEYCHAIN_PATH" "$DMG_PATH"
+
           xcrun notarytool submit "$DMG_PATH" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
@@ -143,86 +189,84 @@ jobs:
             --wait
 
           xcrun stapler staple "$DMG_PATH"
+          spctl -a -t open --context context:primary-signature -v "$DMG_PATH"
 
-          echo "DMG_PATH=$DMG_PATH" >> $GITHUB_ENV
+          echo "DMG_PATH=$DMG_PATH" >> "$GITHUB_ENV"
 
-      - name: Sparkle sign
+      # appcast に埋め込むリリースノートを読むので、appcast の生成より先に作る。
+      - name: Upload to GitHub Release
         env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          SIGNATURE=$(echo "$SPARKLE_PRIVATE_KEY" | sign_update "$DMG_PATH" --ed-key-file -)
-          echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG_PATH" --clobber
+          else
+            gh release create "$TAG" "$DMG_PATH" --verify-tag --generate-notes
+          fi
 
       - name: Generate appcast
         env:
           GH_TOKEN: ${{ github.token }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           RELEASES_DIR="$RUNNER_TEMP/releases"
           mkdir -p "$RELEASES_DIR"
           cp "$DMG_PATH" "$RELEASES_DIR/"
 
-          # Fetch release notes from the GitHub Release body
-          gh release view "${GITHUB_REF_NAME}" --json body -q '.body' \
-            > "$RELEASES_DIR/$APP_NAME.html" 2>/dev/null || true
+          # generate_appcast は DMG と同じベース名の .md をリリースノートとして扱う。
+          gh release view "$TAG" --json body --jq '.body' > "$RELEASES_DIR/$APP_NAME.md"
 
-          # Generate the appcast
-          echo "$SPARKLE_PRIVATE_KEY" | generate_appcast "$RELEASES_DIR" \
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$SPARKLE_BIN/generate_appcast" \
             --ed-key-file - \
-            --download-url-prefix "${{ github.server_url }}/${{ github.repository }}/releases/download/v$VERSION/"
+            --embed-release-notes \
+            --download-url-prefix "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/" \
+            "$RELEASES_DIR"
 
-          echo "RELEASES_DIR=$RELEASES_DIR" >> $GITHUB_ENV
+          # SURequireSignedFeed を有効にする前に、署名付きフィードを 1 リリース分配信しておく。
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$SPARKLE_BIN/sign_update" \
+            --ed-key-file - \
+            "$RELEASES_DIR/appcast.xml"
 
-      - name: Upload to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "${GITHUB_REF_NAME}" "$DMG_PATH" --generate-notes
+          echo "RELEASES_DIR=$RELEASES_DIR" >> "$GITHUB_ENV"
 
       - name: Deploy appcast
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          SSH_KEY_PATH="$RUNNER_TEMP/appcast_deploy_key"
+          KNOWN_HOSTS_PATH="$RUNNER_TEMP/github_known_hosts"
+          trap 'rm -f "$SSH_KEY_PATH"' EXIT
 
-          mkdir -p ~/.ssh
-          echo "$DEPLOY_KEY" > ~/.ssh/appcast_deploy_key
-          chmod 600 ~/.ssh/appcast_deploy_key
-          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          (umask 077 && printf '%s\n' "$DEPLOY_KEY" > "$SSH_KEY_PATH")
+          # ssh-keyscan は応答した相手の鍵をそのまま信頼してしまうので、GitHub が公開している鍵を固定する。
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$KNOWN_HOSTS_PATH"
+          export GIT_SSH_COMMAND="ssh -i '$SSH_KEY_PATH' -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile='$KNOWN_HOSTS_PATH'"
 
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/appcast_deploy_key" \
-            git clone git@github.com:shiroemons/appcast.git "$RUNNER_TEMP/appcast-deploy"
-
+          git clone git@github.com:shiroemons/appcast.git "$RUNNER_TEMP/appcast-deploy"
           cp "$RELEASES_DIR/appcast.xml" "$RUNNER_TEMP/appcast-deploy/snapocr/appcast.xml"
 
           cd "$RUNNER_TEMP/appcast-deploy"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add snapocr/appcast.xml
-          git diff --cached --quiet || git commit -m "chore: update SnapOCR appcast for v$VERSION"
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/appcast_deploy_key" git push
-
-          rm -f ~/.ssh/appcast_deploy_key
+          git diff --cached --quiet || git commit -m "chore: update SnapOCR appcast for $TAG"
+          git push
 
       - name: Update Homebrew tap
         env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+          SHA256="$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')"
 
-          # Clone homebrew-tap
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/shiroemons/homebrew-tap.git" \
-            "$RUNNER_TEMP/homebrew-tap"
+          # URL にトークンを埋め込むと .git/config に残るので、gh の資格情報ヘルパー経由で渡す。
+          gh auth setup-git
+          git clone https://github.com/shiroemons/homebrew-tap.git "$RUNNER_TEMP/homebrew-tap"
           cd "$RUNNER_TEMP/homebrew-tap"
 
-          # Generate updated Cask file
           cat > Casks/snapocr.rb <<EOF
           cask "snapocr" do
-            version "${VERSION}"
-            sha256 "${SHA256}"
+            version "$VERSION"
+            sha256 "$SHA256"
 
             url "https://github.com/shiroemons/snapocr/releases/download/v#{version}/SnapOCR.dmg"
             name "SnapOCR"
@@ -234,6 +278,8 @@ jobs:
               strategy :github_latest
             end
 
+            auto_updates true
+            depends_on arch: :arm64
             depends_on macos: ">= :tahoe"
 
             app "SnapOCR.app"
@@ -249,12 +295,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/snapocr.rb
-          git commit -m "chore: update SnapOCR to v$VERSION"
+          git diff --cached --quiet || git commit -m "chore: update SnapOCR to $TAG"
           git push
 
       - name: Cleanup
         if: always()
         run: |
-          if [ -f "$KEYCHAIN_PATH" ]; then
+          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
             security delete-keychain "$KEYCHAIN_PATH"
           fi

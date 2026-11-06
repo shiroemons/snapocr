@@ -9,12 +9,16 @@ OUTPUT_DMG_PATH="${3:?OUTPUT_DMG_PATH is required}"
 VOLUME_NAME="$APP_NAME"
 MOUNT_POINT="/Volumes/$VOLUME_NAME"
 RW_DMG="${OUTPUT_DMG_PATH%.dmg}-rw.dmg"
+# macOS の mktemp は接尾辞付きのテンプレートをランダム化しないため、ディレクトリごと作る。
+WORK_DIR="$(mktemp -d)"
 
 cleanup() {
-    if mount | grep -q "$MOUNT_POINT"; then
+    # 部分一致だと "/Volumes/SnapOCR 1" などの別ボリュームにも反応するので、mount の出力形式どおりに比較する。
+    if mount | grep -qF " on $MOUNT_POINT ("; then
         hdiutil detach "$MOUNT_POINT" -force 2>/dev/null || true
     fi
     rm -f "$RW_DMG"
+    rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
 
@@ -29,7 +33,7 @@ echo "Creating Finder alias to /Applications..."
 osascript -e "tell application \"Finder\" to make alias file to POSIX file \"/Applications\" at POSIX file \"$MOUNT_POINT\" with properties {name:\"Applications\"}"
 
 echo "Setting Applications folder icon via NSWorkspace..."
-ICON_SWIFT=$(mktemp /tmp/set-icon-XXXXXX.swift)
+ICON_SWIFT="$WORK_DIR/set-icon.swift"
 cat > "$ICON_SWIFT" <<'SWIFT'
 import AppKit
 
@@ -51,7 +55,6 @@ print("Icon set successfully on \(target)")
 SWIFT
 
 swift "$ICON_SWIFT" "$APP_NAME"
-rm -f "$ICON_SWIFT"
 
 echo "Configuring DMG window appearance via AppleScript..."
 osascript <<APPLESCRIPT
@@ -93,30 +96,6 @@ hdiutil detach "$MOUNT_POINT"
 echo "Converting to compressed DMG..."
 hdiutil convert "$RW_DMG" -format UDZO -o "$OUTPUT_DMG_PATH"
 
-echo "Setting app icon on DMG file..."
-APP_ICON_FILE="$APP_PATH/Contents/Resources/AppIcon.icns"
-if [ ! -f "$APP_ICON_FILE" ]; then
-    APP_ICON_NAME=$(defaults read "$APP_PATH/Contents/Info" CFBundleIconFile)
-    APP_ICON_NAME="${APP_ICON_NAME%.icns}.icns"
-    APP_ICON_FILE="$APP_PATH/Contents/Resources/$APP_ICON_NAME"
-fi
-DMG_ICON_SWIFT=$(mktemp /tmp/set-dmg-icon-XXXXXX.swift)
-cat > "$DMG_ICON_SWIFT" <<'SWIFT'
-import AppKit
-
-let dmgPath = CommandLine.arguments[1]
-let iconPath = CommandLine.arguments[2]
-
-guard let icon = NSImage(contentsOfFile: iconPath) else {
-    fputs("Failed to load icon from \(iconPath)\n", stderr)
-    exit(1)
-}
-
-let result = NSWorkspace.shared.setIcon(icon, forFile: dmgPath)
-exit(result ? 0 : 1)
-SWIFT
-
-swift "$DMG_ICON_SWIFT" "$OUTPUT_DMG_PATH" "$APP_ICON_FILE"
-rm -f "$DMG_ICON_SWIFT"
-
+# DMG ファイル自体にはカスタムアイコンを付けない。拡張属性（リソースフォーク）が付くと
+# codesign が "detritus not allowed" で失敗し、ダウンロードすれば属性は失われるので利点もない。
 echo "DMG created: $OUTPUT_DMG_PATH"
