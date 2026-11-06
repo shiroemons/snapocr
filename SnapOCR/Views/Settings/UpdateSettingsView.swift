@@ -11,11 +11,21 @@ struct UpdateSettingsView: View {
     let settingsService: SettingsService
     let updater: SPUUpdater
 
+    // SPUUpdater は Observation に対応していないので、KVO の値を状態に写して再描画につなげる
+    @State private var canCheckForUpdates = false
+    @State private var automaticallyChecksForUpdates = false
+    @State private var allowsAutomaticUpdates = false
+    @State private var lastUpdateCheckDate: Date?
+
     private var bundle: Bundle { settingsService.localizationBundle }
 
     var body: some View {
         Form {
-            Section {
+            Section(String(
+                localized: "Automatic Updates",
+                bundle: bundle,
+                comment: "Section header for automatic update settings"
+            )) {
                 Toggle(
                     String(
                         localized: "Automatically check for updates",
@@ -62,12 +72,7 @@ struct UpdateSettingsView: View {
                         set: { updater.automaticallyDownloadsUpdates = $0 }
                     )
                 )
-            } header: {
-                Text(String(
-                    localized: "Automatic Updates",
-                    bundle: bundle,
-                    comment: "Section header for automatic update settings"
-                ))
+                .disabled(!automaticallyChecksForUpdates || !allowsAutomaticUpdates)
             }
 
             Section {
@@ -80,19 +85,31 @@ struct UpdateSettingsView: View {
                     )) {
                         updater.checkForUpdates()
                     }
+                    .disabled(!canCheckForUpdates)
                 }
 
-                if let lastCheckDate = updater.lastUpdateCheckDate {
+                if let lastUpdateCheckDate {
                     LabeledContent(
                         String(localized: "Last checked", bundle: bundle, comment: "Label for last update check date")
                     ) {
-                        Text(lastCheckDate, style: .relative)
+                        Text(lastUpdateCheckDate, style: .relative)
                             .foregroundStyle(.secondary)
+                            .environment(\.locale, settingsService.locale)
                     }
                 }
             }
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            lastUpdateCheckDate = updater.lastUpdateCheckDate
+        }
+        .onReceive(updater.publisher(for: \.canCheckForUpdates)) { newValue in
+            canCheckForUpdates = newValue
+            // lastUpdateCheckDate は KVO に対応していないので、更新セッションの前後で変わるこの値に合わせて読み直す
+            lastUpdateCheckDate = updater.lastUpdateCheckDate
+        }
+        .onReceive(updater.publisher(for: \.automaticallyChecksForUpdates)) { automaticallyChecksForUpdates = $0 }
+        .onReceive(updater.publisher(for: \.allowsAutomaticUpdates)) { allowsAutomaticUpdates = $0 }
     }
 }

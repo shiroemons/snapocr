@@ -50,10 +50,20 @@ fastlane/test_output
 *.sparkle_private_key
 
 # Code signing
+*.p8
 *.p12
+*.pem
 *.mobileprovision
 *.provisionprofile
 
+# Distribution
+*.dmg
+
 # Environment / Secrets
 .env
-.env.local
+.env.*
+
+# Local tooling
+tmp/
+.serena/
+.claude/

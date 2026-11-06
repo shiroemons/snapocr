@@ -6,76 +6,49 @@
 import SwiftData
 import SwiftUI
 
-private enum Constants {
-    static let panelWidth: CGFloat = 320
-    static let dividerOpacity: CGFloat = 0.5
-}
-
 /// NSMenu + NSHostingView 内に表示するメニューバーパネル全体のコンテナ。
 /// SwiftUI の Environment が NSMenu 内で正常に動作しない場合があるため、
 /// サービスおよびアクションはコンストラクタ引数で直接注入する。
 @MainActor
 struct MenuBarPanelView: View {
-    private let permissionService: PermissionService
-    private let settingsService: SettingsService
-    private let historyService: HistoryService
+    static let panelWidth: CGFloat = 320
+
+    let permissionService: PermissionService
+    let settingsService: SettingsService
+    let historyService: HistoryService
     let onCapture: () -> Void
     let onDismissMenu: () -> Void
     let onShowHistory: () -> Void
     let onCheckForUpdates: () -> Void
     let onQuit: () -> Void
 
-    init(
-        permissionService: PermissionService,
-        settingsService: SettingsService,
-        historyService: HistoryService,
-        onCapture: @escaping () -> Void,
-        onDismissMenu: @escaping () -> Void,
-        onShowHistory: @escaping () -> Void,
-        onCheckForUpdates: @escaping () -> Void,
-        onQuit: @escaping () -> Void
-    ) {
-        self.permissionService = permissionService
-        self.settingsService = settingsService
-        self.historyService = historyService
-        self.onCapture = onCapture
-        self.onDismissMenu = onDismissMenu
-        self.onShowHistory = onShowHistory
-        self.onCheckForUpdates = onCheckForUpdates
-        self.onQuit = onQuit
-    }
-
     private var bundle: Bundle { settingsService.localizationBundle }
 
-    private var hotkeyLabel: String {
-        KeyCodeMapping.displayString(
-            keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers
-        )
+    private var divider: some View {
+        Divider()
+            .opacity(0.5)
+            .accessibilityHidden(true)
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if !permissionService.isScreenCapturePermitted {
                 PermissionWarningBanner(settingsService: settingsService) {
+                    onDismissMenu()
                     permissionService.openSystemSettings()
                 }
 
-                Divider()
-                    .opacity(Constants.dividerOpacity)
-                    .accessibilityHidden(true)
+                divider
             }
 
             CaptureActionView(
                 settingsService: settingsService,
-                hotkeyLabel: hotkeyLabel,
+                hotkeyLabel: settingsService.hotkeyDisplayString,
                 isPermissionGranted: permissionService.isScreenCapturePermitted,
                 onCapture: onCapture
             )
 
-            Divider()
-                .opacity(Constants.dividerOpacity)
-                .accessibilityHidden(true)
+            divider
 
             RecentCapturesView(
                 settingsService: settingsService,
@@ -83,9 +56,7 @@ struct MenuBarPanelView: View {
                 onShowHistory: onShowHistory
             )
 
-            Divider()
-                .opacity(Constants.dividerOpacity)
-                .accessibilityHidden(true)
+            divider
 
             MenuBarFooterView(
                 settingsService: settingsService,
@@ -94,7 +65,7 @@ struct MenuBarPanelView: View {
                 onQuit: onQuit
             )
         }
-        .frame(width: Constants.panelWidth)
+        .frame(width: Self.panelWidth)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             Text(

@@ -13,6 +13,9 @@ struct HistorySettingsView: View {
     let onShowHistory: () -> Void
 
     @State private var showingDeleteConfirmation = false
+    @State private var showingDisableConfirmation = false
+    /// 確認待ちの新しい上限。確認中は Picker に表示し、確定するまで設定には書き込まない。
+    @State private var pendingMaxCount: Int?
 
     private var bundle: Bundle { settingsService.localizationBundle }
     private let maxCountOptions = [50, 100, 200, 500]
@@ -29,18 +32,51 @@ struct HistorySettingsView: View {
     // MARK: - Storage
 
     private var storageSection: some View {
-        Section {
+        Section(String(localized: "Storage", bundle: bundle, comment: "History storage section header")) {
             Toggle(
-                String(
-                    localized: "Save OCR History",
-                    bundle: bundle,
-                    comment: "Toggle for history saving"
-                ),
+                String(localized: "Save OCR History", bundle: bundle, comment: "Toggle for history saving"),
                 isOn: Binding(
                     get: { settingsService.isHistoryEnabled },
-                    set: { settingsService.isHistoryEnabled = $0 }
+                    set: { requestHistoryEnabled($0) }
                 )
             )
+            .confirmationDialog(
+                String(
+                    localized: "Turn Off OCR History?",
+                    bundle: bundle,
+                    comment: "Confirmation title when turning off history while records exist"
+                ),
+                isPresented: $showingDisableConfirmation
+            ) {
+                Button(
+                    String(
+                        localized: "Delete History",
+                        bundle: bundle,
+                        comment: "Button to delete existing history and turn off history saving"
+                    ),
+                    role: .destructive
+                ) {
+                    historyService.deleteAll()
+                    settingsService.isHistoryEnabled = false
+                }
+                Button(
+                    String(
+                        localized: "Keep History",
+                        bundle: bundle,
+                        comment: "Button to keep existing history and turn off history saving"
+                    )
+                ) {
+                    settingsService.isHistoryEnabled = false
+                }
+            } message: {
+                Text(
+                    String(
+                        localized: "You can delete the saved history or keep it. Deleted history cannot be restored.",
+                        bundle: bundle,
+                        comment: "Confirmation message when turning off history while records exist"
+                    )
+                )
+            }
 
             Text(
                 String(
@@ -54,40 +90,82 @@ struct HistorySettingsView: View {
 
             if settingsService.isHistoryEnabled {
                 Picker(
-                    String(
-                        localized: "Maximum History Count",
-                        bundle: bundle,
-                        comment: "Picker for max history count"
-                    ),
+                    String(localized: "Maximum History Count", bundle: bundle, comment: "Picker for max history count"),
                     selection: Binding(
-                        get: { settingsService.maxHistoryCount },
-                        set: {
-                            settingsService.maxHistoryCount = $0
-                            historyService.trimToLimit($0)
-                        }
+                        get: { pendingMaxCount ?? settingsService.maxHistoryCount },
+                        set: { requestMaxHistoryCount($0) }
                     )
                 ) {
                     ForEach(maxCountOptions, id: \.self) { count in
-                        Text("\(count)")
+                        Text(count, format: .number)
                             .tag(count)
                     }
                 }
+                .confirmationDialog(
+                    String(
+                        localized: "Lower the History Limit?",
+                        bundle: bundle,
+                        comment: "Confirmation title when a lower history limit would delete records"
+                    ),
+                    isPresented: Binding(
+                        get: { pendingMaxCount != nil },
+                        set: { isPresented in
+                            if !isPresented {
+                                pendingMaxCount = nil
+                            }
+                        }
+                    ),
+                    presenting: pendingMaxCount
+                ) { newLimit in
+                    Button(
+                        String(
+                            localized: "Lower Limit and Delete",
+                            bundle: bundle,
+                            comment: "Button to apply a lower history limit and delete older records"
+                        ),
+                        role: .destructive
+                    ) {
+                        applyMaxHistoryCount(newLimit)
+                    }
+                } message: { newLimit in
+                    Text(
+                        String(
+                            // swiftlint:disable:next line_length
+                            localized: "Only the \(newLimit) most recent records will be kept. Older records will be permanently deleted.",
+                            bundle: bundle,
+                            comment: "Confirmation message when a lower history limit would delete records"
+                        )
+                    )
+                }
             }
-        } header: {
-            Text(
-                String(
-                    localized: "Storage",
-                    bundle: bundle,
-                    comment: "History storage section header"
-                )
-            )
         }
+    }
+
+    private func requestHistoryEnabled(_ isEnabled: Bool) {
+        if !isEnabled, historyService.recordCount() > 0 {
+            showingDisableConfirmation = true
+        } else {
+            settingsService.isHistoryEnabled = isEnabled
+        }
+    }
+
+    private func requestMaxHistoryCount(_ newLimit: Int) {
+        if historyService.recordCount() > newLimit {
+            pendingMaxCount = newLimit
+        } else {
+            applyMaxHistoryCount(newLimit)
+        }
+    }
+
+    private func applyMaxHistoryCount(_ newLimit: Int) {
+        settingsService.maxHistoryCount = newLimit
+        historyService.trimToLimit(newLimit)
     }
 
     // MARK: - Management
 
     private var managementSection: some View {
-        Section {
+        Section(String(localized: "Management", bundle: bundle, comment: "History management section header")) {
             HStack {
                 Spacer()
                 Button {
@@ -101,13 +179,11 @@ struct HistorySettingsView: View {
                         )
                     )
                 }
-                .accessibilityLabel(
-                    String(
-                        localized: "Show all OCR history in a separate window",
-                        bundle: bundle,
-                        comment: "Accessibility label for the button that opens the full history window"
-                    )
-                )
+                .accessibilityHint(String(
+                    localized: "Show all OCR history in a separate window",
+                    bundle: bundle,
+                    comment: "Accessibility hint for the button that opens the full history window"
+                ))
             }
             HStack {
                 Spacer()
@@ -115,34 +191,20 @@ struct HistorySettingsView: View {
                     showingDeleteConfirmation = true
                 } label: {
                     Text(
-                        String(
-                            localized: "Delete All History",
-                            bundle: bundle,
-                            comment: "Button to delete all history"
-                        )
+                        String(localized: "Delete All History", bundle: bundle, comment: "Button to delete all history")
                     )
                 }
-                .accessibilityLabel(
-                    String(
-                        localized: "Delete all OCR history permanently",
-                        bundle: bundle,
-                        comment: "Accessibility label for the destructive button that deletes all history"
-                    )
-                )
+                .accessibilityHint(String(
+                    localized: "Delete all OCR history permanently",
+                    bundle: bundle,
+                    comment: "Accessibility hint for the destructive button that deletes all history"
+                ))
                 .confirmationDialog(
-                    String(
-                        localized: "Delete All History?",
-                        bundle: bundle,
-                        comment: "Delete confirmation title"
-                    ),
+                    String(localized: "Delete All History?", bundle: bundle, comment: "Delete confirmation title"),
                     isPresented: $showingDeleteConfirmation
                 ) {
                     Button(
-                        String(
-                            localized: "Delete All",
-                            bundle: bundle,
-                            comment: "Confirm delete all button"
-                        ),
+                        String(localized: "Delete All", bundle: bundle, comment: "Confirm delete all button"),
                         role: .destructive
                     ) {
                         historyService.deleteAll()
@@ -157,14 +219,6 @@ struct HistorySettingsView: View {
                     )
                 }
             }
-        } header: {
-            Text(
-                String(
-                    localized: "Management",
-                    bundle: bundle,
-                    comment: "History management section header"
-                )
-            )
         }
     }
 }

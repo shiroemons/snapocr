@@ -16,12 +16,16 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
+            Section(String(
+                localized: "Permissions",
+                bundle: bundle,
+                comment: "Permissions section header in General settings"
+            )) {
                 HStack {
                     Image(systemName: permissionService.isScreenCapturePermitted
                           ? "checkmark.circle.fill"
                           : "exclamationmark.triangle.fill")
-                        .foregroundStyle(permissionService.isScreenCapturePermitted ? .green : .yellow)
+                        .foregroundStyle(permissionService.isScreenCapturePermitted ? .green : .orange)
                         .accessibilityHidden(true)
                     Text(
                         permissionService.isScreenCapturePermitted
@@ -45,25 +49,20 @@ struct GeneralSettingsView: View {
                         )) {
                             permissionService.openSystemSettings()
                         }
-                        .accessibilityLabel(
-                            String(
-                                localized: "Open System Settings to grant screen recording permission",
-                                bundle: bundle,
-                                // swiftlint:disable:next line_length
-                                comment: "Accessibility label for the button that opens System Settings for screen recording"
-                            )
-                        )
+                        .accessibilityHint(String(
+                            localized: "Open System Settings to grant screen recording permission",
+                            bundle: bundle,
+                            comment: "Accessibility hint for the button that opens System Settings for screen recording"
+                        ))
                     }
                 }
-            } header: {
-                Text(String(
-                    localized: "Permissions",
-                    bundle: bundle,
-                    comment: "Permissions section header in General settings"
-                ))
             }
 
-            Section {
+            Section(String(
+                localized: "General",
+                bundle: bundle,
+                comment: "General section header in General settings"
+            )) {
                 HStack {
                     Text(String(
                         localized: "Capture Hotkey",
@@ -71,17 +70,7 @@ struct GeneralSettingsView: View {
                         comment: "Capture hotkey label in General settings"
                     ))
                     Spacer()
-                    HotkeyRecorderView(
-                        settingsService: settingsService,
-                        keyCode: Binding(
-                            get: { settingsService.hotkeyKeyCode },
-                            set: { settingsService.hotkeyKeyCode = $0 }
-                        ),
-                        modifiers: Binding(
-                            get: { settingsService.hotkeyModifiers },
-                            set: { settingsService.hotkeyModifiers = $0 }
-                        )
-                    )
+                    HotkeyRecorderView(settingsService: settingsService)
                 }
                 Toggle(
                     String(
@@ -91,9 +80,29 @@ struct GeneralSettingsView: View {
                     ),
                     isOn: Binding(
                         get: { loginItemService.isEnabled },
-                        set: { _ in loginItemService.toggle() }
+                        set: { loginItemService.setEnabled($0) }
                     )
                 )
+                if loginItemService.requiresApproval {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                        Text(String(
+                            localized: "Allow SnapOCR in System Settings to launch it at login.",
+                            bundle: bundle,
+                            comment: "Shown when the login item needs approval in System Settings"
+                        ))
+                        Spacer()
+                        Button(String(
+                            localized: "Open System Settings",
+                            bundle: bundle,
+                            comment: "Button to open System Settings for approving the login item"
+                        )) {
+                            loginItemService.openSystemSettings()
+                        }
+                    }
+                }
                 Picker(
                     String(
                         localized: "Appearance",
@@ -111,11 +120,7 @@ struct GeneralSettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 Picker(
-                    String(
-                        localized: "Language",
-                        bundle: bundle,
-                        comment: "Language picker label in General settings"
-                    ),
+                    String(localized: "Language", bundle: bundle, comment: "Language picker label in General settings"),
                     selection: Binding(
                         get: { settingsService.appLanguage },
                         set: { settingsService.appLanguage = $0 }
@@ -125,15 +130,13 @@ struct GeneralSettingsView: View {
                         Text(language.displayName(bundle: bundle)).tag(language)
                     }
                 }
-            } header: {
-                Text(String(
-                    localized: "General",
-                    bundle: bundle,
-                    comment: "General section header in General settings"
-                ))
             }
 
-            Section {
+            Section(String(
+                localized: "Onboarding",
+                bundle: bundle,
+                comment: "Onboarding section header in General settings"
+            )) {
                 HStack {
                     Spacer()
                     Button(
@@ -145,18 +148,13 @@ struct GeneralSettingsView: View {
                         action: onShowOnboarding
                     )
                 }
-            } header: {
-                Text(String(
-                    localized: "Onboarding",
-                    bundle: bundle,
-                    comment: "Onboarding section header in General settings"
-                ))
             }
         }
         .formStyle(.grouped)
         .padding()
         .onAppear {
-            permissionService.requestPermissionIfNeeded()
+            permissionService.checkPermission()
+            loginItemService.refresh()
         }
     }
 }

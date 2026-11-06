@@ -9,114 +9,40 @@ import Testing
 
 @testable import SnapOCR
 
-@Suite("HistoryService Tests", .serialized)
+@Suite("HistoryService Tests")
+@MainActor
 struct HistoryServiceTests {
-    /// Creates an isolated in-memory ModelContainer and returns a HistoryService.
-    /// Uses ModelContext(container) instead of container.mainContext to avoid
-    /// SwiftData's main-thread check when running under Swift Testing.
-    @MainActor private func makeService() throws -> HistoryService {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(
-            for: CaptureRecord.self,
-            configurations: config
-        )
-        return HistoryService(modelContainer: container)
+    private let base = Date(timeIntervalSince1970: 1000)
+
+    private func makeService() throws -> HistoryService {
+        try HistoryService(modelContainer: makeInMemoryModelContainer())
     }
 
-    @Test @MainActor func addRecord() throws {
+    /// 1 秒ずつ新しくなるレコードを `Record 0` から順に追加する。
+    private func addRecords(_ count: Int, to service: HistoryService) {
+        for i in 0..<count {
+            service.addRecord(text: "Record \(i)", languages: [], timestamp: base.addingTimeInterval(Double(i)))
+        }
+    }
+
+    // MARK: - Add
+
+    @Test func addRecordStoresTextAndLanguages() throws {
         let service = try makeService()
         service.addRecord(text: "Hello", languages: ["en"])
-        #expect(service.recentRecords.count == 1)
-        #expect(service.recentRecords.first?.text == "Hello")
+        #expect(service.recentRecords.map(\.text) == ["Hello"])
         #expect(service.recentRecords.first?.recognizedLanguages == ["en"])
     }
 
-    @Test @MainActor func addMultipleRecords() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 1000)
-        service.addRecord(text: "First", languages: [], timestamp: base)
-        service.addRecord(text: "Second", languages: [], timestamp: base.addingTimeInterval(1))
-        service.addRecord(text: "Third", languages: [], timestamp: base.addingTimeInterval(2))
-        #expect(service.recentRecords.count == 3)
-        #expect(service.recentRecords.first?.text == "Third")
-    }
-
-    @Test @MainActor func fetchAllReturnsAllRecords() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 2000)
-        service.addRecord(text: "One", languages: [], timestamp: base)
-        service.addRecord(text: "Two", languages: [], timestamp: base.addingTimeInterval(1))
-        let all = service.fetchAll()
-        #expect(all.count == 2)
-    }
-
-    @Test @MainActor func fetchAllWithSearch() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 3000)
-        service.addRecord(text: "Swift code", languages: [], timestamp: base)
-        service.addRecord(text: "Python script", languages: [], timestamp: base.addingTimeInterval(1))
-        service.addRecord(text: "Swift playground", languages: [], timestamp: base.addingTimeInterval(2))
-        let results = service.fetchAll(searchText: "Swift")
-        #expect(results.count == 2)
-    }
-
-    @Test @MainActor func deleteRecord() throws {
-        let service = try makeService()
-        service.addRecord(text: "To delete", languages: [])
-        #expect(service.recentRecords.count == 1)
-        guard let record = service.recentRecords.first else {
-            Issue.record("Expected at least one recent record")
-            return
-        }
-        service.delete(record)
-        #expect(service.recentRecords.isEmpty)
-    }
-
-    @Test @MainActor func deleteAll() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 4000)
-        service.addRecord(text: "One", languages: [], timestamp: base)
-        service.addRecord(text: "Two", languages: [], timestamp: base.addingTimeInterval(1))
-        service.deleteAll()
-        #expect(service.recentRecords.isEmpty)
-        #expect(service.fetchAll().isEmpty)
-    }
-
-    @Test @MainActor func trimToLimit() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 5000)
-        for i in 0..<10 {
-            service.addRecord(
-                text: "Record \(i)", languages: [],
-                timestamp: base.addingTimeInterval(Double(i))
-            )
-        }
-        #expect(service.fetchAll().count == 10)
-        service.trimToLimit(5)
-        #expect(service.fetchAll().count == 5)
-    }
-
-    @Test @MainActor func recentRecordsMaxFive() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 6000)
-        for i in 0..<8 {
-            service.addRecord(
-                text: "Record \(i)", languages: [],
-                timestamp: base.addingTimeInterval(Double(i))
-            )
-        }
-        #expect(service.recentRecords.count == 5)
-    }
-
-    @Test @MainActor func addRecordWithEmptyTextIsIgnored() throws {
+    @Test func addRecordWithEmptyTextIsIgnored() throws {
         let service = try makeService()
         service.addRecord(text: "", languages: ["en"])
         #expect(service.recentRecords.isEmpty)
+        #expect(service.recordCount() == 0)
     }
 
-    @Test @MainActor func addRecordWithMaxCountTrimsOldRecords() throws {
+    @Test func addRecordWithMaxCountRemovesOldestRecords() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 7000)
         for i in 0..<8 {
             service.addRecord(
                 text: "Record \(i)", languages: [],
@@ -124,99 +50,179 @@ struct HistoryServiceTests {
                 maxCount: 5
             )
         }
-        let all = service.fetchAll()
-        #expect(all.count == 5)
-        let texts = Set(all.map(\.text))
-        #expect(texts == ["Record 3", "Record 4", "Record 5", "Record 6", "Record 7"])
+        let texts = service.fetchAll().map(\.text)
+        #expect(texts == ["Record 7", "Record 6", "Record 5", "Record 4", "Record 3"])
     }
 
-    @Test @MainActor func addRecordWithoutMaxCountDoesNotTrim() throws {
+    @Test func addRecordWithoutMaxCountKeepsAllRecords() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 8000)
-        for i in 0..<8 {
-            service.addRecord(
-                text: "Record \(i)", languages: [],
-                timestamp: base.addingTimeInterval(Double(i))
-            )
-        }
-        #expect(service.fetchAll().count == 8)
+        addRecords(8, to: service)
+        #expect(service.recordCount() == 8)
     }
 
-    @Test @MainActor func deleteByIdsRemovesMultipleRecords() throws {
+    // MARK: - Fetch
+
+    @Test func fetchAllReturnsNewestFirstRegardlessOfInsertionOrder() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 9000)
-        service.addRecord(text: "Alpha", languages: [], timestamp: base)
-        service.addRecord(text: "Beta", languages: [], timestamp: base.addingTimeInterval(1))
-        service.addRecord(text: "Gamma", languages: [], timestamp: base.addingTimeInterval(2))
-        let all = service.fetchAll()
-        #expect(all.count == 3)
-        let idsToDelete = Set(all.prefix(2).map(\.persistentModelID))
-        service.delete(ids: idsToDelete)
-        #expect(service.fetchAll().count == 1)
+        service.addRecord(text: "Middle", languages: [], timestamp: base.addingTimeInterval(1))
+        service.addRecord(text: "Newest", languages: [], timestamp: base.addingTimeInterval(2))
+        service.addRecord(text: "Oldest", languages: [], timestamp: base)
+        #expect(service.fetchAll().map(\.text) == ["Newest", "Middle", "Oldest"])
     }
 
-    @Test @MainActor func deleteByIdsWithEmptySetIsNoOp() throws {
+    @Test func fetchAllWithSearchReturnsMatchingRecordsNewestFirst() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 10000)
-        service.addRecord(text: "One", languages: [], timestamp: base)
-        service.addRecord(text: "Two", languages: [], timestamp: base.addingTimeInterval(1))
-        service.delete(ids: Set())
-        #expect(service.fetchAll().count == 2)
+        service.addRecord(text: "Swift code", languages: [], timestamp: base)
+        service.addRecord(text: "Python script", languages: [], timestamp: base.addingTimeInterval(1))
+        service.addRecord(text: "Swift playground", languages: [], timestamp: base.addingTimeInterval(2))
+        #expect(service.fetchAll(searchText: "Swift").map(\.text) == ["Swift playground", "Swift code"])
     }
 
-    @Test @MainActor func trimToLimitIsNoOpWhenUnderLimit() throws {
+    @Test func fetchAllSearchNoMatchReturnsEmpty() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 11000)
-        service.addRecord(text: "One", languages: [], timestamp: base)
-        service.addRecord(text: "Two", languages: [], timestamp: base.addingTimeInterval(1))
-        service.addRecord(text: "Three", languages: [], timestamp: base.addingTimeInterval(2))
-        service.trimToLimit(10)
-        #expect(service.fetchAll().count == 3)
+        addRecords(2, to: service)
+        #expect(service.fetchAll(searchText: "xyz").isEmpty)
     }
 
-    @Test @MainActor func trimToLimitRemovesOldestRecords() throws {
-        let service = try makeService()
-        let base = Date(timeIntervalSince1970: 12000)
-        for i in 0..<5 {
-            service.addRecord(
-                text: "R\(i)", languages: [],
-                timestamp: base.addingTimeInterval(Double(i))
-            )
-        }
-        service.trimToLimit(2)
-        let remaining = service.fetchAll()
-        #expect(remaining.count == 2)
-        let texts = Set(remaining.map(\.text))
-        #expect(texts == ["R4", "R3"])
-    }
-
-    @Test @MainActor func fetchAllReturnsEmptyWhenNoRecords() throws {
+    @Test func fetchAllReturnsEmptyWhenNoRecords() throws {
         let service = try makeService()
         #expect(service.fetchAll().isEmpty)
     }
 
-    @Test @MainActor func fetchAllSearchNoMatchReturnsEmpty() throws {
+    // MARK: - Recent Records
+
+    @Test func recentRecordsAreLatestFiveNewestFirst() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 13000)
-        service.addRecord(text: "Hello", languages: [], timestamp: base)
-        service.addRecord(text: "World", languages: [], timestamp: base.addingTimeInterval(1))
-        #expect(service.fetchAll(searchText: "xyz").isEmpty)
+        addRecords(8, to: service)
+        let texts = service.recentRecords.map(\.text)
+        #expect(texts == ["Record 7", "Record 6", "Record 5", "Record 4", "Record 3"])
     }
 
-    @Test @MainActor func deleteByIdsIgnoresAlreadyDeletedRecords() throws {
+    @Test func recentRecordsAreLoadedFromExistingStore() throws {
+        let container = try makeInMemoryModelContainer()
+        addRecords(2, to: HistoryService(modelContainer: container))
+
+        let reopened = HistoryService(modelContainer: container)
+
+        #expect(reopened.recentRecords.map(\.text) == ["Record 1", "Record 0"])
+    }
+
+    // MARK: - Record Count
+
+    @Test func recordCountFollowsAddAndDelete() throws {
         let service = try makeService()
-        let base = Date(timeIntervalSince1970: 14000)
+        #expect(service.recordCount() == 0)
+
+        addRecords(7, to: service)
+        #expect(service.recordCount() == 7)
+
+        let record = try #require(service.recentRecords.first)
+        service.delete(record)
+        #expect(service.recordCount() == 6)
+    }
+
+    // MARK: - Delete
+
+    @Test func deleteRecordRemovesItFromRecentRecords() throws {
+        let service = try makeService()
+        addRecords(2, to: service)
+        let newest = try #require(service.recentRecords.first)
+
+        service.delete(newest)
+
+        #expect(service.recentRecords.map(\.text) == ["Record 0"])
+    }
+
+    @Test func deletingSameRecordTwiceKeepsOtherRecords() throws {
+        let service = try makeService()
+        addRecords(2, to: service)
+        let newest = try #require(service.recentRecords.first)
+
+        service.delete(newest)
+        service.delete(newest)
+
+        #expect(service.fetchAll().map(\.text) == ["Record 0"])
+    }
+
+    @Test func deleteAllEmptiesRecentRecordsAndStore() throws {
+        let service = try makeService()
+        addRecords(7, to: service)
+
+        service.deleteAll()
+
+        #expect(service.recentRecords.isEmpty)
+        #expect(service.fetchAll().isEmpty)
+        #expect(service.recordCount() == 0)
+    }
+
+    @Test func deleteByIdsRemovesOnlyGivenRecords() throws {
+        let service = try makeService()
+        addRecords(3, to: service)
+        let newestTwo = service.fetchAll().prefix(2).map(\.persistentModelID)
+
+        service.delete(ids: Set(newestTwo))
+
+        #expect(service.fetchAll().map(\.text) == ["Record 0"])
+        #expect(service.recentRecords.map(\.text) == ["Record 0"])
+    }
+
+    @Test func deleteByIdsWithEmptySetKeepsAllRecords() throws {
+        let service = try makeService()
+        addRecords(2, to: service)
+        service.delete(ids: Set())
+        #expect(service.recordCount() == 2)
+    }
+
+    @Test func deleteByIdsIgnoresAlreadyDeletedRecords() throws {
+        let service = try makeService()
         service.addRecord(text: "Keep", languages: [], timestamp: base)
         service.addRecord(text: "Remove", languages: [], timestamp: base.addingTimeInterval(1))
-        let allRecords = service.fetchAll()
-        #expect(allRecords.count == 2)
-        guard let recordToRemove = allRecords.first(where: { $0.text == "Remove" }) else {
-            Issue.record("Expected to find record with text 'Remove'")
-            return
-        }
-        service.delete(ids: Set([recordToRemove.persistentModelID]))
-        let remaining = service.fetchAll()
-        #expect(remaining.count == 1)
-        #expect(remaining.first?.text == "Keep")
+        let record = try #require(service.fetchAll().first { $0.text == "Remove" })
+        let ids = Set([record.persistentModelID])
+
+        service.delete(ids: ids)
+        service.delete(ids: ids)
+
+        #expect(service.fetchAll().map(\.text) == ["Keep"])
+        #expect(service.recentRecords.map(\.text) == ["Keep"])
+    }
+
+    // MARK: - Trimming
+
+    @Test func trimToLimitKeepsNewestRecords() throws {
+        let service = try makeService()
+        addRecords(5, to: service)
+
+        service.trimToLimit(2)
+
+        #expect(service.fetchAll().map(\.text) == ["Record 4", "Record 3"])
+    }
+
+    @Test func trimToLimitUpdatesRecentRecords() throws {
+        let service = try makeService()
+        addRecords(10, to: service)
+
+        service.trimToLimit(3)
+
+        #expect(service.recentRecords.map(\.text) == ["Record 9", "Record 8", "Record 7"])
+        #expect(service.recordCount() == 3)
+    }
+
+    @Test func trimToLimitKeepsAllWhenCountEqualsLimit() throws {
+        let service = try makeService()
+        addRecords(3, to: service)
+
+        service.trimToLimit(3)
+
+        #expect(service.fetchAll().map(\.text) == ["Record 2", "Record 1", "Record 0"])
+    }
+
+    @Test func trimToLimitKeepsAllWhenUnderLimit() throws {
+        let service = try makeService()
+        addRecords(3, to: service)
+
+        service.trimToLimit(10)
+
+        #expect(service.recordCount() == 3)
     }
 }

@@ -16,6 +16,7 @@ private enum Constants {
 @MainActor
 final class HistoryWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var titleTrackingTask: Task<Void, Never>?
     private let settingsService: SettingsService
     var onDismiss: (() -> Void)?
 
@@ -26,58 +27,37 @@ final class HistoryWindow: NSObject, NSWindowDelegate {
     // MARK: - Presentation
 
     func present(historyService: HistoryService) {
-        let contentView = HistoryListView(settingsService: settingsService, historyService: historyService)
-        let sizedView = contentView
-            .frame(
-                minWidth: Constants.windowWidth,
-                minHeight: Constants.windowHeight
-            )
-        let hosting = NSHostingView(rootView: sizedView)
-        hosting.frame = CGRect(
-            x: 0,
-            y: 0,
-            width: Constants.windowWidth,
-            height: Constants.windowHeight
-        )
+        let settings = settingsService
+        let title = {
+            String(localized: "OCR History", bundle: settings.localizationBundle, comment: "History window title")
+        }
+        let rootView = HistoryListView(settingsService: settings, historyService: historyService)
+            .frame(minWidth: Constants.windowWidth, minHeight: Constants.windowHeight)
+        let size = CGSize(width: Constants.windowWidth, height: Constants.windowHeight)
 
-        let win = NSWindow(
-            contentRect: CGRect(
-                x: 0,
-                y: 0,
-                width: Constants.windowWidth,
-                height: Constants.windowHeight
-            ),
+        let win = HostingWindow.present(
+            rootView: rootView,
+            size: size,
             styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
+            title: title(),
+            delegate: self
         )
-        win.contentMinSize = NSSize(
-            width: Constants.windowWidth,
-            height: Constants.windowHeight
-        )
-        win.title = String(
-            localized: "OCR History",
-            bundle: settingsService.localizationBundle,
-            comment: "History window title"
-        )
-        win.isReleasedWhenClosed = false
-        win.contentView = hosting
-        win.center()
-        win.delegate = self
-        win.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        win.contentMinSize = size
+        titleTrackingTask = HostingWindow.trackLocalizedTitle(of: win, settings: settings, title: title)
 
         self.window = win
     }
 
     func bringToFront() {
         window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
+        titleTrackingTask?.cancel()
+        titleTrackingTask = nil
         window = nil
         onDismiss?()
     }

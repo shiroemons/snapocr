@@ -4,11 +4,15 @@ import os
 
 @Observable
 @MainActor
-final class PermissionService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "PermissionService")
+final class PermissionService: PermissionServiceProtocol {
+    private static let logger = Logger(category: "PermissionService")
 
     private(set) var isScreenCapturePermitted = false
     private var monitorTimer: Timer?
+
+    isolated deinit {
+        monitorTimer?.invalidate()
+    }
 
     func checkPermission() {
         let newValue = CGPreflightScreenCaptureAccess()
@@ -18,16 +22,10 @@ final class PermissionService {
         }
     }
 
+    /// OS のダイアログを出す。ユーザーの明示的な操作からだけ呼ぶ。
     func requestPermission() {
         CGRequestScreenCaptureAccess()
         checkPermission()
-    }
-
-    func requestPermissionIfNeeded() {
-        checkPermission()
-        guard !isScreenCapturePermitted else { return }
-        Self.logger.info("Requesting screen capture access")
-        requestPermission()
     }
 
     func openSystemSettings() {
@@ -41,15 +39,11 @@ final class PermissionService {
     }
 
     /// Begins periodic permission checks every 2 seconds.
-    ///
-    /// Callers must ensure `stopMonitoring()` is called when monitoring is no longer needed
-    /// (e.g., on view disappear or app termination) to avoid timer resource leaks.
-    /// - Important: This class does not clean up the timer on deallocation because `deinit`
-    ///   cannot access `@MainActor`-isolated properties. Always call `stopMonitoring()` explicitly.
     func startMonitoring() {
         guard monitorTimer == nil else { return }
+        checkPermission()
         monitorTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 self?.checkPermission()
             }
         }

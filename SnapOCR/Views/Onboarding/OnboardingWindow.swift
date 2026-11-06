@@ -16,6 +16,8 @@ private enum Constants {
 @MainActor
 final class OnboardingWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var permissionService: PermissionService?
+    private var titleTrackingTask: Task<Void, Never>?
     private let settingsService: SettingsService
     var onDismiss: (() -> Void)?
 
@@ -26,37 +28,33 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
     // MARK: - Presentation
 
     func present(permissionService: PermissionService) {
+        self.permissionService = permissionService
+
         let contentView = OnboardingContainerView(
             settingsService: settingsService,
             permissionService: permissionService
         ) { [weak self] in
             self?.window?.close()
         }
+        .frame(width: Constants.windowWidth, height: Constants.windowHeight)
 
-        let sizedView = contentView
-            .frame(width: Constants.windowWidth, height: Constants.windowHeight)
-        let hosting = NSHostingView(rootView: sizedView)
-        hosting.frame = CGRect(x: 0, y: 0, width: Constants.windowWidth, height: Constants.windowHeight)
+        let settings = settingsService
+        let localizedTitle = {
+            String(
+                localized: "Welcome to SnapOCR",
+                bundle: settings.localizationBundle,
+                comment: "Onboarding window title"
+            )
+        }
 
-        let win = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: Constants.windowWidth, height: Constants.windowHeight),
+        let win = HostingWindow.present(
+            rootView: contentView,
+            size: CGSize(width: Constants.windowWidth, height: Constants.windowHeight),
             styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
+            title: localizedTitle(),
+            delegate: self
         )
-        win.contentMinSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
-        win.contentMaxSize = NSSize(width: Constants.windowWidth, height: Constants.windowHeight)
-        win.title = String(
-            localized: "Welcome to SnapOCR",
-            bundle: settingsService.localizationBundle,
-            comment: "Onboarding window title"
-        )
-        win.isReleasedWhenClosed = false
-        win.contentView = hosting
-        win.center()
-        win.delegate = self
-        win.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        titleTrackingTask = HostingWindow.trackLocalizedTitle(of: win, settings: settings, title: localizedTitle)
 
         self.window = win
     }
@@ -67,13 +65,16 @@ final class OnboardingWindow: NSObject, NSWindowDelegate {
 
     func bringToFront() {
         window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
-        settingsService.hasCompletedOnboarding = true
+        titleTrackingTask?.cancel()
+        // ウィンドウを閉じても onDisappear が来るとは限らないので、ポーリングはここでも止める
+        permissionService?.stopMonitoring()
+        window?.contentView = nil
         window = nil
         onDismiss?()
     }

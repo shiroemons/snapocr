@@ -16,26 +16,19 @@ struct HistoryListView: View {
     private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var searchText = ""
-    @State private var copiedRecordID: PersistentIdentifier?
+    @State private var copyFeedback = CopyFeedback()
     @State private var isEditing = false
     @State private var selectedIDs: Set<PersistentIdentifier> = []
     @State private var showDeleteAllConfirmation = false
-    @State private var copyResetTask: Task<Void, Never>?
-
-    private var records: [CaptureRecord] {
-        // Workaround: access @Observable tracked property to trigger SwiftUI re-evaluation
-        // when history data changes. Without this, fetchAll results wouldn't update reactively.
-        _ = historyService.recentRecords
-        return historyService.fetchAll(searchText: searchText)
-    }
 
     var body: some View {
+        let records = historyService.fetchAll(searchText: searchText)
         VStack(spacing: 0) {
-            searchField
+            searchField(records: records)
             if records.isEmpty {
                 emptyState
             } else {
-                recordsList
+                recordsList(records: records)
             }
         }
         .confirmationDialog(
@@ -48,11 +41,7 @@ struct HistoryListView: View {
             titleVisibility: .visible
         ) {
             Button(
-                String(
-                    localized: "Delete All",
-                    bundle: bundle,
-                    comment: "Confirmation button to delete all history"
-                ),
+                String(localized: "Delete All", bundle: bundle, comment: "Confirmation button to delete all history"),
                 role: .destructive
             ) {
                 historyService.deleteAll()
@@ -66,24 +55,20 @@ struct HistoryListView: View {
                 )
             )
         }
-        .onDisappear { copyResetTask?.cancel() }
+        .onDisappear { copyFeedback.reset() }
     }
 }
 
 // MARK: - Search
 
 extension HistoryListView {
-    private var searchField: some View {
+    private func searchField(records: [CaptureRecord]) -> some View {
         HStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 TextField(
-                    String(
-                        localized: "Search history...",
-                        bundle: bundle,
-                        comment: "History search placeholder"
-                    ),
+                    String(localized: "Search history...", bundle: bundle, comment: "History search placeholder"),
                     text: $searchText
                 )
                 .textFieldStyle(.plain)
@@ -110,47 +95,40 @@ extension HistoryListView {
                 .frame(height: 20)
                 .accessibilityHidden(true)
 
-            Button {
-                isEditing.toggle()
-                if !isEditing { selectedIDs = [] }
-            } label: {
-                if isEditing {
-                    Text(
-                        String(
-                            localized: "Done",
-                            bundle: bundle,
-                            comment: "Exit edit mode button"
-                        )
-                    )
-                } else {
-                    Text(
-                        String(
-                            localized: "Select",
-                            bundle: bundle,
-                            comment: "Enter edit mode button"
-                        )
-                    )
-                }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.blue)
-            .disabled(records.isEmpty)
-            .frame(width: 60)
-            .accessibilityLabel(
-                isEditing
-                    ? String(
-                        localized: "Done selecting",
-                        bundle: bundle,
-                        comment: "Accessibility label for done button in edit mode"
-                    )
-                    : String(
-                        localized: "Select items",
-                        bundle: bundle,
-                        comment: "Accessibility label for select button"
-                    )
-            )
+            editModeButton(records: records)
         }
         .background(.bar)
+    }
+
+    private func editModeButton(records: [CaptureRecord]) -> some View {
+        Button {
+            isEditing.toggle()
+            if !isEditing { selectedIDs = [] }
+        } label: {
+            if isEditing {
+                Text(String(localized: "Done", bundle: bundle, comment: "Exit edit mode button"))
+            } else {
+                Text(String(localized: "Select", bundle: bundle, comment: "Enter edit mode button"))
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.blue)
+        // 編集中に全件が消えても編集モードを抜けられるよう、編集中は無効にしない
+        .disabled(records.isEmpty && !isEditing)
+        .frame(width: 60)
+        .accessibilityLabel(
+            isEditing
+                ? String(
+                    localized: "Done selecting",
+                    bundle: bundle,
+                    comment: "Accessibility label for done button in edit mode"
+                )
+                : String(
+                    localized: "Select items",
+                    bundle: bundle,
+                    comment: "Accessibility label for select button"
+                )
+        )
     }
 }
 
@@ -160,11 +138,7 @@ extension HistoryListView {
     private var emptyState: some View {
         ContentUnavailableView {
             Label(
-                String(
-                    localized: "No History",
-                    bundle: bundle,
-                    comment: "Empty history title"
-                ),
+                String(localized: "No History", bundle: bundle, comment: "Empty history title"),
                 systemImage: "clock.arrow.circlepath"
             )
         } description: {
@@ -178,11 +152,7 @@ extension HistoryListView {
                 )
             } else {
                 Text(
-                    String(
-                        localized: "No results for \"\(searchText)\".",
-                        bundle: bundle,
-                        comment: "No search results"
-                    )
+                    String(localized: "No results for \"\(searchText)\".", bundle: bundle, comment: "No search results")
                 )
             }
         }
@@ -193,7 +163,7 @@ extension HistoryListView {
 // MARK: - Records List
 
 extension HistoryListView {
-    private var recordsList: some View {
+    private func recordsList(records: [CaptureRecord]) -> some View {
         VStack(spacing: 0) {
             List {
                 ForEach(records) { record in
@@ -201,7 +171,7 @@ extension HistoryListView {
                     HistoryRowView(
                         record: record,
                         settingsService: settingsService,
-                        isCopied: copiedRecordID == recordID,
+                        isCopied: copyFeedback.copiedRecordID == recordID,
                         isEditing: isEditing,
                         isSelected: selectedIDs.contains(recordID),
                         onCopy: {
@@ -216,22 +186,12 @@ extension HistoryListView {
                         }
                     )
                     .contextMenu {
-                        Button(
-                            String(
-                                localized: "Copy",
-                                bundle: bundle,
-                                comment: "Context menu copy"
-                            )
-                        ) {
+                        Button(String(localized: "Copy", bundle: bundle, comment: "Context menu copy")) {
                             copyRecord(record)
                         }
                         Divider()
                         Button(
-                            String(
-                                localized: "Delete",
-                                bundle: bundle,
-                                comment: "Context menu delete"
-                            ),
+                            String(localized: "Delete", bundle: bundle, comment: "Context menu delete"),
                             role: .destructive
                         ) {
                             historyService.delete(record)
@@ -248,30 +208,33 @@ extension HistoryListView {
             .listStyle(.inset)
 
             if isEditing {
-                editingToolbar
+                editingToolbar(records: records)
             }
         }
     }
 
-    private var editingToolbar: some View {
-        HStack {
-            Button(
-                role: .destructive
-            ) {
-                deleteSelected()
+    private func editingToolbar(records: [CaptureRecord]) -> some View {
+        // 検索で隠れた項目を巻き込んで削除しないよう、操作と表示は見えている選択だけを対象にする
+        let visibleIDs = Set(records.map(\.persistentModelID))
+        let visibleSelection = selectedIDs.intersection(visibleIDs)
+        let isAllSelected = visibleSelection.count == records.count
+
+        return HStack {
+            Button(role: .destructive) {
+                deleteSelected(visibleSelection)
             } label: {
                 Text(
                     String(
-                        localized: "Delete \(selectedIDs.count) Selected",
+                        localized: "Delete \(visibleSelection.count) Selected",
                         bundle: bundle,
                         comment: "Delete selected items button"
                     )
                 )
             }
-            .disabled(selectedIDs.isEmpty)
+            .disabled(visibleSelection.isEmpty)
             .accessibilityLabel(
                 String(
-                    localized: "Delete \(selectedIDs.count) selected items",
+                    localized: "Delete \(visibleSelection.count) selected items",
                     bundle: bundle,
                     comment: "Accessibility label for delete selected button"
                 )
@@ -279,57 +242,12 @@ extension HistoryListView {
 
             Spacer()
 
-            Button {
-                if selectedIDs.count == records.count {
-                    selectedIDs = []
-                } else {
-                    selectedIDs = Set(records.map(\.persistentModelID))
-                }
-            } label: {
-                if selectedIDs.count == records.count {
-                    Text(
-                        String(
-                            localized: "Deselect All",
-                            bundle: bundle,
-                            comment: "Deselect all items button"
-                        )
-                    )
-                } else {
-                    Text(
-                        String(
-                            localized: "Select All",
-                            bundle: bundle,
-                            comment: "Select all items button"
-                        )
-                    )
-                }
-            }
-            .accessibilityLabel(
-                selectedIDs.count == records.count
-                    ? String(
-                        localized: "Deselect all items",
-                        bundle: bundle,
-                        comment: "Accessibility label for deselect all button"
-                    )
-                    : String(
-                        localized: "Select all items",
-                        bundle: bundle,
-                        comment: "Accessibility label for select all button"
-                    )
-            )
+            selectAllButton(visibleIDs: visibleIDs, isAllSelected: isAllSelected)
 
-            Button(
-                role: .destructive
-            ) {
+            Button(role: .destructive) {
                 showDeleteAllConfirmation = true
             } label: {
-                Text(
-                    String(
-                        localized: "Delete All",
-                        bundle: bundle,
-                        comment: "Delete all history button"
-                    )
-                )
+                Text(String(localized: "Delete All", bundle: bundle, comment: "Delete all history button"))
             }
             .disabled(records.isEmpty)
         }
@@ -337,21 +255,47 @@ extension HistoryListView {
         .padding(.vertical, 8)
         .background(.bar)
     }
+
+    private func selectAllButton(visibleIDs: Set<PersistentIdentifier>, isAllSelected: Bool) -> some View {
+        Button {
+            if isAllSelected {
+                selectedIDs.subtract(visibleIDs)
+            } else {
+                selectedIDs.formUnion(visibleIDs)
+            }
+        } label: {
+            if isAllSelected {
+                Text(String(localized: "Deselect All", bundle: bundle, comment: "Deselect all items button"))
+            } else {
+                Text(String(localized: "Select All", bundle: bundle, comment: "Select all items button"))
+            }
+        }
+        .accessibilityLabel(
+            isAllSelected
+                ? String(
+                    localized: "Deselect all items",
+                    bundle: bundle,
+                    comment: "Accessibility label for deselect all button"
+                )
+                : String(
+                    localized: "Select all items",
+                    bundle: bundle,
+                    comment: "Accessibility label for select all button"
+                )
+        )
+    }
 }
 
 // MARK: - Actions
 
 extension HistoryListView {
     private func copyRecord(_ record: CaptureRecord) {
-        guard ClipboardService.copy(record.text) else { return }
-        copiedRecordID = record.persistentModelID
-        copyResetTask?.cancel()
-        copyResetTask = Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            if copiedRecordID == record.persistentModelID {
-                copiedRecordID = nil
-            }
-        }
+        let announcement = String(
+            localized: "Copied to Clipboard",
+            bundle: bundle,
+            comment: "Toast notification title when OCR text is copied to clipboard"
+        )
+        copyFeedback.copy(record, announcement: announcement)
     }
 
     private func toggleSelection(_ id: PersistentIdentifier) {
@@ -362,8 +306,8 @@ extension HistoryListView {
         }
     }
 
-    private func deleteSelected() {
-        historyService.delete(ids: selectedIDs)
-        selectedIDs = []
+    private func deleteSelected(_ ids: Set<PersistentIdentifier>) {
+        historyService.delete(ids: ids)
+        selectedIDs.subtract(ids)
     }
 }

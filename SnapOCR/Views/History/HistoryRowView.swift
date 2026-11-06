@@ -19,16 +19,8 @@ struct HistoryRowView: View {
     private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var isExpanded = false
+    @State private var isTruncated = false
     @State private var isHoveringDelete = false
-
-    private var hasMoreThanThreeLines: Bool {
-        var count = 0
-        for char in record.text where char.isNewline {
-            count += 1
-            if count >= 3 { return true }
-        }
-        return false
-    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -70,8 +62,12 @@ struct HistoryRowView: View {
                         )
                         .contentShape(Rectangle())
                         .onTapGesture(perform: onCopy)
+                        .background {
+                            // 展開中は切り詰められないので判定を止め、閉じたときにボタンがちらつかないよう前回の結果を残す
+                            if !isExpanded { truncationDetector }
+                        }
 
-                    if hasMoreThanThreeLines {
+                    if isTruncated || isExpanded {
                         Button {
                             isExpanded.toggle()
                         } label: {
@@ -94,32 +90,13 @@ struct HistoryRowView: View {
                         .buttonStyle(.plain)
                     }
 
-                    Text(
-                        record.timestamp,
-                        format: .relative(
-                            presentation: .named
-                        )
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .onTapGesture(perform: onCopy)
+                    RelativeTimeText(date: record.timestamp, locale: settingsService.locale)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .onTapGesture(perform: onCopy)
                 }
                 .animation(.easeInOut(duration: 0.25), value: isExpanded)
             }
-            .accessibilityLabel(
-                String(
-                    localized: "Copy text",
-                    bundle: bundle,
-                    comment: "Accessibility label for copy button in history row"
-                )
-            )
-            .accessibilityHint(
-                String(
-                    localized: "Copies the recognized text to the clipboard",
-                    bundle: bundle,
-                    comment: "Accessibility hint for copy button in history row"
-                )
-            )
 
             if !isEditing {
                 Button(action: onDelete) {
@@ -128,23 +105,46 @@ struct HistoryRowView: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { isHoveringDelete = $0 }
-                .accessibilityLabel(
-                    String(
-                        localized: "Delete record",
-                        bundle: bundle,
-                        comment: "Accessibility label for delete button in history row"
-                    )
-                )
-                .accessibilityHint(
-                    String(
-                        localized: "Permanently deletes this history record",
-                        bundle: bundle,
-                        comment: "Accessibility hint for delete button in history row"
-                    )
-                )
+                // 行の要素に統合されると、行を押す操作が削除になり、ヒントも行に漏れる。削除は行の操作として提供する
+                .accessibilityHidden(true)
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(record.text)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, onCopy)
+        .accessibilityActions {
+            // 編集中の onCopy は選択の切り替えになるので、コピーとしては出さない
+            if !isEditing {
+                Button(
+                    String(
+                        localized: "Copy text",
+                        bundle: bundle,
+                        comment: "Accessibility label for copy button in history row"
+                    ),
+                    action: onCopy
+                )
+                Button(
+                    String(
+                        localized: "Delete record",
+                        bundle: bundle,
+                        comment: "Accessibility label for delete button in history row"
+                    ),
+                    action: onDelete
+                )
+            }
+        }
+    }
+
+    /// 全文の高さが、行数を制限した本文の高さに収まるかで切り詰めを判定する。
+    private var truncationDetector: some View {
+        ViewThatFits(in: .vertical) {
+            Text(record.text)
+                .font(.body)
+                .hidden()
+                .onAppear { isTruncated = false }
+            Color.clear
+                .onAppear { isTruncated = true }
+        }
     }
 }

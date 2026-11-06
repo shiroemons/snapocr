@@ -5,9 +5,6 @@ import SwiftUI
 @MainActor
 struct HotkeyRecorderView: View {
     let settingsService: SettingsService
-    @Binding var keyCode: UInt32
-    @Binding var modifiers: UInt32
-    var onHotkeyChanged: ((UInt32, UInt32) -> Void)?
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
@@ -15,20 +12,37 @@ struct HotkeyRecorderView: View {
 
     @State private var isRecording = false
     @State private var pendingModifiers: UInt32 = 0
+    @State private var showsInvalidShortcutHint = false
     // NSEvent.addLocalMonitorForEvents returns an opaque Any? token managed by AppKit.
     @State private var eventMonitor: Any?
 
     // MARK: - Body
 
     var body: some View {
-        HStack(spacing: 8) {
-            recordButton
-            if isNonDefault {
-                resetButton
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 8) {
+                recordButton
+                if isNonDefault {
+                    resetButton
+                }
+            }
+            if showsInvalidShortcutHint {
+                Text(String(
+                    localized: "Use a shortcut that includes ⌃, or ⌘ with another modifier.",
+                    bundle: bundle,
+                    comment: "Hint shown in the hotkey recorder when a key combination is rejected"
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
         .onDisappear {
-            cancelRecording()
+            stopRecording()
+        }
+        // 記録中は実際のホットキーが外れているので、別のウィンドウへ移ったまま残さない。
+        // ビューを残したままウィンドウを閉じると onDisappear は来ないが、この通知は届く
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            stopRecording()
         }
     }
 
@@ -65,7 +79,7 @@ struct HotkeyRecorderView: View {
                 comment: "Accessibility label when hotkey recorder is active"
             )
             : String(
-                localized: "Current shortcut: \(currentDisplayString)",
+                localized: "Current shortcut: \(settingsService.hotkeyDisplayString)",
                 bundle: bundle,
                 comment: "Accessibility label showing current hotkey"
             )
@@ -73,11 +87,7 @@ struct HotkeyRecorderView: View {
     }
 
     private var resetButton: some View {
-        Button(String(
-            localized: "Reset to Default",
-            bundle: bundle,
-            comment: "Button to restore the default hotkey"
-        )) {
+        Button(String(localized: "Reset to Default", bundle: bundle, comment: "Button to restore the default hotkey")) {
             applyHotkey(
                 keyCode: SettingsService.defaultHotkeyKeyCode,
                 modifiers: SettingsService.defaultHotkeyModifiers
@@ -86,13 +96,11 @@ struct HotkeyRecorderView: View {
         .buttonStyle(.plain)
         .font(.system(size: 12))
         .foregroundStyle(.secondary)
-        .accessibilityLabel(
-            String(
-                localized: "Reset shortcut to default",
-                bundle: bundle,
-                comment: "Accessibility label for the button that resets the hotkey to its default value"
-            )
-        )
+        .accessibilityHint(String(
+            localized: "Reset shortcut to default",
+            bundle: bundle,
+            comment: "Accessibility hint for the button that resets the hotkey to its default value"
+        ))
     }
 
     // MARK: - Computed properties
@@ -108,70 +116,67 @@ struct HotkeyRecorderView: View {
                 comment: "Prompt shown in hotkey recorder while waiting for key input"
             )
         }
-        return currentDisplayString
-    }
-
-    private var currentDisplayString: String {
-        KeyCodeMapping.displayString(keyCode: keyCode, modifiers: modifiers)
+        return settingsService.hotkeyDisplayString
     }
 
     private var isNonDefault: Bool {
-        keyCode != SettingsService.defaultHotkeyKeyCode || modifiers != SettingsService.defaultHotkeyModifiers
+        settingsService.hotkeyKeyCode != SettingsService.defaultHotkeyKeyCode
+            || settingsService.hotkeyModifiers != SettingsService.defaultHotkeyModifiers
     }
 
     // MARK: - Recording lifecycle
 
     private func toggleRecording() {
         if isRecording {
-            cancelRecording()
+            stopRecording()
         } else {
             startRecording()
         }
     }
 
     private func startRecording() {
-        removeMonitor()
         isRecording = true
-        pendingModifiers = 0
+        settingsService.isRecordingHotkey = true
 
+        // 取消の直後に処理待ちのキーが適用されないよう、Task を挟まず同期で処理する
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
-            Task { @MainActor in handleEvent(event) }
+            MainActor.assumeIsolated { handleEvent(event) }
             return nil
         }
     }
 
-    private func cancelRecording() {
-        removeMonitor()
-        pendingModifiers = 0
-        isRecording = false
-    }
-
-    private func finishRecording() {
-        removeMonitor()
-        isRecording = false
-    }
-
-    private func removeMonitor() {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
+    /// 記録していないときは何もしない。別の場所に表示された記録中のレコーダーの状態を消さないため。
+    private func stopRecording() {
+        guard isRecording else { return }
+        if let eventMonitor {
+            NSEvent.removeMonitor(eventMonitor)
         }
+        eventMonitor = nil
+        pendingModifiers = 0
+        showsInvalidShortcutHint = false
+        isRecording = false
+        settingsService.isRecordingHotkey = false
     }
 
     private func handleEvent(_ event: NSEvent) {
+        guard isRecording else { return }
+
         switch event.type {
         case .flagsChanged:
             pendingModifiers = KeyCodeMapping.carbonModifiers(from: event.modifierFlags)
 
         case .keyDown:
             if event.keyCode == UInt16(kVK_Escape) {
-                cancelRecording()
+                stopRecording()
                 return
             }
-            let carbonMods = KeyCodeMapping.carbonModifiers(from: event.modifierFlags)
-            guard carbonMods != 0 else { return }
-            applyHotkey(keyCode: UInt32(event.keyCode), modifiers: carbonMods)
-            finishRecording()
+            let keyCode = UInt32(event.keyCode)
+            let modifiers = KeyCodeMapping.carbonModifiers(from: event.modifierFlags)
+            guard KeyCodeMapping.isValidHotkey(keyCode: keyCode, modifiers: modifiers) else {
+                showsInvalidShortcutHint = true
+                return
+            }
+            applyHotkey(keyCode: keyCode, modifiers: modifiers)
 
         default:
             break
@@ -180,25 +185,17 @@ struct HotkeyRecorderView: View {
 
     // MARK: - Apply
 
-    private func applyHotkey(keyCode newKeyCode: UInt32, modifiers newModifiers: UInt32) {
-        keyCode = newKeyCode
-        modifiers = newModifiers
-        onHotkeyChanged?(newKeyCode, newModifiers)
+    /// キーと記録状態を同じターンで変更し、`AppViewModel` への変更通知を 1 回にまとめる。
+    private func applyHotkey(keyCode: UInt32, modifiers: UInt32) {
+        settingsService.hotkeyKeyCode = keyCode
+        settingsService.hotkeyModifiers = modifiers
+        stopRecording()
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    @Previewable @State var keyCode = UInt32(kVK_ANSI_O)
-    @Previewable @State var modifiers: UInt32 = UInt32(controlKey) | UInt32(shiftKey)
-
-    HotkeyRecorderView(
-        settingsService: SettingsService(),
-        keyCode: $keyCode,
-        modifiers: $modifiers
-    ) { newKey, newMods in
-        print("Hotkey changed: \(KeyCodeMapping.displayString(keyCode: newKey, modifiers: newMods))")
-    }
-    .padding()
+    HotkeyRecorderView(settingsService: SettingsService())
+        .padding()
 }

@@ -7,12 +7,11 @@ import Foundation
 import Observation
 import os
 
-@Observable
 @MainActor
 final class AppViewModel {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppViewModel")
-    private let permissionService: PermissionService
-    private let hotkeyService: HotkeyService
+    private static let logger = Logger(category: "AppViewModel")
+    private let permissionService: any PermissionServiceProtocol
+    private let hotkeyService: any HotkeyServiceProtocol
     private let settingsService: SettingsService
     private let historyService: HistoryService?
     private let ocrService: any OCRServiceProtocol
@@ -20,26 +19,35 @@ final class AppViewModel {
     private let clipboardService: any ClipboardServiceProtocol
     private let notificationService: any NotificationServiceProtocol
     private let regionSelector: any RegionSelectorProtocol
+    private let captureCooldown: Duration
 
-    private var isTrackingActive = true
+    private struct Hotkey: Equatable {
+        let keyCode: UInt32
+        let modifiers: UInt32
+    }
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
     private(set) var isCapturing = false
-    private(set) var lastError: String?
-    private var captureTask: Task<Void, Never>?
-    private var lastCaptureEndTime: ContinuousClock.Instant = .now - .seconds(10)
+    private(set) var captureTask: Task<Void, Never>?
+    private var hotkeyObservationTask: Task<Void, Never>?
+    /// 最後に登録を試みたキー。記録中は nil にして、記録の終了時に必ず登録し直す。
+    private var appliedHotkey: Hotkey?
+    /// 最後に登録に成功したキー。登録に失敗したときの戻し先。
+    private var registeredHotkey: Hotkey?
+    private var lastCaptureEndTime: ContinuousClock.Instant?
 
     init(
-        permissionService: PermissionService = PermissionService(),
-        hotkeyService: HotkeyService = HotkeyService(),
+        permissionService: any PermissionServiceProtocol = PermissionService(),
+        hotkeyService: any HotkeyServiceProtocol = HotkeyService(),
         settingsService: SettingsService = SettingsService(),
         historyService: HistoryService? = nil,
-        ocrService: any OCRServiceProtocol = DefaultOCRService(),
-        captureService: any CaptureServiceProtocol = DefaultCaptureService(),
-        clipboardService: any ClipboardServiceProtocol = DefaultClipboardService(),
-        notificationService: any NotificationServiceProtocol = DefaultNotificationService(),
-        regionSelector: any RegionSelectorProtocol = DefaultRegionSelector()
+        ocrService: any OCRServiceProtocol = OCRService(),
+        captureService: any CaptureServiceProtocol = CaptureService(),
+        clipboardService: any ClipboardServiceProtocol = ClipboardService(),
+        notificationService: any NotificationServiceProtocol = NotificationService(),
+        regionSelector: any RegionSelectorProtocol = DefaultRegionSelector(),
+        captureCooldown: Duration = .milliseconds(500)
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
@@ -50,54 +58,97 @@ final class AppViewModel {
         self.clipboardService = clipboardService
         self.notificationService = notificationService
         self.regionSelector = regionSelector
+        self.captureCooldown = captureCooldown
     }
 
     func setup() {
-        isTrackingActive = true
         permissionService.checkPermission()
         hotkeyService.onHotkeyPressed = { [weak self] in
             self?.startCapture()
         }
-        hotkeyService.updateHotkey(
-            keyCode: settingsService.hotkeyKeyCode,
-            modifiers: settingsService.hotkeyModifiers
-        )
-        trackHotkeySettingsChanges()
+        applyHotkeySettings()
+        observeHotkeySettings()
     }
 
-    // MARK: - Settings Observation
+    func teardown() {
+        hotkeyObservationTask?.cancel()
+        hotkeyObservationTask = nil
+        captureTask?.cancel()
+        captureTask = nil
+        hotkeyService.unregister()
+        appliedHotkey = nil
+    }
 
-    private func trackHotkeySettingsChanges() {
-        withObservationTracking {
-            _ = settingsService.hotkeyKeyCode
-            _ = settingsService.hotkeyModifiers
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.hotkeyService.updateHotkey(
-                    keyCode: self.settingsService.hotkeyKeyCode,
-                    modifiers: self.settingsService.hotkeyModifiers
-                )
-                self.trackHotkeySettingsChanges()
+    // MARK: - Hotkey
+
+    private func observeHotkeySettings() {
+        hotkeyObservationTask?.cancel()
+        let settings = settingsService
+        hotkeyObservationTask = Task { [weak self] in
+            for await _ in Observations({
+                (settings.hotkeyKeyCode, settings.hotkeyModifiers, settings.isRecordingHotkey)
+            }) {
+                self?.applyHotkeySettings()
             }
         }
     }
 
-    func teardown() {
-        isTrackingActive = false
-        captureTask?.cancel()
-        captureTask = nil
-        hotkeyService.unregister()
+    private func applyHotkeySettings() {
+        guard !settingsService.isRecordingHotkey else {
+            hotkeyService.unregister()
+            appliedHotkey = nil
+            return
+        }
+        let hotkey = Hotkey(keyCode: settingsService.hotkeyKeyCode, modifiers: settingsService.hotkeyModifiers)
+        // Observations は開始時にも現在の値を流すので、同じ値で失敗を二重に通知しない
+        guard hotkey != appliedHotkey else { return }
+        appliedHotkey = hotkey
+
+        if hotkeyService.updateHotkey(keyCode: hotkey.keyCode, modifiers: hotkey.modifiers) {
+            registeredHotkey = hotkey
+        } else {
+            handleHotkeyRegistrationFailure(of: hotkey)
+        }
     }
 
+    private func handleHotkeyRegistrationFailure(of hotkey: Hotkey) {
+        let attempted = settingsService.hotkeyDisplayString
+        Self.logger.error("Failed to register hotkey: \(attempted, privacy: .public)")
+
+        // 戻す先がないときは設定を残す。起動時の一時的な競合で、保存済みのキーを失わないようにする
+        guard let registeredHotkey, registeredHotkey != hotkey else {
+            reportFailure(String(
+                localized: "The shortcut \(attempted) could not be registered.",
+                bundle: bundle,
+                comment: "Error message when a global shortcut cannot be registered and no other shortcut is active"
+            ))
+            return
+        }
+
+        reportFailure(String(
+            localized: "The shortcut \(attempted) could not be registered. The previous shortcut is still active.",
+            bundle: bundle,
+            comment: "Error message when a global shortcut cannot be registered"
+        ))
+        // 画面の表示と実際に効くキーをずらさない。変更通知で旧キーが登録し直される
+        settingsService.hotkeyKeyCode = registeredHotkey.keyCode
+        settingsService.hotkeyModifiers = registeredHotkey.modifiers
+    }
+
+    // MARK: - Capture
+
     func startCapture() {
-        guard !isCapturing,
-              ContinuousClock.Instant.now - lastCaptureEndTime > .milliseconds(500) else { return }
+        guard !isCapturing, isCooldownElapsed else { return }
         isCapturing = true
 
         captureTask = Task {
             await performCapture()
         }
+    }
+
+    private var isCooldownElapsed: Bool {
+        guard let lastCaptureEndTime else { return true }
+        return ContinuousClock.Instant.now - lastCaptureEndTime > captureCooldown
     }
 
     private func performCapture() async {
@@ -107,7 +158,6 @@ final class AppViewModel {
         }
 
         guard checkScreenCapturePermission() else { return }
-        lastError = nil
 
         do {
             Self.logger.info("Starting region selection")
@@ -115,7 +165,6 @@ final class AppViewModel {
                 Self.logger.info("Region selection cancelled by user")
                 return
             }
-            Self.logger.info("Region selected: \(String(describing: selection.rect), privacy: .private)")
 
             let image = try await captureService.captureRegion(
                 selection.rect,
@@ -127,38 +176,41 @@ final class AppViewModel {
 
             let text = try await ocrService.recognizeText(from: image, languages: settingsService.ocrLanguages)
             Self.logger.info("OCR completed: \(text.count) characters recognized")
+            try Task.checkCancellation()
 
-            guard !text.isEmpty else {
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 Self.logger.warning("OCR result is empty")
-                lastError = String(
+                reportFailure(String(
                     localized: "No text was recognized.",
                     bundle: bundle,
                     comment: "Error message when OCR produces empty result"
-                )
+                ))
                 return
             }
 
             handleRecognizedText(text)
+        } catch is CancellationError {
+            Self.logger.info("Capture cancelled")
         } catch {
             Self.logger.error("Capture failed: \(error.localizedDescription, privacy: .public)")
             if let captureError = error as? CaptureError {
-                lastError = captureError.localizedDescription(bundle: bundle)
+                reportFailure(captureError.localizedDescription(bundle: bundle))
             } else {
-                lastError = error.localizedDescription
+                reportFailure(error.localizedDescription)
             }
         }
     }
 
-    /// Returns `true` if screen capture permission is granted; sets `lastError` and opens settings if not.
+    /// Returns `true` if screen capture permission is granted; reports the failure and opens settings if not.
     private func checkScreenCapturePermission() -> Bool {
         permissionService.checkPermission()
         guard permissionService.isScreenCapturePermitted else {
             Self.logger.warning("Screen capture permission not granted")
-            lastError = String(
+            reportFailure(String(
                 localized: "Screen recording permission is required.",
                 bundle: bundle,
                 comment: "Error message when screen recording permission is not granted"
-            )
+            ))
             permissionService.openSystemSettings()
             return false
         }
@@ -169,15 +221,25 @@ final class AppViewModel {
         if clipboardService.copy(text) {
             Self.logger.info("Text copied to clipboard successfully")
             notificationService.notifySuccess(text: text, settings: settingsService)
-            if settingsService.isHistoryEnabled {
-                historyService?.addRecord(
-                    text: text,
-                    languages: settingsService.ocrLanguages,
-                    maxCount: settingsService.maxHistoryCount
-                )
-            }
         } else {
             Self.logger.warning("Failed to copy text to clipboard")
+            reportFailure(String(
+                localized: "Could not copy the text to the clipboard.",
+                bundle: bundle,
+                comment: "Error message when writing to the clipboard fails"
+            ))
         }
+        // コピーに失敗しても認識結果を失わないよう、履歴には残す
+        if settingsService.isHistoryEnabled {
+            historyService?.addRecord(
+                text: text,
+                languages: settingsService.ocrLanguages,
+                maxCount: settingsService.maxHistoryCount
+            )
+        }
+    }
+
+    private func reportFailure(_ message: String) {
+        notificationService.notifyFailure(message: message)
     }
 }

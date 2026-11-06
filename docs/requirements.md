@@ -22,9 +22,9 @@
 
 | 項目 | 値 |
 |------|-----|
-| OS | macOS 26 (Tahoe) 以降 |
+| OS | macOS 26.0 (Tahoe) 以降 |
 | アーキテクチャ | Apple Silicon (arm64) ※macOS 27 以降 Intel 非サポートのため Apple Silicon 専用 |
-| 配布形態 | 直接配布（Sparkle 自動アップデート + Homebrew Cask tap + GitHub Releases） |
+| 配布形態 | 直接配布（Sparkle 自動アップデート + Homebrew Cask tap + GitHub Releases）。App Sandbox を有効にして配布 |
 
 ### 1.5 プロジェクト情報
 
@@ -50,9 +50,9 @@
 
 | レイヤー | 技術 | 選定理由 |
 |----------|------|----------|
-| 言語 | Swift 6.3 | macOS ネイティブ、最新の concurrency 改善（`@concurrent` 属性等）、Inline Array / Span 対応 |
+| 言語 | Swift 6（言語モード 6.0、ツールチェーンは Xcode 27 の Swift 6.4） | macOS ネイティブ、言語モード 6 によるデータ競合の静的検査 |
 | アーキテクチャ | MVVM + Service 層 | SwiftUI + `@Observable` との親和性が高い。メニューバーユーティリティの規模に適切（TCA はオーバーキル） |
-| UI フレームワーク | SwiftUI (macOS 26 SDK) | Liquid Glass デザイン対応、最新 API を活用可能 |
+| UI フレームワーク | SwiftUI（デプロイメントターゲット macOS 26.0） | Liquid Glass デザイン対応、最新 API を活用可能 |
 | メニューバー | NSMenu + NSHostingView (SwiftUI ハイブリッド) | NSPopover より高速でネイティブな挙動。リッチ UI を NSMenu 内に描画 |
 | OCR エンジン | VisionKit (`ImageAnalyzer`) | OS 標準、構造化テキスト認識（`transcript` による自動読み順解決）、縦書き日本語対応、外部依存なし |
 | スクリーンキャプチャ | ScreenCaptureKit | macOS 12.3+ のモダンな画面キャプチャ API |
@@ -61,9 +61,9 @@
 | リンター | SwiftLint (Homebrew) | `.swiftlint.yml` の設定を使い、CI で strict モードを実行 |
 | テスト | Swift Testing (`@Test` / `@Suite` / `#expect`) | Swift 6 ツールチェーン同梱、XCTest 不要。並列実行・パラメタライズドテスト対応 |
 | 自動アップデート | Sparkle 2.10+ (SPM) | macOS Tahoe 対応済み、EdDSA 署名、Sandbox 対応、Markdown リリースノート |
-| CI/CD | GitHub Actions (macOS runner) | ビルド・署名・公証・appcast 生成・リリースの完全自動化 |
+| CI/CD | GitHub Actions (`xcode-27` runner) | ビルド・署名・公証・appcast 生成・リリースの完全自動化 |
 | パッケージ配布 | Homebrew Cask (自前 tap) | `brew install` でのインストールをサポート |
-| ビルドシステム | Xcode 26.3+ / Swift Package Manager | 最新の macOS 26 SDK・agentic coding 対応 |
+| ビルドシステム | Xcode 27.1+ / Swift Package Manager | CI とリリースも Xcode 27.1 に固定。依存は `Package.resolved` で固定 |
 
 ---
 
@@ -76,6 +76,7 @@
 - デフォルトキー: `⌃ + Shift + O`（OCR の O で直感的。macOS 標準・VS Code・Raycast 等と競合なし）
 - アプリがフォアグラウンドでなくても動作すること
 - 設定画面からカスタマイズ可能
+- 割り当てられるのは `⌃` を含む組み合わせ、または `⌘` と他の修飾キーの組み合わせ。F13〜F20 は修飾キーなしでも可（通常の文字入力や `⌘C` のような標準ショートカットを全アプリから奪わないため）
 
 #### 3.1.2 矩形選択キャプチャ
 
@@ -89,7 +90,7 @@
 
 - VisionKit の `ImageAnalyzer` を使用（`.text` 構成）
 - `ImageAnalyzer` はシングルトンとして再利用（初期化コスト削減）
-- 対応言語: システム設定に基づく自動検出（日本語・英語を含む多言語対応）
+- 認識言語: 設定中の言語（既定は日本語 + 英語）を `ImageAnalyzer.Configuration.locales` に渡す
 - **縦書きテキスト対応**: `ImageAnalyzer` が自動的に検出・処理
 - 認識結果は `analysis.transcript` で取得（自動的に適切な読み順で構造化済み）
   - 横書き・縦書きの読み順ソートは `ImageAnalyzer` が内部処理
@@ -112,10 +113,12 @@
 
 | 通知方法 | 説明 | デフォルト |
 |----------|------|-----------|
-| macOS 通知センター | `UserNotifications` で通知。認識テキストのプレビューを表示 | ON |
+| macOS 通知センター | `UserNotifications` で通知。本文は既定で文字数のみ。プレビューを有効にしたときだけ認識テキストの先頭を表示（プレビューは既定 OFF） | ON |
 | コピー完了音 | システムサウンド or カスタムサウンドを再生 | ON |
 | 画面トースト | 画面右上に一時的なフローティングウィンドウで結果を表示（2〜3秒で自動消去） | OFF |
 | 通知なし | 上記すべて無効 | — |
+
+上記の設定はコピー完了の通知に適用する。処理の失敗はトーストで常に表示する（トースト設定の ON/OFF に関係なく）。
 
 ### 3.3 設定機能
 
@@ -129,7 +132,7 @@
 | OCR 言語 | 認識対象言語の選択（複数選択可） | 日本語 + 英語 |
 | 通知方法 | 上記通知方法の ON/OFF 切替 | 通知センター: ON, 完了音: ON |
 | ログイン時自動起動 | `SMAppService` による起動項目への登録 | OFF |
-| OCR 履歴保存 | 履歴を保存するかどうか | ON |
+| OCR 履歴保存 | 履歴を保存するかどうか。オフにするときは既存履歴の削除を確認する | ON |
 | 履歴の保持件数 | 保存する履歴の最大件数 | 100 件 |
 
 #### 3.3.2 ログイン時自動起動
@@ -144,9 +147,10 @@
 - 各 OCR 結果を以下の情報とともに保存:
   - 認識テキスト
   - タイムスタンプ
-  - 認識言語（自動検出結果）
+  - 認識言語（OCR 実行時に設定中の言語）
 - キャプチャ画像は保存しない（テキストのみ）
-- 保存先: アプリのサンドボックス内（SwiftData）
+- 保存先: アプリのサンドボックス内（SwiftData）。`~/Library/Containers/com.shiroemons.snapocr/Data/Library/Application Support/default.store` に平文の SQLite で保存する（暗号化なし）
+- v1.0.0 以前の非 Sandbox 版の履歴（`~/Library/Application Support/default.store`）は移行しない（ファイル名が共有名で、他アプリのものの可能性があるため）
 
 #### 3.4.2 履歴一覧
 
@@ -163,6 +167,7 @@
 - EdDSA (Ed25519) 署名によるアップデートの検証
 - Apple Code Signing（Developer ID）によるノータリゼーション
 - HTTPS 経由の appcast フィード配信
+- appcast.xml も `sign_update` で署名して配信する（`SURequireSignedFeed` は署名付きフィードを配信した次のリリースで有効にする）
 
 #### 3.5.2 アップデートの振る舞い
 
@@ -170,12 +175,12 @@
 - 新バージョン検出時にリリースノート付きのアップデートダイアログを表示
 - リリースノートは Markdown 形式で記述（Sparkle の Markdown サポートを活用）
 - ユーザーの任意でアップデートをインストール（自動インストールは設定で切替可能）
-- デルタアップデート対応（変更部分のみダウンロード）
+- デルタアップデートは生成せず、DMG 全体をダウンロードする（appcast の生成時に過去の DMG を置かないため）
 
 #### 3.5.3 appcast 配信
 
 - appcast.xml を GitHub Pages でホスト（`shiroemons/appcast` リポジトリ → GitHub Pages、カスタムドメイン `xn--xckxf.jp` で配信）
-- `generate_appcast` ツールで自動生成（署名・デルタパッチ含む）→ CI/CD で自動化（→ 3.9 参照）
+- `generate_appcast` ツールで自動生成（EdDSA 署名を含む）→ CI/CD で自動化（→ 3.9 参照）
 - ベータチャンネルの提供を将来的に検討
 
 #### 3.5.4 メニューバーからの手動チェック
@@ -201,21 +206,21 @@
 #### 3.6.2 権限状態の監視
 
 - `CGPreflightScreenCaptureAccess()` で画面収録権限の有効/無効をチェック
-- オンボーディング中はポーリング（1秒間隔）で権限状態を監視し、ユーザーがシステム設定で許可した瞬間にUIへ反映
+- オンボーディング中はポーリング（2秒間隔）で権限状態を監視し、ユーザーがシステム設定で許可した瞬間にUIへ反映
 - 権限が有効になるまで「次へ」ボタンは非活性（ただし「スキップ」リンクで先に進むことも可能）
 
 #### 3.6.3 オンボーディングの再表示条件
 
 - 初回起動時に必ず表示
-- 権限が未付与のまま前回スキップされた場合、次回起動時にも再表示
+- 「始める」を押すと完了として記録する。× で閉じた場合は未完了のままで、次回起動時も表示する
+- 画面収録権限が未付与なら、完了済みでも次回起動時に再表示する
 - 設定画面の「一般」タブから手動で再表示可能（「オンボーディングを再表示」ボタン）
 
 ### 3.7 権限ステータス管理
 
 #### 3.7.1 メニューバーアイコンの警告表示
 
-- 画面収録権限が無効の場合、メニューバーアイコンに **警告バッジ（⚠️）** を重畳表示
-- アイコン自体を変更するか、小さな黄色の警告ドットを付与する形式（要デザイン検討）
+- 画面収録権限が無効の場合、メニューバーアイコンに **オレンジの警告ドット** を重畳表示
 - 権限が有効な場合は通常アイコンを表示
 
 #### 3.7.2 メニューバーポップオーバーの警告バナー
@@ -223,7 +228,7 @@
 - 権限未付与の場合、メニューバーポップオーバーの最上部に警告バナーを表示:
   - 警告アイコン（⚠️）+ 「画面収録の権限が必要です」メッセージ
   - 「設定を開く」ボタン → システム設定の画面収録ページへ遷移
-- ホットキー押下時に権限がない場合も、トーストまたはアラートで権限が必要な旨を通知
+- ホットキー押下時に権限がない場合も、トーストで権限が必要な旨を通知（トースト設定の ON/OFF に関係なく表示）
 
 #### 3.7.3 設定画面での権限ステータス表示
 
@@ -234,7 +239,7 @@
 | 画面収録 | ✅ 有効 / ⚠️ 無効 | 「システム設定を開く」ボタン |
 
 - 権限状態はタブ表示時に毎回チェック（`CGPreflightScreenCaptureAccess()`）
-- 無効時は赤/黄の警告テキストと共にシステム設定への導線を表示
+- 無効時はオレンジの警告表示と共にシステム設定への導線を表示
 - 有効時は緑のチェックマークとともに「有効」と表示
 
 ### 3.8 Homebrew Cask 配布
@@ -257,28 +262,39 @@ cask "snapocr" do
   version "1.0.0"
   sha256 "..."
 
-  url "https://github.com/shiroemons/snapocr/releases/download/v#{version}/SnapOCR-#{version}.dmg"
+  url "https://github.com/shiroemons/snapocr/releases/download/v#{version}/SnapOCR.dmg"
   name "SnapOCR"
   desc "OCR screen text via global hotkey and copy to clipboard"
   homepage "https://github.com/shiroemons/snapocr"
 
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  auto_updates true
+  depends_on arch: :arm64
   depends_on macos: ">= :tahoe"
 
   app "SnapOCR.app"
 
   zap trash: [
-    "~/Library/Application Support/SnapOCR",
-    "~/Library/Preferences/com.shiroemons.snapocr.plist",
+    "~/Library/Application Scripts/com.shiroemons.snapocr",
     "~/Library/Caches/com.shiroemons.snapocr",
+    "~/Library/Containers/com.shiroemons.snapocr",
+    "~/Library/HTTPStorages/com.shiroemons.snapocr",
+    "~/Library/Preferences/com.shiroemons.snapocr.plist",
   ]
 end
 ```
+
+共有名の `~/Library/Application Support/default.store` は他アプリのものの可能性があるので、`zap` に含めない。
 
 #### 3.8.3 Cask 要件への対応
 
 - Homebrew 5.0 より Cask の codesigning + notarization が必須（2026年9月以降未対応 Cask は削除）
 - Developer ID 署名 + Apple ノータリゼーションは必須要件として対応済み（→ 3.9 CI/CD で自動化）
-- DMG 形式で配布（`/Applications` シンボリックリンク付き）
+- DMG 形式で配布（`/Applications` への Finder エイリアス付き）
 
 ### 3.9 CI/CD パイプライン (GitHub Actions)
 
@@ -304,7 +320,7 @@ shiroemons/appcast/
 
 DMG ファイルは各アプリの GitHub Releases に配置する。appcast.xml 内の `<enclosure url="...">` は GitHub Releases の DMG URL を参照する:
 ```
-https://github.com/shiroemons/snapocr/releases/download/v1.0.0/SnapOCR-1.0.0.dmg
+https://github.com/shiroemons/snapocr/releases/download/v1.0.0/SnapOCR.dmg
 ```
 
 **homebrew-tap リポジトリのディレクトリ構成:**
@@ -318,26 +334,31 @@ shiroemons/homebrew-tap/
 
 #### 3.9.2 リリースワークフロー（release.yml）
 
-GitHub Release のタグ作成（`v*.*.*`）をトリガーに、以下を完全自動化:
+`vMAJOR.MINOR.PATCH` 形式のタグの push をトリガーに、以下を完全自動化。ジョブは `xcode-27` ランナーで Xcode 27.1 に固定し、GitHub Environment `release` で実行する。
 
 **ステップ:**
 
 | # | 処理 | 詳細 |
 |---|------|------|
-| 1 | 依存インストール | `create-dmg`, `jq`, Sparkle CLI ツール |
-| 2 | 一時キーチェーン作成 | Developer ID `.p12` 証明書をインポート |
-| 3 | ビルド | `xcodebuild` で Release ビルド（arm64） |
-| 4 | コード署名 | Sparkle XPC Services → フレームワーク → アプリ本体の順に署名。`--options runtime` + エンタイトルメント付き |
-| 5 | 署名検証 | `codesign --verify --deep --strict` |
-| 6 | ノータリゼーション | `xcrun notarytool submit --wait` → `xcrun stapler staple` |
-| 7 | DMG 作成 | `create-dmg` でインストーラー DMG を生成、DMG 自体もノータリゼーション + ステープル |
-| 8 | Sparkle 署名 | `sign_update` で DMG を EdDSA 署名 |
-| 9 | appcast 生成 | `generate_appcast` でデルタアップデート + appcast.xml 生成。リリースノートは GitHub Release body から Markdown で取得 |
-| 10 | GitHub Release アップロード | DMG + デルタアップデートファイルを GitHub Release Assets に添付 |
-| 11 | appcast デプロイ | appcast.xml を `shiroemons/appcast` リポジトリの `snapocr/` ディレクトリに push → GitHub Pages で配信（DMG の URL は GitHub Releases を参照） |
-| 12 | Homebrew tap 更新 | `shiroemons/homebrew-tap` の `Casks/snapocr.rb` を新バージョン + SHA256 で自動更新 PR 作成 |
+| 1 | チェックアウト | 全履歴を取得。`persist-credentials: false` で認証情報を残さない |
+| 2 | タグ検証 | タグの形式、main 上のコミットであること、最新のリリースタグであることを検証 |
+| 3 | Sparkle ツール取得 | `Package.resolved` の版と `SPARKLE_VERSION` の一致を確認し、SHA-256 を検証してから展開 |
+| 4 | 一時キーチェーン作成 | Developer ID `.p12` 証明書をインポート |
+| 5 | ビルド | `xcodebuild` で Release ビルド。`CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` で `get-task-allow` を入れない。`CFBundleShortVersionString` とタグの一致を確認 |
+| 6 | コード署名と検証 | `scripts/sign-app.sh` で Sparkle の `Installer.xpc` → `Downloader.xpc` → `Autoupdate` → `Updater.app` → フレームワーク → アプリ本体の順に `--options runtime` で署名（`--deep` は使わない）。`codesign --verify --deep --strict` と entitlements（App Sandbox、`get-task-allow` なし、Sparkle の mach-lookup 例外）を検査 |
+| 7 | ノータリゼーション | `xcrun notarytool submit --wait` → `xcrun stapler staple` → `spctl` で検証 |
+| 8 | DMG 作成 | `scripts/create-dmg.sh` で生成し、DMG 自体を署名 → ノータリゼーション → ステープル → `spctl` で検証 |
+| 9 | GitHub Release アップロード | リリースが既にあれば `gh release upload --clobber`、なければ `gh release create --verify-tag --generate-notes` で DMG を添付 |
+| 10 | appcast 生成 | GitHub Release の本文を DMG と同じベース名の `.md` に保存し、`generate_appcast --embed-release-notes` で Markdown のまま埋め込む。生成した appcast.xml を `sign_update` で署名 |
+| 11 | appcast デプロイ | appcast.xml を `shiroemons/appcast` リポジトリの `snapocr/` ディレクトリに SSH デプロイキーで push → GitHub Pages で配信（DMG の URL は GitHub Releases を参照）。GitHub の ed25519 ホスト鍵を固定する |
+| 12 | Homebrew tap 更新 | `shiroemons/homebrew-tap` の `Casks/snapocr.rb` を新バージョン + SHA256 で更新して直接 push。トークンは `gh auth setup-git` 経由で渡す |
+| 13 | 後片付け | 一時キーチェーンを削除（失敗時も実行） |
+
+同じタグでの再実行は、DMG の差し替え、appcast と Cask の更新をやり直すだけで、リリースとタグは削除しない。最新でないタグの再実行は、appcast と Cask を巻き戻さないよう失敗させる。
 
 #### 3.9.3 GitHub Secrets
+
+GitHub Environment `release` に設定する。
 
 | Secret 名 | 用途 |
 |-----------|------|
@@ -356,15 +377,19 @@ PR / push 時に実行する品質保証ワークフロー:
 
 - **SwiftLint**: Homebrew で導入し、CI で `swiftlint --strict` を実行。violation があれば CI を fail
 - **ビルド確認**: `xcodebuild build` で Release / Debug 両構成のビルドを検証
-- **テスト実行**: `xcodebuild test` で Swift Testing ベースのテストを実行（`--parallel-testing-enabled YES`）
-- macOS runner: `macos-26`
+- **テスト実行**: `xcodebuild test` で Swift Testing ベースのテストを実行（`-parallel-testing-enabled YES`）
+- 依存解決: `-disableAutomaticPackageResolution` で `Package.resolved` の版だけを使う
+- macOS runner: `xcode-27`（`DEVELOPER_DIR` で Xcode 27.1 に固定）
+- Action は SHA で固定し、Dependabot で週次に更新を確認する
 
 #### 3.9.5 リリース手順（開発者向け）
 
-1. `Info.plist` のバージョン番号をバンプ（`CFBundleShortVersionString` + `CFBundleVersion`）
-2. GitHub で Release を作成（タグ: `v1.0.0` 形式、Release notes を Markdown で記述）
+1. `project.pbxproj` の `MARKETING_VERSION` を更新（`CFBundleVersion` は `CURRENT_PROJECT_VERSION` で同期される）
+2. main に push し、main 上のコミットに `v1.0.0` 形式のタグを push（Release notes を Markdown で書く場合は、先に同じタグで GitHub Release を作る。なければ自動生成する）
 3. GitHub Actions が自動で全ステップを実行
-4. 完了後: Sparkle 経由で既存ユーザーにアップデート通知 + Homebrew tap が更新 + GitHub Release に DMG + デルタアップデート添付
+4. 完了後: Sparkle 経由で既存ユーザーにアップデート通知 + Homebrew tap が更新 + GitHub Release に DMG 添付
+
+Sparkle を更新するときは、`Package.resolved` と `release.yml` の `SPARKLE_VERSION` / `SPARKLE_SHA256` を揃える（不一致ならリリースは失敗する）。
 
 ---
 
@@ -372,9 +397,8 @@ PR / push 時に実行する品質保証ワークフロー:
 
 #### 3.10.1 導入方式
 
-- Swift Package Manager の **Build Tool Plugin** として導入（Xcode ビルド時に自動実行）
-- `Package.swift` に `SwiftLintPlugin` を追加し、各ターゲットに `.plugin(name: "SwiftLintBuildToolPlugin")` を設定
-- CI でも同一ルールで lint を実行（→ 3.9.4 参照）
+- Homebrew で導入し、Xcode のビルドには組み込まない
+- CI で `.swiftlint.yml` のルールで lint を実行（→ 3.9.4 参照）
 
 #### 3.10.2 設定ファイル（.swiftlint.yml）
 
@@ -382,11 +406,11 @@ PR / push 時に実行する品質保証ワークフロー:
 
 - デフォルトルールをベースに、プロジェクトに合わせてカスタマイズ
 - `disabled_rules`: 過度に厳しいルールを無効化（必要に応じて）
-- `opt_in_rules`: `sorted_imports`, `unused_import`, `vertical_whitespace_closing_braces` 等を有効化
+- `opt_in_rules`: `sorted_imports`, `vertical_whitespace_closing_braces` 等を有効化
+- `analyzer_rules`: `unused_import`（`swiftlint analyze` でだけ実行され、CI の `swiftlint --strict` では実行されない）
 - `excluded`: ビルド成果物、SPM の `.build/` ディレクトリを除外
 - `line_length`: warning 120 / error 160
 - `function_body_length`: warning 50 / error 100
-- Swift 6 の concurrency 関連ルールを有効化
 
 #### 3.10.3 運用ルール
 
@@ -406,12 +430,12 @@ PR / push 時に実行する品質保証ワークフロー:
 
 | テスト対象 | テスト内容 | 方式 |
 |-----------|-----------|------|
-| OCR テキスト処理 | `ImageAnalyzer` の認識結果取得、エラーハンドリング | `@Test` |
-| 設定管理 | UserDefaults / SwiftData の読み書き、デフォルト値 | `@Suite` でグループ化 |
+| OCR フロー | `MockOCRService` を使った `AppViewModel` の処理とエラーハンドリング（`ImageAnalyzer` の認識結果自体はテストしない） | `@Test` |
+| 設定管理 | UserDefaults の読み書き、デフォルト値 | `@Suite` でグループ化 |
 | クリップボード | `NSPasteboard` へのコピー処理 | `@Test` |
 | 履歴管理 | SwiftData CRUD、件数制限、検索 | `@Suite(.serialized)` で直列実行 |
-| Sparkle 設定 | appcast URL、EdDSA 公開鍵の妥当性 | `@Test` |
-| ホットキー | キーコンビネーションの登録・解除・競合チェック | `@Test` |
+| Sparkle 設定 | appcast URL の設定、アップデーターの生成 | `@Test` |
+| ホットキー | キーコンビネーションの登録・解除、割り当て規則の判定 | `@Test` |
 
 #### 3.11.3 テスト方針
 
@@ -419,8 +443,7 @@ PR / push 時に実行する品質保証ワークフロー:
 - 状態を共有するテストは `@Suite(.serialized)` で直列化
 - `#expect` でアサーション（式の左右両辺が自動キャプチャされ、失敗時の診断が明確）
 - `#require` でテスト前提条件のバリデーション（失敗時は即テスト中断）
-- `@Test(.enabled(if:))` で環境依存テストの条件付き実行
-- パラメタライズドテストで OCR 言語・テキスト方向の組み合わせを網羅
+- パラメタライズドテストで設定値の境界（履歴件数の範囲など）を確認
 
 #### 3.11.4 テスト対象外（v1.0 時点）
 
@@ -481,7 +504,7 @@ PR / push 時に実行する品質保証ワークフロー:
 ```
 ┌─────────────────────────────────────────┐
 │  ⚠️ 画面収録の権限が必要です             │  ← 権限未付与時のみ表示
-│  テキストを読み取るには権限が必要です      │    黄色背景の警告バナー
+│  テキストを読み取るには権限が必要です      │    オレンジ背景の警告バナー
 │               [システム設定を開く]        │    クリックでシステム設定へ遷移
 ├─────────────────────────────────────────┤
 │                                         │
@@ -507,7 +530,7 @@ PR / push 時に実行する品質保証ワークフロー:
 #### 5.1.2 各セクションの詳細
 
 **警告バナー（条件付き表示）**
-- 画面収録権限が未付与の場合のみ、パネル最上部に黄色/オレンジの警告バナーを表示
+- 画面収録権限が未付与の場合のみ、パネル最上部にオレンジの警告バナーを表示
 - SF Symbols `exclamationmark.triangle.fill` + 説明テキスト + アクションボタン
 - 権限が有効な場合はバナーごと非表示（パネルがコンパクトになる）
 
@@ -537,7 +560,7 @@ PR / push 時に実行する品質保証ワークフロー:
 | 状態 | アイコン表示 |
 |------|-------------|
 | 通常（権限有効） | `text.viewfinder` (template image) |
-| 権限未付与 | `text.viewfinder` + 小さな黄色ドットバッジ（⚠️） |
+| 権限未付与 | `text.viewfinder` + 小さなオレンジのドットバッジ |
 
 #### 5.1.4 実装方式
 
@@ -586,8 +609,8 @@ PR / push 時に実行する品質保証ワークフロー:
 - SwiftUI の `TabView` でタブ分け:
   - **一般**: 権限ステータス（画面収録: ✅ 有効 / ⚠️ 無効 + 「システム設定を開く」）、ホットキー設定、ログイン時自動起動、「オンボーディングを再表示」ボタン
   - **OCR**: 言語選択
-  - **通知**: 通知方法の切替
-  - **履歴**: 保持件数設定、一括削除ボタン
+  - **通知**: 通知方法の切替、通知本文のプレビュー
+  - **履歴**: 履歴の保存 ON/OFF、保持件数設定、一括削除ボタン
   - **アップデート**: 自動チェック ON/OFF、チェック間隔、自動インストール ON/OFF
 
 ### 5.5 履歴ウィンドウ
@@ -607,6 +630,8 @@ PR / push 時に実行する品質保証ワークフロー:
 | アクセシビリティ (Accessibility) | Carbon API 方式では不要 | — |
 | 通知 (Notifications) | 通知センターへの通知送信 | ✅ |
 | ネットワーク (Outgoing Connections) | Sparkle アップデートチェック（HTTPS） | ✅ |
+
+配布版の entitlements は App Sandbox、Outgoing Connections、Sparkle の Installer サービス用の mach-lookup 例外（`<bundle id>-spks` / `-spki`）を含み、`get-task-allow` を含まない（リリース時に `scripts/sign-app.sh` で検査する）。
 
 ---
 
@@ -628,7 +653,7 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 - Carbon API は C ベースのため、Swift からのブリッジコードが必要（`InstallEventHandler` / `EventHotKeyID` 等）
 - ホットキーの録音 UI（設定画面でユーザーがキーを変更する部分）は別途 SwiftUI で自前実装するか、録音 UI 部分のみ軽量ライブラリを検討
 - `RegisterEventHotKey` で登録したホットキーはアプリ終了時に `UnregisterEventHotKey` で解除すること
-- macOS 標準ショートカットとの競合チェックを設定画面で実装
+- 標準ショートカットを奪わないよう、割り当てられるキーを制限する（→ 3.1.1 参照）。OS が登録を拒否した場合は元のホットキーを維持する
 
 ### 7.2 縦書きテキストの読み順
 
@@ -654,10 +679,9 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 
 ### 7.5 App Sandbox との兼ね合い
 
-- Mac App Store 配布の場合、App Sandbox が必須
-- グローバルホットキーや画面収録との互換性を確認する必要あり
-- 直接配布（Sparkle）のため App Sandbox は任意だが、セキュリティ向上のため Sandbox 化を推奨
-- Sparkle 2.10 は XPC Services による Sandbox 対応済み
+- 配布版は直接配布（Sparkle）でも App Sandbox を有効にする
+- Sparkle 2.10 は XPC Services による Sandbox 対応済み。Installer サービスを有効にし、mach-lookup 例外を entitlements に加える。Downloader サービスは Outgoing Connections を持つので使わない
+- Sparkle の部品は必要な entitlements が異なるため、公式手順の順序で内側から署名し、`--deep` は使わない（→ 3.9.2 参照）
 - ノータリゼーション（公証）は必須。Developer ID で署名 + `xcrun notarytool` で公証
 - macOS 27 以降は Intel Mac 非サポートとなるため、Apple Silicon 専用ビルドで問題なし
 
@@ -711,3 +735,4 @@ Carbon API (`RegisterEventHotKey` / `UnregisterEventHotKey`) を採用する。
 | 2026-03-23 | 0.12 | グローバルホットキーを Carbon API (`RegisterEventHotKey`) に確定。アクセシビリティ権限不要。選定理由・実装注意点を詳細化。権限テーブルから Accessibility を不要に変更 |
 | 2026-03-23 | 1.0 | 要求定義書ファイナライズ: アプリ名「SnapOCR」確定、MVVM アーキテクチャ採用、MIT License、デフォルトホットキー `⌃⇧O` 確定、クラッシュレポートなし、SemVer バージョニング、プライバシーポリシー方針、プロジェクト情報セクション追加 |
 | 2026-03-27 | 1.1 | OCR エンジンを Apple Vision (`VNRecognizeTextRequest`) から VisionKit (`ImageAnalyzer`) に変更。`transcript` による自動読み順解決により縦書きソートロジックが不要に。テスト構成を実装に合わせて更新 |
+| 2026-11-06 | 1.2 | 配布版の App Sandbox 有効化、最小 OS macOS 26.0、Xcode 27.1 / Swift 6 言語モード、通知本文の既定（文字数のみ）、失敗時のトースト、オンボーディングの完了条件、警告色、ホットキーの割り当て規則、CI とリリース手順を実装に合わせて更新 |

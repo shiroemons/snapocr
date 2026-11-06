@@ -29,20 +29,28 @@ struct MenuBarFooterView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            footerButton(.settings, systemImage: "gear", label: "Settings", comment: "Settings button in footer") {
+            footerButton(
+                .settings,
+                systemImage: "gear",
+                label: String(localized: "Settings", bundle: bundle, comment: "Settings button in footer")
+            ) {
                 onDismissMenu()
+                // LSUIElement のアプリは自動では前面に出ないので、先に有効化しないと設定が背面に開く
+                NSApp.activate()
                 openSettings()
             }
 
+            // メニューは onCheckForUpdates の呼び出し先で閉じる
             footerButton(
                 .update,
                 systemImage: "arrow.triangle.2.circlepath",
-                label: "Check for Updates",
-                comment: "Check for updates button in footer"
-            ) {
-                onDismissMenu()
-                onCheckForUpdates()
-            }
+                label: String(
+                    localized: "Check for Updates",
+                    bundle: bundle,
+                    comment: "Check for updates button in footer"
+                ),
+                action: onCheckForUpdates
+            )
 
             Spacer()
 
@@ -53,38 +61,43 @@ struct MenuBarFooterView: View {
 
             Spacer()
 
-            footerButton(.about, systemImage: "info.circle", label: "About SnapOCR",
-                         comment: "About button in footer") {
+            footerButton(
+                .about,
+                systemImage: "info.circle",
+                label: String(localized: "About SnapOCR", bundle: bundle, comment: "About button in footer")
+            ) {
                 onDismissMenu()
                 NSApp.activate()
                 NSApp.orderFrontStandardAboutPanel(options: [.version: ""])
             }
 
-            footerButton(.quit, systemImage: "power", label: "Quit SnapOCR", comment: "Quit button in footer") {
-                onQuit()
-            }
+            footerButton(
+                .quit,
+                systemImage: "power",
+                label: String(localized: "Quit SnapOCR", bundle: bundle, comment: "Quit button in footer"),
+                action: onQuit
+            )
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .onDisappear { hoveredButton = nil }
     }
 
     private func footerButton(
         _ id: FooterButton,
         systemImage: String,
         label: String,
-        comment: StaticString,
         action: @escaping () -> Void
     ) -> some View {
-        let localizedLabel = String(localized: String.LocalizationValue(label), bundle: bundle, comment: comment)
-        return Button(action: action) {
+        Button(action: action) {
             Image(systemName: systemImage)
                 .font(.body)
                 .foregroundStyle(hoveredButton == id ? .primary : .secondary)
         }
         .buttonStyle(.plain)
         .onHover { hoveredButton = $0 ? id : nil }
-        .help(localizedLabel)
-        .accessibilityLabel(localizedLabel)
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
 

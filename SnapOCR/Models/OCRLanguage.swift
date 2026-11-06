@@ -36,263 +36,58 @@ struct OCRLanguageDefinition: Identifiable, Sendable {
     let displayNameKey: String
     let group: OCRLanguageGroup
     let isLatinScript: Bool
-    let isCJK: Bool
     let isChinese: Bool
 
     var id: String { code }
 
     static let defaultLanguageCodes: [String] = ["ja", "en"]
 
+    private init(
+        _ code: String,
+        _ displayNameKey: String,
+        _ group: OCRLanguageGroup,
+        isLatinScript: Bool = false,
+        isChinese: Bool = false
+    ) {
+        self.code = code
+        self.displayNameKey = displayNameKey
+        self.group = group
+        self.isLatinScript = isLatinScript
+        self.isChinese = isChinese
+    }
+
     static let allLanguages: [Self] = [
-        // English
-        Self(
-            code: "en",
-            displayNameKey: "English",
-            group: .english,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        // East Asian
-        Self(
-            code: "ja",
-            displayNameKey: "Japanese",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: true,
-            isChinese: false
-        ),
-        Self(
-            code: "zh-Hans",
-            displayNameKey: "Chinese (Simplified)",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: true,
-            isChinese: true
-        ),
-        Self(
-            code: "zh-Hant",
-            displayNameKey: "Chinese (Traditional)",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: true,
-            isChinese: true
-        ),
-        Self(
-            code: "yue-Hans",
-            displayNameKey: "Cantonese (Simplified)",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: true,
-            isChinese: true
-        ),
-        Self(
-            code: "yue-Hant",
-            displayNameKey: "Cantonese (Traditional)",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: true,
-            isChinese: true
-        ),
-        Self(
-            code: "ko",
-            displayNameKey: "Korean",
-            group: .eastAsian,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Western European
-        Self(
-            code: "fr",
-            displayNameKey: "French",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "it",
-            displayNameKey: "Italian",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "de",
-            displayNameKey: "German",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "es",
-            displayNameKey: "Spanish",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "pt",
-            displayNameKey: "Portuguese",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "nl",
-            displayNameKey: "Dutch",
-            group: .westernEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Eastern European
-        Self(
-            code: "cs",
-            displayNameKey: "Czech",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "pl",
-            displayNameKey: "Polish",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "ro",
-            displayNameKey: "Romanian",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "tr",
-            displayNameKey: "Turkish",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "id",
-            displayNameKey: "Indonesian",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "ms",
-            displayNameKey: "Malay",
-            group: .easternEuropean,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Nordic
-        Self(
-            code: "da",
-            displayNameKey: "Danish",
-            group: .nordic,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "no",
-            displayNameKey: "Norwegian",
-            group: .nordic,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "nn",
-            displayNameKey: "Norwegian Nynorsk",
-            group: .nordic,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "nb",
-            displayNameKey: "Norwegian Bokmal",
-            group: .nordic,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "sv",
-            displayNameKey: "Swedish",
-            group: .nordic,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Cyrillic
-        Self(
-            code: "ru",
-            displayNameKey: "Russian",
-            group: .cyrillic,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "uk",
-            displayNameKey: "Ukrainian",
-            group: .cyrillic,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Arabic Script
-        Self(
-            code: "ar",
-            displayNameKey: "Arabic",
-            group: .arabicScript,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
-        Self(
-            code: "ars",
-            displayNameKey: "Najdi Arabic",
-            group: .arabicScript,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
-        // Southeast Asian
-        Self(
-            code: "th",
-            displayNameKey: "Thai",
-            group: .southeastAsian,
-            isLatinScript: false,
-            isCJK: false,
-            isChinese: false
-        ),
+        Self("en", "English", .english, isLatinScript: true),
+        Self("ja", "Japanese", .eastAsian),
+        Self("zh-Hans", "Chinese (Simplified)", .eastAsian, isChinese: true),
+        Self("zh-Hant", "Chinese (Traditional)", .eastAsian, isChinese: true),
+        Self("yue-Hans", "Cantonese (Simplified)", .eastAsian, isChinese: true),
+        Self("yue-Hant", "Cantonese (Traditional)", .eastAsian, isChinese: true),
+        Self("ko", "Korean", .eastAsian),
+        Self("fr", "French", .westernEuropean, isLatinScript: true),
+        Self("it", "Italian", .westernEuropean, isLatinScript: true),
+        Self("de", "German", .westernEuropean, isLatinScript: true),
+        Self("es", "Spanish", .westernEuropean, isLatinScript: true),
+        Self("pt", "Portuguese", .westernEuropean, isLatinScript: true),
+        Self("nl", "Dutch", .westernEuropean, isLatinScript: true),
+        Self("cs", "Czech", .easternEuropean, isLatinScript: true),
+        Self("pl", "Polish", .easternEuropean, isLatinScript: true),
+        Self("ro", "Romanian", .easternEuropean, isLatinScript: true),
+        Self("tr", "Turkish", .easternEuropean, isLatinScript: true),
+        Self("da", "Danish", .nordic, isLatinScript: true),
+        Self("no", "Norwegian", .nordic, isLatinScript: true),
+        Self("nn", "Norwegian Nynorsk", .nordic, isLatinScript: true),
+        Self("nb", "Norwegian Bokmal", .nordic, isLatinScript: true),
+        Self("sv", "Swedish", .nordic, isLatinScript: true),
+        Self("ru", "Russian", .cyrillic),
+        Self("uk", "Ukrainian", .cyrillic),
+        Self("ar", "Arabic", .arabicScript),
+        Self("ars", "Najdi Arabic", .arabicScript),
+        Self("th", "Thai", .southeastAsian),
         // Vietnamese uses Latin script (Quốc ngữ)
-        Self(
-            code: "vi",
-            displayNameKey: "Vietnamese",
-            group: .southeastAsian,
-            isLatinScript: true,
-            isCJK: false,
-            isChinese: false
-        )
+        Self("vi", "Vietnamese", .southeastAsian, isLatinScript: true),
+        Self("id", "Indonesian", .southeastAsian, isLatinScript: true),
+        Self("ms", "Malay", .southeastAsian, isLatinScript: true),
     ]
 
     private static let languagesByGroup: [OCRLanguageGroup: [Self]] = {

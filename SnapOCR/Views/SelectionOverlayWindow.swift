@@ -13,9 +13,9 @@ struct SelectionResult: Sendable {
 }
 
 final class SelectionOverlayWindow: NSWindow {
-    private(set) var overlayView: SelectionOverlayView
-    nonisolated(unsafe) private var spaceChangeObserver: NSObjectProtocol?
-    private(set) var isDismissed = false
+    let overlayView: SelectionOverlayView
+    private var spaceChangeObserver: NSObjectProtocol?
+    private var isDismissed = false
 
     init(screen: NSScreen) {
         let screenFrame = screen.frame
@@ -46,6 +46,7 @@ final class SelectionOverlayWindow: NSWindow {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
+                // オブザーバーの解除前にキューへ積まれた通知で、閉じたウィンドウを前面へ戻さない
                 guard let self, !self.isDismissed else { return }
                 self.activateAndFocus()
                 self.overlayView.refreshCursor()
@@ -60,18 +61,20 @@ final class SelectionOverlayWindow: NSWindow {
         makeFirstResponder(overlayView)
     }
 
-    /// オーバーレイ終了時のクリーンアップ（オブザーバー解除）
-    func cleanup() {
+    /// コールバックを nil にして continuation の二重 resume を防ぐ。
+    /// selectRegion() の循環参照もここで解けるので、ウィンドウが解放される前に必ず呼ばれ、deinit での解除は要らない
+    func dismiss() {
+        isDismissed = true
+        overlayView.onSelectionCompleted = nil
+        overlayView.onSelectionCancelled = nil
+        overlayView.stopCursorTimer()
         if let observer = spaceChangeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
             spaceChangeObserver = nil
         }
-    }
-
-    deinit {
-        if let observer = spaceChangeObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(observer)
-        }
+        ignoresMouseEvents = true
+        orderOut(nil)
+        NSCursor.arrow.set()
     }
 
     override var canBecomeKey: Bool { true }
@@ -91,7 +94,6 @@ final class SelectionOverlayWindow: NSWindow {
         let globalMouse = NSEvent.mouseLocation
         let windowPoint = convertPoint(fromScreen: globalMouse)
         overlayView.mouseLocation = overlayView.convert(windowPoint, from: nil)
-        overlayView.needsDisplay = true
     }
 }
 
@@ -101,7 +103,8 @@ extension SelectionOverlayWindow {
     @MainActor
     static func selectRegion() async -> SelectionResult? {
         let mouseLocation = NSEvent.mouseLocation
-        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) })
+        // CGRect.contains は上端の maxY を含まないが、AppKit のマウス座標は画面の上端で maxY になる
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) })
             ?? NSScreen.main
             ?? NSScreen.screens.first
         else { return nil }
@@ -114,36 +117,12 @@ extension SelectionOverlayWindow {
 
         return await withCheckedContinuation { continuation in
             let window = SelectionOverlayWindow(screen: screen)
-            var resumed = false
-            var observer: NSObjectProtocol?
 
-            nonisolated(unsafe) let resume: (SelectionResult?) -> Void = { result in
-                guard !resumed else { return }
-                resumed = true
-                if let obs = observer { NotificationCenter.default.removeObserver(obs) }
-                window.isDismissed = true
-                window.overlayView.stopCursorTimer()
-                window.cleanup()
-                window.ignoresMouseEvents = true
-                window.overlayView.onSelectionCompleted = nil
-                window.overlayView.onSelectionCancelled = nil
-                window.orderOut(nil)
-                NSCursor.arrow.set()
-                continuation.resume(returning: result)
-            }
-
-            observer = NotificationCenter.default.addObserver(
-                forName: NSWindow.willCloseNotification,
-                object: window,
-                queue: .main
-            ) { _ in
-                MainActor.assumeIsolated {
-                    resume(nil)
-                }
-            }
-
+            // このウィンドウを保持するのは下のコールバックだけなので、選択が終わるまで生存させるために強参照でキャプチャする。
+            // 循環参照は dismiss() がコールバックを nil にして解く
             window.overlayView.onSelectionCompleted = { rect in
-                resume(SelectionResult(
+                window.dismiss()
+                continuation.resume(returning: SelectionResult(
                     rect: rect,
                     displayID: screenNumber,
                     screenSize: screen.frame.size,
@@ -152,7 +131,8 @@ extension SelectionOverlayWindow {
             }
 
             window.overlayView.onSelectionCancelled = {
-                resume(nil)
+                window.dismiss()
+                continuation.resume(returning: nil)
             }
 
             window.show()

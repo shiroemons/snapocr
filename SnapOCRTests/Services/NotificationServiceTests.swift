@@ -5,36 +5,33 @@ import Testing
 @Suite("NotificationService Tests")
 @MainActor
 struct NotificationServiceTests {
-    @Test func playSoundWithValidNameDoesNotCrash() {
-        NotificationService.playSound(named: "Tink")
+    private func previewBody(for text: String) -> String {
+        NotificationService.notificationBody(for: text, previewEnabled: true, bundle: .main)
     }
 
-    @Test func playSoundWithInvalidNameDoesNotCrash() {
-        NotificationService.playSound(named: "NonexistentSound")
+    @Test func bodyWithoutPreviewHidesTextAndShowsCharacterCount() throws {
+        let body = NotificationService.notificationBody(
+            for: "秘密のテキスト",
+            previewEnabled: false,
+            bundle: try localizationBundle(for: "en")
+        )
+        #expect(body == "Characters copied: 7")
     }
 
-    @Test func playSoundWithEmptyNameDoesNotCrash() {
-        // Empty name produces no NSSound — service must log and return gracefully.
-        NotificationService.playSound(named: "")
+    @Test func previewAtLimitIsShownInFull() {
+        let text = String(repeating: "あ", count: 100)
+        #expect(previewBody(for: text) == text)
     }
 
-    @Test func notifySuccessWithEmptyTextAndAllDisabled() throws {
-        let defaults = try #require(UserDefaults(suiteName: "test.notification.allDisabled.\(UUID().uuidString)"))
-        let settings = SettingsService(userDefaults: defaults)
-        settings.isNotificationCenterEnabled = false
-        settings.isCompletionSoundEnabled = false
-        settings.isToastEnabled = false
-        // All channels disabled — must complete without side effects.
-        NotificationService.notifySuccess(text: "", settings: settings)
+    @Test func previewOverLimitIsCutAtLimit() {
+        let text = String(repeating: "あ", count: 100) + "い"
+        #expect(previewBody(for: text) == String(repeating: "あ", count: 100) + "…")
     }
 
-    @Test func notifySuccessWithEmptyTextAndNotificationCenterEnabled() throws {
-        let defaults = try #require(UserDefaults(suiteName: "test.notification.centerOnly.\(UUID().uuidString)"))
-        let settings = SettingsService(userDefaults: defaults)
-        settings.isNotificationCenterEnabled = true
-        settings.isCompletionSoundEnabled = false
-        settings.isToastEnabled = false
-        // Empty text must be handled by the notification center path without crashing.
-        NotificationService.notifySuccess(text: "", settings: settings)
+    @Test func previewCountsCharactersNotCodeUnits() {
+        // 結合文字を途中で切らないよう、Character 単位で 100 文字まで残す
+        let family = "👨‍👩‍👧"
+        let text = String(repeating: family, count: 101)
+        #expect(previewBody(for: text) == String(repeating: family, count: 100) + "…")
     }
 }

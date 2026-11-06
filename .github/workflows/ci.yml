@@ -16,21 +16,22 @@ permissions:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Cache Xcode build artifacts
-        uses: irgaly/xcode-cache@v1
+        uses: irgaly/xcode-cache@4141f139f00e335c6e1031fb93e667181f86146f # v1.9.2
         with:
           key: xcode-cache-deriveddata-${{ github.workflow }}-${{ github.sha }}
           restore-keys: xcode-cache-deriveddata-${{ github.workflow }}-
           swiftpm-cache-key: xcode-cache-sourcepackages-${{ hashFiles('**/Package.resolved') }}
           swiftpm-cache-restore-keys: xcode-cache-sourcepackages-
-          delete-used-deriveddata-cache: true
 
       - name: Lint (SwiftLint)
         run: |
@@ -44,7 +45,7 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
-            -skipPackagePluginValidation \
+            -disableAutomaticPackageResolution \
             | xcbeautify --renderer github-actions
 
       - name: Build (Release)
@@ -54,7 +55,7 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
-            -skipPackagePluginValidation \
+            -disableAutomaticPackageResolution \
             | xcbeautify --renderer github-actions
 
       - name: Test
@@ -66,13 +67,13 @@ jobs:
             -destination 'platform=macOS' \
             -parallel-testing-enabled YES \
             CODE_SIGNING_ALLOWED=NO \
-            -skipPackagePluginValidation \
+            -disableAutomaticPackageResolution \
             -resultBundlePath "$RESULT_BUNDLE_PATH" \
             | xcbeautify --renderer github-actions
 
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
           path: ${{ runner.temp }}/TestResults

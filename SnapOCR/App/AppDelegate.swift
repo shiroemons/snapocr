@@ -4,35 +4,42 @@
 //
 
 import AppKit
+import Observation
 import os
-@preconcurrency import Sparkle
 import SwiftData
 import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppDelegate")
+    private static let logger = Logger(category: "AppDelegate")
+    /// テストホストとして起動されたときは、権限の要求やホットキー登録など実環境に触れる処理を行わない。
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     private var statusItem: NSStatusItem?
     let permissionService = PermissionService()
     let settingsService = SettingsService()
     let loginItemService = LoginItemService()
     private(set) lazy var updateService = UpdateService()
-    private(set) lazy var historyService = HistoryService(
-        modelContainer: Self.makeModelContainer(logger: Self.logger)
-    )
+    private(set) lazy var historyService = HistoryService(modelContainer: makeModelContainer())
+    private var isHistoryPersistent = true
 
-    private static func makeModelContainer(logger: Logger) -> ModelContainer {
-        do {
-            return try ModelContainer(for: CaptureRecord.self)
-        } catch {
-            let description = error.localizedDescription
-            logger.error("ModelContainer failed, falling back to in-memory store: \(description, privacy: .public)")
+    private func makeModelContainer() -> ModelContainer {
+        if !Self.isRunningTests {
+            do {
+                return try ModelContainer(for: CaptureRecord.self)
+            } catch {
+                let description = error.localizedDescription
+                Self.logger.error("ModelContainer failed, falling back to in-memory: \(description, privacy: .public)")
+                isHistoryPersistent = false
+            }
         }
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             return try ModelContainer(for: CaptureRecord.self, configurations: config)
         } catch {
-            logger.critical("In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.critical(
+                "In-memory ModelContainer creation failed: \(error.localizedDescription, privacy: .public)"
+            )
             // This path is not reachable in practice: an in-memory store with no
             // migration or file I/O cannot fail. If it somehow does, the process
             // cannot run without a persistence layer, so we surface a clear message.
@@ -44,31 +51,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsService: settingsService,
         historyService: historyService
     )
-    private var isTrackingActive = true
+    private var observationTasks: [Task<Void, Never>] = []
     private var panelItem: NSMenuItem?
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
     private var historyWindow: HistoryWindow?
-    private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
-            NSApplication.shared.applicationIconImage = NSImage(contentsOf: iconURL)
-        }
-        NotificationService.requestPermission()
-        permissionService.requestPermission()
+        guard !Self.isRunningTests else { return }
+
         setupMenuBar()
         viewModel.setup()
-        updateStatusItemIcon()
-        applyAppearance()
-        trackAppearanceChanges()
-        trackLanguageChanges()
-        trackPermissionChanges()
+        applyAppearance(settingsService.appearanceMode)
+        startObservingSettings()
         updateService.startUpdater()
+        reportHistoryStoreFailureIfNeeded()
 
-        if settingsService.shouldShowOnboarding {
+        // 権限が未付与なら、前回スキップしていても次回起動時に再表示する
+        if settingsService.shouldShowOnboarding || !permissionService.isScreenCapturePermitted {
             showOnboarding()
         }
+    }
+
+    /// システム設定で権限を変更して戻ってきたときに、表示を実際の状態へ合わせる。
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
+        permissionService.checkPermission()
+        loginItemService.refresh()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
+        observationTasks.forEach { $0.cancel() }
+        permissionService.stopMonitoring()
+        viewModel.teardown()
+    }
+
+    private func reportHistoryStoreFailureIfNeeded() {
+        guard !isHistoryPersistent else { return }
+        ToastWindow.showError(message: String(
+            localized: "History could not be loaded. New captures will be lost when you quit.",
+            bundle: settingsService.localizationBundle,
+            comment: "Error message when the history store cannot be opened"
+        ))
     }
 
     // MARK: - Onboarding Window
@@ -84,12 +109,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         window.present(permissionService: permissionService)
         onboardingWindow = window
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        isTrackingActive = false
-        permissionService.stopMonitoring()
-        viewModel.teardown()
     }
 
     // MARK: - Menu Bar Setup
@@ -108,18 +127,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsService: settingsService,
             historyService: historyService,
             onCapture: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.viewModel.startCapture()
             },
             onDismissMenu: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
             },
             onShowHistory: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.showHistoryWindow()
             },
             onCheckForUpdates: { [weak self] in
-                self?.statusItem?.menu?.cancelTracking()
+                self?.closeMenu()
                 self?.updateService.checkForUpdates()
             },
             onQuit: {
@@ -127,18 +146,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         let view = NSHostingView(rootView: panelView)
-        view.frame = CGRect(
-            x: 0,
-            y: 0,
-            width: 320,
-            height: view.fittingSize.height
-        )
+        fitPanelToContent(view)
         item.view = view
         menu.addItem(item)
 
         panelItem = item
         hostingView = view
         statusItem?.menu = menu
+    }
+
+    private func closeMenu() {
+        statusItem?.menu?.cancelTracking()
+    }
+
+    private func fitPanelToContent(_ view: NSView) {
+        view.frame = CGRect(x: 0, y: 0, width: MenuBarPanelView.panelWidth, height: view.fittingSize.height)
     }
 
     // MARK: - History Window
@@ -171,23 +193,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             )
         } else {
-            button.image = warningBadgedIcon
+            button.image = makeWarningBadgedIcon()
         }
     }
 
     private func makeWarningBadgedIcon() -> NSImage? {
-        guard let base = NSImage(
-            systemSymbolName: "text.viewfinder",
-            accessibilityDescription: String(
-                localized: "SnapOCR",
-                bundle: settingsService.localizationBundle,
-                comment: "Accessibility description for menu bar icon"
-            )
-        ) else { return nil }
+        guard let size = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: nil)?.size else {
+            return nil
+        }
 
-        let size = base.size
-        let composited = NSImage(size: size, flipped: false) { rect in
-            base.draw(in: rect)
+        // 描画ハンドラは任意のスレッドで呼ばれ得るので、MainActor に依存せず中で画像を作る
+        let composited = NSImage(size: size, flipped: false) { @Sendable rect in
+            // テンプレート画像を非テンプレート画像へ描くと黒のままになり、暗いメニューバーで見えない
+            let configuration = NSImage.SymbolConfiguration(paletteColors: [.labelColor])
+            NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: nil)?
+                .withSymbolConfiguration(configuration)?
+                .draw(in: rect)
 
             let dotDiameter: CGFloat = 7
             let dotRect = CGRect(
@@ -202,55 +223,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             return true
         }
-        composited.isTemplate = false
+        composited.accessibilityDescription = String(
+            localized: "SnapOCR: screen recording permission required",
+            bundle: settingsService.localizationBundle,
+            comment: "Accessibility description for menu bar icon when screen recording permission is missing"
+        )
         return composited
     }
 
-    // MARK: - Appearance
+    // MARK: - Settings Observation
 
-    private func applyAppearance() {
-        NSApplication.shared.appearance = switch settingsService.appearanceMode {
+    private func startObservingSettings() {
+        let settings = settingsService
+        let permission = permissionService
+        observationTasks = [
+            Task { [weak self] in
+                for await mode in Observations({ settings.appearanceMode }) {
+                    self?.applyAppearance(mode)
+                }
+            },
+            Task { [weak self] in
+                // アイコンの読み上げ文は言語に、形は権限の状態に依存する
+                for await _ in Observations({ (settings.appLanguage, permission.isScreenCapturePermitted) }) {
+                    self?.updateStatusItemIcon()
+                }
+            },
+        ]
+    }
+
+    private func applyAppearance(_ mode: AppearanceMode) {
+        NSApplication.shared.appearance = switch mode {
         case .system: nil
         case .light: NSAppearance(named: .aqua)
         case .dark: NSAppearance(named: .darkAqua)
-        }
-    }
-
-    private func trackAppearanceChanges() {
-        withObservationTracking {
-            _ = settingsService.appearanceMode
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.applyAppearance()
-                self.trackAppearanceChanges()
-            }
-        }
-    }
-
-    private func trackLanguageChanges() {
-        withObservationTracking {
-            _ = settingsService.appLanguage
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.updateStatusItemIcon()
-                self.trackLanguageChanges()
-            }
-        }
-    }
-
-    // MARK: - Permission Observation
-
-    private func trackPermissionChanges() {
-        withObservationTracking {
-            _ = permissionService.isScreenCapturePermitted
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self, self.isTrackingActive else { return }
-                self.updateStatusItemIcon()
-                self.trackPermissionChanges()
-            }
         }
     }
 }
@@ -259,12 +264,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
-        permissionService.requestPermissionIfNeeded()
-        updateStatusItemIcon()
+        permissionService.checkPermission()
 
         if let hostingView, let panelItem {
-            let height = hostingView.fittingSize.height
-            hostingView.frame = CGRect(x: 0, y: 0, width: 320, height: height)
+            fitPanelToContent(hostingView)
             panelItem.view = hostingView
         }
     }

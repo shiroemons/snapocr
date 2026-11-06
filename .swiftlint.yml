@@ -19,7 +19,6 @@ disabled_rules:
 
 opt_in_rules:
   - sorted_imports
-  - unused_import
   - vertical_whitespace_closing_braces
   - vertical_whitespace_opening_braces
   - empty_count
@@ -48,6 +47,9 @@ opt_in_rules:
   - toggle_bool
   - unneeded_parentheses_in_closure_argument
   - yoda_condition
+
+analyzer_rules:
+  - unused_import
 
 # Rule configurations
 line_length:

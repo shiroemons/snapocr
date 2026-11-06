@@ -60,7 +60,7 @@ struct OCRLanguageWarningsTests {
     }
 
     @Test func multipleWarningsCanCoexist() {
-        // Japanese + Chinese (CJK) + 3 Latin (Latin) + 6 total (tooMany)
+        // 日本語と中国語（cjk）、ラテン文字の 3 言語（latin）、合計 6 言語（tooMany）
         let warnings = OCRLanguageWarnings.warnings(
             for: ["ja", "zh-Hans", "en", "fr", "de", "es"]
         )

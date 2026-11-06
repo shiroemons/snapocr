@@ -3,7 +3,6 @@
 //  SnapOCR
 //
 
-import Carbon.HIToolbox
 import SwiftUI
 
 /// Step 3: ホットキーの設定
@@ -15,33 +14,16 @@ struct HotkeyStepView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: "keyboard")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 80, height: 80)
-                .foregroundStyle(Color.accentColor)
-                .accessibilityHidden(true)
-
-            VStack(spacing: 8) {
-                Text(
-                    String(localized: "Set Your Capture Hotkey", bundle: bundle, comment: "Hotkey step title")
+            OnboardingStepHeader(
+                systemImage: "keyboard",
+                title: String(localized: "Set Your Capture Hotkey", bundle: bundle, comment: "Hotkey step title"),
+                description: String(
+                    // swiftlint:disable:next line_length
+                    localized: "A global hotkey lets you start a capture from anywhere, even when SnapOCR is in the background. The default shortcut is ⌃⇧O.",
+                    bundle: bundle,
+                    comment: "Hotkey step description explaining the hotkey feature and default shortcut"
                 )
-                .font(.title2)
-                .fontWeight(.bold)
-
-                Text(
-                    String(
-                        // swiftlint:disable:next line_length
-                        localized: "A global hotkey lets you start a capture from anywhere, even when SnapOCR is in the background. The default shortcut is ⌃⇧O.",
-                        bundle: bundle,
-                        comment: "Hotkey step description explaining the hotkey feature and default shortcut"
-                    )
-                )
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            )
 
             VStack(spacing: 12) {
                 Text(
@@ -55,27 +37,14 @@ struct HotkeyStepView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
 
-                HotkeyRecorderView(
-                    settingsService: settingsService,
-                    keyCode: Binding(
-                        get: { settingsService.hotkeyKeyCode },
-                        set: { settingsService.hotkeyKeyCode = $0 }
-                    ),
-                    modifiers: Binding(
-                        get: { settingsService.hotkeyModifiers },
-                        set: { settingsService.hotkeyModifiers = $0 }
-                    )
-                )
+                HotkeyRecorderView(settingsService: settingsService)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(nsColor: .controlBackgroundColor))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
-                    )
+                    .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
             )
 
             Text(

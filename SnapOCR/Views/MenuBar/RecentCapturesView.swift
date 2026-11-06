@@ -19,51 +19,63 @@ struct RecentCapturesView: View {
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
-    @State private var copiedRecordID: PersistentIdentifier?
+    @State private var copyFeedback = CopyFeedback()
     @State private var hoveredRecordID: PersistentIdentifier?
     @State private var isHoveringShowAll = false
-    @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(
-                String(
-                    localized: "Recent Captures",
-                    bundle: bundle,
-                    comment: "Section header for recent captures"
-                )
-            )
-            .font(.caption)
-            .fontWeight(.semibold)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
+            Text(String(localized: "Recent Captures", bundle: bundle, comment: "Section header for recent captures"))
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
 
-            if historyService.recentRecords.isEmpty {
-                emptyState
+            // オフにしたのに消えていないと誤解されないよう、保存済みの履歴も出さない
+            if settingsService.isHistoryEnabled {
+                if historyService.recentRecords.isEmpty {
+                    emptyState
+                } else {
+                    recentList
+                }
+
+                showAllButton
             } else {
-                recentList
+                historyOffState
             }
-
-            showAllButton
         }
         .padding(.vertical, 4)
-        .onDisappear { hoveredRecordID = nil; isHoveringShowAll = false; copyResetTask?.cancel() }
+        .onDisappear { hoveredRecordID = nil; isHoveringShowAll = false; copyFeedback.reset() }
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
+        placeholder(
+            String(
+                localized: "No captures yet",
+                bundle: bundle,
+                comment: "Placeholder text when no capture history exists"
+            )
+        )
+    }
+
+    private var historyOffState: some View {
+        placeholder(
+            String(
+                localized: "History is turned off",
+                bundle: bundle,
+                comment: "Placeholder text in recent captures when history is disabled"
+            )
+        )
+    }
+
+    private func placeholder(_ text: String) -> some View {
         HStack {
             Spacer()
-            Text(
-                String(
-                    localized: "No captures yet",
-                    bundle: bundle,
-                    comment: "Placeholder text when no capture history exists"
-                )
-            )
-            .font(.caption)
-            .foregroundStyle(.tertiary)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
             Spacer()
         }
         .padding(.vertical, 16)
@@ -79,12 +91,12 @@ struct RecentCapturesView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(
-                            systemName: copiedRecordID == record.persistentModelID
+                            systemName: copyFeedback.copiedRecordID == record.persistentModelID
                                 ? "checkmark.circle.fill"
                                 : "doc.on.clipboard"
                         )
                         .foregroundStyle(
-                            copiedRecordID == record.persistentModelID
+                            copyFeedback.copiedRecordID == record.persistentModelID
                                 ? .green
                                 : .secondary
                         )
@@ -101,14 +113,9 @@ struct RecentCapturesView: View {
                                 alignment: .leading
                             )
 
-                        Text(
-                            record.timestamp,
-                            format: .relative(
-                                presentation: .named
-                            )
-                        )
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        RelativeTimeText(date: record.timestamp, locale: settingsService.locale)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
@@ -144,11 +151,7 @@ struct RecentCapturesView: View {
             onShowHistory()
         } label: {
             Text(
-                String(
-                    localized: "Show All History...",
-                    bundle: bundle,
-                    comment: "Button to open full history window"
-                )
+                String(localized: "Show All History...", bundle: bundle, comment: "Button to open full history window")
             )
             .underline(isHoveringShowAll)
             .font(.caption)
@@ -163,14 +166,11 @@ struct RecentCapturesView: View {
     // MARK: - Actions
 
     private func copyRecord(_ record: CaptureRecord) {
-        guard ClipboardService.copy(record.text) else { return }
-        copiedRecordID = record.persistentModelID
-        copyResetTask?.cancel()
-        copyResetTask = Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            if copiedRecordID == record.persistentModelID {
-                copiedRecordID = nil
-            }
-        }
+        let announcement = String(
+            localized: "Copied to Clipboard",
+            bundle: bundle,
+            comment: "Toast notification title when OCR text is copied to clipboard"
+        )
+        copyFeedback.copy(record, announcement: announcement)
     }
 }

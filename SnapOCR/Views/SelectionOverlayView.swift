@@ -6,7 +6,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-private enum Constants {
+nonisolated private enum Constants {
     static let backgroundAlpha: CGFloat = 0.01
     static let overlayAlpha: CGFloat = 0.3
     static let borderWidth: CGFloat = 1.0
@@ -19,6 +19,7 @@ private enum Constants {
     static let cursorCircleRadius: CGFloat = 7.0
     static let cursorDotRadius: CGFloat = 1.0
     static let cursorLineInset: CGFloat = 1.5
+    static let focusReclaimInterval: Duration = .milliseconds(250)
 }
 
 final class SelectionOverlayView: NSView {
@@ -29,21 +30,13 @@ final class SelectionOverlayView: NSView {
     private var currentRect: CGRect = .zero
     var mouseLocation: NSPoint = .zero
 
-    /// タイマーが停止済みかどうか（DispatchQueue.main.async の残存ブロック対策）
-    private var isStopped = false
-
     /// 60fps でカーソルを強制設定するタイマー
     private var cursorTimer: Timer?
+    private var lastFocusReclaim: ContinuousClock.Instant?
 
     private var cachedCursor: NSCursor?
     private var cachedMouseLocation: NSPoint = .zero
     private var cachedCurrentRect: CGRect = .zero
-
-    private static let numberFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter
-    }()
 
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -81,19 +74,10 @@ final class SelectionOverlayView: NSView {
         }
 
         let (line1, line2) = cursorLabelLines()
-        let font = NSFont.monospacedDigitSystemFont(ofSize: Constants.labelFontSize, weight: .bold)
-        let fillAttributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.black]
-        let outlineAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.white,
-            .strokeColor: NSColor.white,
-            .strokeWidth: NSNumber(value: -4.0)
-        ]
-
-        let str1 = NSAttributedString(string: line1, attributes: fillAttributes)
-        let str2 = NSAttributedString(string: line2, attributes: fillAttributes)
-        let textHeight = str1.size().height
-        let maxTextWidth = max(str1.size().width, str2.size().width)
+        let size1 = Self.labelString(line1, outlined: false).size()
+        let size2 = Self.labelString(line2, outlined: false).size()
+        let textHeight = size1.height
+        let maxTextWidth = max(size1.width, size2.width)
 
         let crossSize = Constants.cursorSize
         let halfCross = crossSize / 2
@@ -102,18 +86,21 @@ final class SelectionOverlayView: NSView {
         let imageHeight = crossSize + textOffset + textHeight * 2
         let crossCenterX = halfCross
         let crossCenterY = imageHeight - halfCross
+        let textX = crossCenterX + Constants.cursorCircleRadius + 2
+        let text1Y = crossCenterY - textOffset - textHeight
+        let text2Y = text1Y - textHeight
 
-        let image = NSImage(size: NSSize(width: imageWidth, height: imageHeight))
-        image.lockFocus()
-        drawCrosshairSymbol(centerX: crossCenterX, centerY: crossCenterY, halfSize: halfCross)
-        let labelContext = CursorLabelContext(
-            line1: line1, line2: line2,
-            str1: str1, str2: str2,
-            outlineAttributes: outlineAttributes,
-            textOffset: textOffset, textHeight: textHeight
-        )
-        drawCursorLabels(context: labelContext, centerX: crossCenterX, centerY: crossCenterY)
-        image.unlockFocus()
+        // NSImage の描画ハンドラは任意のタイミングとスレッドで呼ばれ得る（NSImage.h）。
+        // MainActor の分離を前提にしないよう @Sendable で非分離にし、作成時点の値だけを使う
+        let imageSize = NSSize(width: imageWidth, height: imageHeight)
+        let image = NSImage(size: imageSize, flipped: false) { @Sendable _ in
+            Self.drawCrosshairSymbol(centerX: crossCenterX, centerY: crossCenterY, halfSize: halfCross)
+            for outlined in [true, false] {
+                Self.labelString(line1, outlined: outlined).draw(at: NSPoint(x: textX, y: text1Y))
+                Self.labelString(line2, outlined: outlined).draw(at: NSPoint(x: textX, y: text2Y))
+            }
+            return true
+        }
 
         cachedMouseLocation = mouseLocation
         cachedCurrentRect = currentRect
@@ -124,26 +111,27 @@ final class SelectionOverlayView: NSView {
 
     /// Returns (line1, line2) label strings — coordinates when idle, dimensions when dragging.
     private func cursorLabelLines() -> (String, String) {
-        let formatter = Self.numberFormatter
-        if currentRect.isEmpty {
-            let screenX = Int(mouseLocation.x)
-            let screenY = Int(bounds.height - mouseLocation.y)
-            return (
-                formatter.string(from: NSNumber(value: screenX)) ?? "\(screenX)",
-                formatter.string(from: NSNumber(value: screenY)) ?? "\(screenY)"
-            )
-        } else {
-            let width = Int(currentRect.width)
-            let height = Int(currentRect.height)
-            return (
-                formatter.string(from: NSNumber(value: width)) ?? "\(width)",
-                formatter.string(from: NSNumber(value: height)) ?? "\(height)"
-            )
-        }
+        let (first, second) = currentRect.isEmpty
+            ? (Int(mouseLocation.x), Int(bounds.height - mouseLocation.y))
+            : (Int(currentRect.width), Int(currentRect.height))
+        return (first.formatted(.number), second.formatted(.number))
+    }
+
+    nonisolated private static func labelString(_ text: String, outlined: Bool) -> NSAttributedString {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: Constants.labelFontSize, weight: .bold)
+        let attributes: [NSAttributedString.Key: Any] = outlined
+            ? [
+                .font: font,
+                .foregroundColor: NSColor.white,
+                .strokeColor: NSColor.white,
+                .strokeWidth: NSNumber(value: -4.0)
+            ]
+            : [.font: font, .foregroundColor: NSColor.black]
+        return NSAttributedString(string: text, attributes: attributes)
     }
 
     /// Draws the grey outline, black crosshair lines, circle ring, and centre dot.
-    private func drawCrosshairSymbol(centerX: CGFloat, centerY: CGFloat, halfSize: CGFloat) {
+    nonisolated private static func drawCrosshairSymbol(centerX: CGFloat, centerY: CGFloat, halfSize: CGFloat) {
         let inset = Constants.cursorLineInset
         let circleRadius = Constants.cursorCircleRadius
 
@@ -186,30 +174,6 @@ final class SelectionOverlayView: NSView {
         )).fill()
     }
 
-    private struct CursorLabelContext {
-        let line1: String
-        let line2: String
-        let str1: NSAttributedString
-        let str2: NSAttributedString
-        let outlineAttributes: [NSAttributedString.Key: Any]
-        let textOffset: CGFloat
-        let textHeight: CGFloat
-    }
-
-    /// Draws the two coordinate/size label strings with outline and fill passes.
-    private func drawCursorLabels(context: CursorLabelContext, centerX: CGFloat, centerY: CGFloat) {
-        let textX = centerX + Constants.cursorCircleRadius + 2
-        let text1Y = centerY - context.textOffset - context.textHeight
-        let text2Y = text1Y - context.textHeight
-
-        NSAttributedString(string: context.line1, attributes: context.outlineAttributes)
-            .draw(at: NSPoint(x: textX, y: text1Y))
-        NSAttributedString(string: context.line2, attributes: context.outlineAttributes)
-            .draw(at: NSPoint(x: textX, y: text2Y))
-        context.str1.draw(at: NSPoint(x: textX, y: text1Y))
-        context.str2.draw(at: NSPoint(x: textX, y: text2Y))
-    }
-
     // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
@@ -222,14 +186,14 @@ final class SelectionOverlayView: NSView {
         guard let start = startPoint else { return }
         let current = convert(event.locationInWindow, from: nil)
         mouseLocation = current
-        currentRect = makeRect(from: start, to: current)
+        currentRect = Self.selectionRect(from: start, to: current, in: bounds)
         needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
         guard let start = startPoint else { return }
         let end = convert(event.locationInWindow, from: nil)
-        let selectionRect = makeRect(from: start, to: end)
+        let selectionRect = Self.selectionRect(from: start, to: end, in: bounds)
 
         startPoint = nil
         currentRect = .zero
@@ -266,35 +230,32 @@ final class SelectionOverlayView: NSView {
             userInfo: nil
         )
         addTrackingArea(area)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stopCursorTimer()
+        guard window != nil else { return }
 
         // .common モードで登録し、スペース遷移アニメーション中もタイマーが発火するようにする
-        if window != nil, !isStopped {
-            cursorTimer?.invalidate()
-            let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self, !self.isStopped,
-                          let win = self.window as? SelectionOverlayWindow,
-                          !win.isDismissed else { return }
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, let win = self.window as? SelectionOverlayWindow else { return }
 
-                    if !win.isKeyWindow {
-                        win.activateAndFocus()
-                    }
+                self.reclaimFocusIfNeeded(of: win)
 
-                    let windowPoint = win.convertPoint(fromScreen: NSEvent.mouseLocation)
-                    self.mouseLocation = self.convert(windowPoint, from: nil)
-                    self.makeCursorWithLabel().set()
-                    self.needsDisplay = true
-                }
+                let windowPoint = win.convertPoint(fromScreen: NSEvent.mouseLocation)
+                self.mouseLocation = self.convert(windowPoint, from: nil)
+                self.makeCursorWithLabel().set()
             }
-            RunLoop.main.add(timer, forMode: .common)
-            cursorTimer = timer
         }
+        RunLoop.main.add(timer, forMode: .common)
+        cursorTimer = timer
     }
 
     override func mouseMoved(with event: NSEvent) {
         mouseLocation = convert(event.locationInWindow, from: nil)
         makeCursorWithLabel().set()
-        needsDisplay = true
     }
 
     func refreshCursor() {
@@ -302,18 +263,31 @@ final class SelectionOverlayView: NSView {
     }
 
     func stopCursorTimer() {
-        isStopped = true
         cursorTimer?.invalidate()
         cursorTimer = nil
     }
 
-    // MARK: - Private Helpers
+    /// Esc を受け取るためキーウィンドウは取り戻すが、システムのダイアログと奪い合わないよう頻度を抑える
+    private func reclaimFocusIfNeeded(of overlayWindow: SelectionOverlayWindow) {
+        guard !overlayWindow.isKeyWindow else { return }
 
-    private func makeRect(from pointA: NSPoint, to pointB: NSPoint) -> CGRect {
-        let minX = min(pointA.x, pointB.x)
-        let minY = min(pointA.y, pointB.y)
-        let width = abs(pointB.x - pointA.x)
-        let height = abs(pointB.y - pointA.y)
-        return CGRect(x: minX, y: minY, width: width, height: height)
+        let now = ContinuousClock.now
+        if let last = lastFocusReclaim, last.duration(to: now) < Constants.focusReclaimInterval {
+            return
+        }
+        lastFocusReclaim = now
+        overlayWindow.activateAndFocus()
+    }
+
+    // MARK: - Geometry
+
+    /// 複数ディスプレイではドラッグが画面外へ出て座標が `bounds` の外になるため、選択範囲を `bounds` に切り詰める
+    nonisolated static func selectionRect(from start: CGPoint, to end: CGPoint, in bounds: CGRect) -> CGRect {
+        CGRect(
+            x: min(start.x, end.x),
+            y: min(start.y, end.y),
+            width: abs(end.x - start.x),
+            height: abs(end.y - start.y)
+        ).intersection(bounds)
     }
 }

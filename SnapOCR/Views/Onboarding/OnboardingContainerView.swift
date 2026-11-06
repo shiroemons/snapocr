@@ -12,24 +12,13 @@ private enum Constants {
 /// オンボーディングウィザードのコンテナ。ステップナビゲーションと各ステップ View を管理する。
 @MainActor
 struct OnboardingContainerView: View {
-    private let settingsService: SettingsService
-    private let permissionService: PermissionService
-    private let onComplete: (() -> Void)?
+    let settingsService: SettingsService
+    let permissionService: PermissionService
+    let onComplete: () -> Void
 
     private var bundle: Bundle { settingsService.localizationBundle }
 
     @State private var currentStep = 1
-    @State private var canProceedFromStep2 = false
-
-    init(
-        settingsService: SettingsService,
-        permissionService: PermissionService,
-        onComplete: (() -> Void)? = nil
-    ) {
-        self.settingsService = settingsService
-        self.permissionService = permissionService
-        self.onComplete = onComplete
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,8 +66,7 @@ struct OnboardingContainerView: View {
         case 2:
             PermissionStepView(
                 permissionService: permissionService,
-                settingsService: settingsService,
-                canProceed: $canProceedFromStep2
+                settingsService: settingsService
             )
         case 3:
             HotkeyStepView(settingsService: settingsService)
@@ -103,22 +91,17 @@ struct OnboardingContainerView: View {
             HStack {
                 backButton
                 Spacer()
-                Button(
-                    String(localized: "Skip", bundle: bundle, comment: "Button to skip the current onboarding step")
-                ) {
-                    advance()
+                if !permissionService.isScreenCapturePermitted {
+                    Button(
+                        String(localized: "Skip", bundle: bundle, comment: "Button to skip the current onboarding step")
+                    ) {
+                        advance()
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .accessibilityLabel(
-                    String(
-                        localized: "Skip this step",
-                        bundle: bundle,
-                        comment: "Accessibility label for the button that skips the current onboarding step"
-                    )
-                )
                 nextButton
-                    .disabled(!canProceedFromStep2)
+                    .disabled(!permissionService.isScreenCapturePermitted)
             }
         case 3:
             HStack {
@@ -136,15 +119,18 @@ struct OnboardingContainerView: View {
                         comment: "Button to finish onboarding and start using the app"
                     )
                 ) {
-                    onComplete?()
+                    // × で閉じた場合は未完了のまま次回起動時に再表示するので、完了はここでだけ記録する
+                    settingsService.hasCompletedOnboarding = true
+                    onComplete()
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .accessibilityLabel(
+                .keyboardShortcut(.defaultAction)
+                .accessibilityHint(
                     String(
                         localized: "Finish setup and start using SnapOCR",
                         bundle: bundle,
-                        comment: "Accessibility label for the button that completes onboarding"
+                        comment: "Accessibility hint for the button that completes onboarding"
                     )
                 )
             }
@@ -158,14 +144,7 @@ struct OnboardingContainerView: View {
             advance()
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.regular)
-        .accessibilityLabel(
-            String(
-                localized: "Next step",
-                bundle: bundle,
-                comment: "Accessibility label for the button that advances to the next onboarding step"
-            )
-        )
+        .keyboardShortcut(.defaultAction)
     }
 
     private var backButton: some View {
@@ -175,14 +154,6 @@ struct OnboardingContainerView: View {
             retreat()
         }
         .buttonStyle(.bordered)
-        .controlSize(.regular)
-        .accessibilityLabel(
-            String(
-                localized: "Previous step",
-                bundle: bundle,
-                comment: "Accessibility label for the button that returns to the previous onboarding step"
-            )
-        )
     }
 
     // MARK: - Navigation Helpers

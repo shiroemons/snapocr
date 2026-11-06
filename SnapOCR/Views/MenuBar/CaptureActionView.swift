@@ -22,6 +22,7 @@ struct CaptureActionView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "camera.viewfinder")
                         .font(.body)
+                        .accessibilityHidden(true)
                     Text(String(localized: "Capture Text", bundle: bundle, comment: "Main capture button label"))
                         .font(.body)
                         .fontWeight(.medium)
@@ -32,17 +33,10 @@ struct CaptureActionView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(!isPermissionGranted)
-            .accessibilityLabel(
-                String(
-                    localized: "Capture screen text",
-                    bundle: bundle,
-                    comment: "Accessibility label for capture button"
-                )
-            )
             .accessibilityHint(
                 isPermissionGranted
                     ? String(
-                        localized: "Double-click to start text capture",
+                        localized: "Starts text capture",
                         bundle: bundle,
                         comment: "Accessibility hint for capture button when enabled"
                     )
@@ -60,7 +54,6 @@ struct CaptureActionView: View {
             ))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
