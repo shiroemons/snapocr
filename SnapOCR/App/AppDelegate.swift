@@ -51,7 +51,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hostingView: NSHostingView<MenuBarPanelView>?
     private var onboardingWindow: OnboardingWindow?
     private var historyWindow: HistoryWindow?
-    private lazy var warningBadgedIcon: NSImage? = makeWarningBadgedIcon()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns") {
@@ -183,23 +182,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             )
         } else {
-            button.image = warningBadgedIcon
+            button.image = makeWarningBadgedIcon()
         }
     }
 
     private func makeWarningBadgedIcon() -> NSImage? {
-        guard let base = NSImage(
-            systemSymbolName: "text.viewfinder",
-            accessibilityDescription: String(
-                localized: "SnapOCR",
-                bundle: settingsService.localizationBundle,
-                comment: "Accessibility description for menu bar icon"
-            )
-        ) else { return nil }
+        guard let size = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: nil)?.size else {
+            return nil
+        }
 
-        let size = base.size
-        let composited = NSImage(size: size, flipped: false) { rect in
-            base.draw(in: rect)
+        // 描画ハンドラは任意のスレッドで呼ばれ得るので、MainActor に依存せず中で画像を作る
+        let composited = NSImage(size: size, flipped: false) { @Sendable rect in
+            // テンプレート画像を非テンプレート画像へ描くと黒のままになり、暗いメニューバーで見えない
+            let configuration = NSImage.SymbolConfiguration(paletteColors: [.labelColor])
+            NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: nil)?
+                .withSymbolConfiguration(configuration)?
+                .draw(in: rect)
 
             let dotDiameter: CGFloat = 7
             let dotRect = CGRect(
@@ -214,7 +212,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             return true
         }
-        composited.isTemplate = false
+        composited.accessibilityDescription = String(
+            localized: "SnapOCR: screen recording permission required",
+            bundle: settingsService.localizationBundle,
+            comment: "Accessibility description for menu bar icon when screen recording permission is missing"
+        )
         return composited
     }
 
