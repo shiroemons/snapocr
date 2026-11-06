@@ -8,7 +8,7 @@ private let globalHotkeyCallbackStorage = Mutex<(@Sendable () -> Void)?>(nil)
 
 @MainActor
 final class HotkeyService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "HotkeyService")
+    private static let logger = Logger(category: "HotkeyService")
 
     var onHotkeyPressed: (@MainActor @Sendable () -> Void)?
 

@@ -3,7 +3,7 @@ import os
 @preconcurrency import ScreenCaptureKit
 
 enum CaptureService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "CaptureService")
+    private static let logger = Logger(category: "CaptureService")
 
     static func captureRegion(
         _ rect: CGRect,

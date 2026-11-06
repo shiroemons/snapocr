@@ -3,7 +3,7 @@ import os
 import VisionKit
 
 enum OCRService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "OCRService")
+    private static let logger = Logger(category: "OCRService")
     /// Shared analyzer instance reused across requests to avoid repeated initialization cost.
     /// ImageAnalyzer is documented as safe to reuse across multiple analysis calls.
     private static let analyzer = ImageAnalyzer()

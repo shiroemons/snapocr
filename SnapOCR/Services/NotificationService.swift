@@ -11,7 +11,7 @@ import UserNotifications
 /// 設定に応じて通知センター・完了音・トーストの3種類の通知を発火する。
 enum NotificationService {
     private static let notificationCategoryID = "com.shiroemons.snapocr.ocrComplete"
-    nonisolated private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "NotificationService")
+    nonisolated private static let logger = Logger(category: "NotificationService")
 
     // MARK: - Permission
 

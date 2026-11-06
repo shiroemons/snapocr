@@ -8,7 +8,7 @@ import ServiceManagement
 
 @MainActor
 final class LoginItemService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "LoginItemService")
+    private static let logger = Logger(category: "LoginItemService")
 
     var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled

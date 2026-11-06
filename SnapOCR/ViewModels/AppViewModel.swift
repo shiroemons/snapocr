@@ -10,7 +10,7 @@ import os
 @Observable
 @MainActor
 final class AppViewModel {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppViewModel")
+    private static let logger = Logger(category: "AppViewModel")
     private let permissionService: PermissionService
     private let hotkeyService: HotkeyService
     private let settingsService: SettingsService

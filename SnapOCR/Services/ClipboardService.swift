@@ -2,7 +2,7 @@ import AppKit
 import os
 
 enum ClipboardService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "ClipboardService")
+    private static let logger = Logger(category: "ClipboardService")
 
     @MainActor
     static func copy(_ text: String) -> Bool {

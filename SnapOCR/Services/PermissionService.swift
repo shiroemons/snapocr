@@ -5,7 +5,7 @@ import os
 @Observable
 @MainActor
 final class PermissionService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "PermissionService")
+    private static let logger = Logger(category: "PermissionService")
 
     private(set) var isScreenCapturePermitted = false
     private var monitorTimer: Timer?

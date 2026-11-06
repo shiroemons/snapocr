@@ -11,7 +11,7 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "AppDelegate")
+    private static let logger = Logger(category: "AppDelegate")
     private var statusItem: NSStatusItem?
     let permissionService = PermissionService()
     let settingsService = SettingsService()

@@ -8,7 +8,7 @@ import os
 
 @MainActor
 final class UpdateService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "UpdateService")
+    private static let logger = Logger(category: "UpdateService")
 
     private let updaterController: SPUStandardUpdaterController
 

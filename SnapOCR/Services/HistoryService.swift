@@ -13,7 +13,7 @@ import SwiftData
 @Observable
 @MainActor
 final class HistoryService {
-    private static let logger = Logger(subsystem: "com.shiroemons.snapocr", category: "HistoryService")
+    private static let logger = Logger(category: "HistoryService")
     static let recentRecordsLimit = 5
 
     /// Retained to prevent deallocation; ModelContext does not strongly reference its container.
