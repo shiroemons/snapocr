@@ -12,6 +12,8 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let logger = Logger(category: "AppDelegate")
+    /// テストホストとして起動されたときは、権限の要求やホットキー登録など実環境に触れる処理を行わない。
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     private var statusItem: NSStatusItem?
     let permissionService = PermissionService()
@@ -22,12 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isHistoryPersistent = true
 
     private func makeModelContainer() -> ModelContainer {
-        do {
-            return try ModelContainer(for: CaptureRecord.self)
-        } catch {
-            let description = error.localizedDescription
-            Self.logger.error("ModelContainer failed, falling back to in-memory: \(description, privacy: .public)")
-            isHistoryPersistent = false
+        if !Self.isRunningTests {
+            do {
+                return try ModelContainer(for: CaptureRecord.self)
+            } catch {
+                let description = error.localizedDescription
+                Self.logger.error("ModelContainer failed, falling back to in-memory: \(description, privacy: .public)")
+                isHistoryPersistent = false
+            }
         }
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -54,6 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var historyWindow: HistoryWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
+
         setupMenuBar()
         viewModel.setup()
         applyAppearance(settingsService.appearanceMode)
@@ -69,11 +75,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// システム設定で権限を変更して戻ってきたときに、表示を実際の状態へ合わせる。
     func applicationDidBecomeActive(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
         permissionService.checkPermission()
         loginItemService.refresh()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
         observationTasks.forEach { $0.cancel() }
         permissionService.stopMonitoring()
         viewModel.teardown()
